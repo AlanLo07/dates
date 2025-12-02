@@ -15,13 +15,17 @@ class _InputScreenState extends State<InputScreen> {
   // Variables de estado para los filtros seleccionados
   String? _selectedCategory;
   String? _selectedBudget;
-  int _selectedTime = 2; // Valor por defecto en horas
+  double _selectedTimeHours = 2.0; // Valor por defecto en horas
+  final double maxDailyTime = 2.0;
+  final double maxTotalTime = 200.0;
 
   // Lista de opciones para los Dropdowns
   final List<String> categories = [
     'Romántico',
     'Aventura',
     'Relajante',
+    'Compras',
+    'Comida',
     'Cualquiera',
   ];
   final List<String> budgets = ['Bajo', 'Medio', 'Alto', 'Cualquiera'];
@@ -41,9 +45,9 @@ class _InputScreenState extends State<InputScreen> {
 
       // Si el tiempo de la cita es menor o igual al tiempo máximo seleccionado.
       // Asumiremos un tiempo máximo de 5 horas si no se implementa un selector de tiempo específico
-      bool cumpleTiempo =
-          cita.tiempo <=
-          5; // Placeholder: Ajustar si añades un control deslizante de tiempo.
+      // Criterio de Tiempo (¡ACTUALIZADO!)
+      // El tiempo de la cita debe ser menor o igual al tiempo máximo seleccionado por el Slider.
+      bool cumpleTiempo = cita.tiempo <= _selectedTimeHours;
 
       return cumpleCategoria && cumplePresupuesto && cumpleTiempo;
     }).toList();
@@ -106,6 +110,28 @@ class _InputScreenState extends State<InputScreen> {
                   _selectedBudget = value;
                 });
               },
+            ),
+            const SizedBox(height: 30),
+
+            // --- Control Deslizante de Tiempo ---
+            Text(
+              'Tiempo Máximo: ${_selectedTimeHours.round()} horas',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Slider(
+              value: _selectedTimeHours,
+              // Establecer límites: 1 hora mínima, 8 horas máxima para planes rápidos
+              // Puedes usar maxTotalTime si quieres incluir "Playa" y "Otro País"
+              min: 1,
+              max: maxTotalTime, // O maxDailyTime (8.0)
+              divisions: (maxTotalTime - 1).toInt(), // Divisiones por hora
+              label: '${_selectedTimeHours.round()} horas',
+              onChanged: (double value) {
+                setState(() {
+                  _selectedTimeHours = value;
+                });
+              },
+              activeColor: Colors.pink,
             ),
             const SizedBox(height: 30),
 
