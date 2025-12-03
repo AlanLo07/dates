@@ -5,6 +5,7 @@ class Cita {
   final String presupuesto; // Ejemplo: 'Bajo', 'Medio', 'Alto'
   final int tiempo; // Tiempo estimado en horas
   final String link; // Enlace a Google Maps o a una web
+  final String imagenUrl;
 
   Cita({
     required this.nombre,
@@ -13,5 +14,6 @@ class Cita {
     required this.presupuesto,
     required this.tiempo,
     required this.link,
+    this.imagenUrl = '',
   });
 }

@@ -8,6 +8,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Bajo',
     tiempo: 2,
     link: "https://maps.app.goo.gl/cC3ZoLQprBfMLMa58",
+    imagenUrl:
+        "https://lottie.host/2f166341-9f39-4a38-bb16-d72bf8ce306d/eEDPwlo7vL.json",
   ),
   Cita(
     nombre: "Hacer el delicioso",

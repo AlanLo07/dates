@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart'; // Para abrir enlaces
 import '../models/cita.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Importar
+import 'package:lottie/lottie.dart'; // Importar
 
 class ResultScreen extends StatelessWidget {
   final Cita cita;
@@ -15,6 +17,37 @@ class ResultScreen extends StatelessWidget {
     if (!await launchUrl(uri)) {
       throw Exception('No se pudo abrir el enlace $url');
     }
+  }
+
+  Widget _buildMediaWidget() {
+    if (cita.imagenUrl.isEmpty) {
+      // Si no hay URL, muestra un icono por defecto
+      return const Icon(Icons.favorite_border, size: 80, color: Colors.pink);
+    }
+
+    // Si es un archivo Lottie (JSON)
+    if (cita.imagenUrl.endsWith('.json')) {
+      return Lottie.network(
+        cita.imagenUrl,
+        width: 250,
+        height: 250,
+        repeat: true,
+      );
+    }
+
+    // Si es una imagen estática (JPG, PNG)
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20.0),
+      child: CachedNetworkImage(
+        imageUrl: cita.imagenUrl,
+        width: 250,
+        height: 250,
+        fit: BoxFit.cover,
+        placeholder: (context, url) =>
+            const Center(child: CircularProgressIndicator()),
+        errorWidget: (context, url, error) => const Icon(Icons.error),
+      ),
+    );
   }
 
   @override
@@ -31,7 +64,7 @@ class ResultScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const Icon(Icons.star, size: 80, color: Colors.amber),
+              _buildMediaWidget(),
               const SizedBox(height: 20),
 
               Text(
