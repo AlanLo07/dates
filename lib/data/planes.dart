@@ -1,12 +1,14 @@
 import '../models/cita.dart';
 
+// Anotar mas planes relajantes, compras
+
 final List<Cita> planesDisponibles = [
   Cita(
     nombre: "Ir por un chocolate",
     descripcion: "Salir por un chocolate caliente o dulce",
     categoria: 'Comida',
     presupuesto: 'Bajo',
-    tiempo: 2,
+    tiempo: 1,
     link: "https://maps.app.goo.gl/cC3ZoLQprBfMLMa58",
     imagenUrl:
         "https://lottie.host/2f166341-9f39-4a38-bb16-d72bf8ce306d/eEDPwlo7vL.json",
@@ -18,6 +20,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Medio',
     tiempo: 4,
     link: "https://maps.app.goo.gl/rVGTsucehscifSCfA",
+    imagenUrl: "assets/making-love.png",
   ),
   Cita(
     nombre: "Lo que tu quieras",
@@ -26,6 +29,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Bajo',
     tiempo: 2,
     link: "https://www.google.com.mx/maps",
+    imagenUrl:
+        "https://lottie.host/3662bba6-f3d2-4d52-89c4-7208768872bf/Fcbe7UfRm1.json",
   ),
   Cita(
     nombre: "Malteadas",
@@ -34,6 +39,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Medio",
     tiempo: 3,
     link: "https://maps.app.goo.gl/h4DQgtf8JPD8QcY46",
+    imagenUrl:
+        "https://lottie.host/537c3a92-0d85-4280-96dd-7fd66a352d96/6hWwBIIDBS.json",
   ),
   Cita(
     nombre: "Comprar ropa",
@@ -42,6 +49,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Alto",
     tiempo: 5,
     link: "https://maps.app.goo.gl/H7yG3CnSpaTnzLaV9",
+    imagenUrl:
+        "https://lottie.host/4e802544-5f1a-4bdb-8bb4-1fc738e8b6f2/KSEA1qk55g.json",
   ),
   Cita(
     nombre: "Pizzas",
@@ -49,7 +58,10 @@ final List<Cita> planesDisponibles = [
     categoria: "Comida",
     presupuesto: "Medio",
     tiempo: 3,
-    link: "https://maps.app.goo.gl/nH9S3SE9mRbwn9e46",
+    link:
+        "https://lottie.host/41566a7d-0efd-4fa2-8a77-f9f3156ed0e6/8ruy8ZEJrX.json",
+    imagenUrl:
+        "https://lottie.host/41566a7d-0efd-4fa2-8a77-f9f3156ed0e6/8ruy8ZEJrX.json",
   ),
   Cita(
     nombre: "Hamburguesas",
@@ -58,6 +70,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Medio",
     tiempo: 3,
     link: "https://maps.app.goo.gl/q5d26bBbJwDCuLrd6",
+    imagenUrl:
+        "https://lottie.host/c20ac2af-c12d-4ac1-a0a5-5f12f16e8074/BgwrBGtLPk.json",
   ),
   Cita(
     nombre: "Helado",
@@ -65,7 +79,9 @@ final List<Cita> planesDisponibles = [
     categoria: "Comida",
     presupuesto: "Bajo",
     tiempo: 2,
-    link: "https://maps.app.goo.gl/gpCwKTNV12R9cjVr5",
+    link: "https://maps.app.goo.gl/zAwBoodZX8wicZFw7",
+    imagenUrl:
+        "https://lottie.host/161b5858-09cc-4fde-94c8-f91018e82f28/x0sdViZl1x.json",
   ),
   Cita(
     nombre: "Tacos",
@@ -74,6 +90,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Medio",
     tiempo: 3,
     link: "https://maps.app.goo.gl/gaRLMRg1EfQ31XBV8",
+    imagenUrl:
+        "https://lottie.host/39f15c00-55e4-4997-a4bf-9215b2a54930/PilhiZCtJi.json",
   ),
   Cita(
     nombre: "Cocinar",
@@ -82,6 +100,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Medio",
     tiempo: 5,
     link: "https://maps.app.goo.gl/Mb9KfBbKA7CmxzEV7",
+    imagenUrl:
+        "https://lottie.host/1137405f-0177-4c5b-985b-7ea6b28c7903/7tmfbAZQmQ.json",
   ),
   Cita(
     nombre: "Peliculas",
@@ -90,6 +110,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Bajo",
     tiempo: 2,
     link: "https://www.netflix.com/browse",
+    imagenUrl:
+        "https://lottie.host/fde030f1-5a0a-43b0-9ddd-37ad9f82deae/Q2JdnTG3aq.json",
   ),
   Cita(
     nombre: "Charla en el coche",
@@ -98,6 +120,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Bajo",
     tiempo: 2,
     link: "https://open.spotify.com/intl-es/",
+    imagenUrl:
+        "https://lottie.host/d8c00199-7ba7-4ec8-af0c-59dee6c5ba42/p6B72XyHMa.json",
   ),
   Cita(
     nombre: "Ida a museo",
@@ -106,6 +130,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Bajo",
     tiempo: 6,
     link: "https://www.google.com.mx/maps/search/Museos",
+    imagenUrl: "assets/museum.png",
   ),
   Cita(
     nombre: "Masaje",
@@ -114,6 +139,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Bajo",
     tiempo: 2,
     link: "https://maps.app.goo.gl/rVGTsucehscifSCfA",
+    imagenUrl: "assets/massage.png",
   ),
   Cita(
     nombre: "Peliculas",
@@ -122,6 +148,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Medio",
     tiempo: 2,
     link: "https://maps.app.goo.gl/vpjXvdFhvNb7AC2p7",
+    imagenUrl:
+        "https://lottie.host/fde030f1-5a0a-43b0-9ddd-37ad9f82deae/Q2JdnTG3aq.json",
   ),
   Cita(
     nombre: "Juegos de mesa",
@@ -130,6 +158,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Medio",
     tiempo: 4,
     link: "https://maps.app.goo.gl/ifHyS8wteXpqBK9B7",
+    imagenUrl: "assets/board-game.png",
   ),
   Cita(
     nombre: "Pueblear",
@@ -138,6 +167,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Alto",
     tiempo: 48,
     link: "https://www.google.com.mx/maps",
+    imagenUrl: "assets/village.png",
   ),
   Cita(
     nombre: "Playa",
@@ -146,6 +176,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Alto",
     tiempo: 100,
     link: "https://www.google.com.mx/maps",
+    imagenUrl: "assets/summer-holidays.png",
   ),
   Cita(
     nombre: "Otro Pais",
@@ -154,6 +185,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Alto",
     tiempo: 200,
     link: "https://www.google.com.mx/maps",
+    imagenUrl: "assets/countries.png",
   ),
   Cita(
     nombre: "Salida a Chapultepec",
@@ -163,6 +195,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Bajo",
     tiempo: 6,
     link: "https://maps.app.goo.gl/8J727aSiepsJQnkK7",
+    imagenUrl: "assets/chapultepec.png",
   ),
   Cita(
     nombre: "Salida a Patinar",
@@ -171,6 +204,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Bajo",
     tiempo: 4,
     link: "https://maps.app.goo.gl/uUf4bei4x8RwLmZh6",
+    imagenUrl:
+        "https://lottie.host/1eebf5f1-1c13-4111-af74-c9232801fc97/2Cgdv5aiqn.json",
   ),
   Cita(
     nombre: "Compra inecesaria",
@@ -179,6 +214,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Alto",
     tiempo: 4,
     link: "https://maps.app.goo.gl/YKTQKzyNt88ys1QH8",
+    imagenUrl: "assets/surprise.png",
   ),
   Cita(
     nombre: "Compremos boletos para un concierto",
@@ -187,23 +223,26 @@ final List<Cita> planesDisponibles = [
     presupuesto: "Alto",
     tiempo: 24,
     link: "https://www.ticketmaster.com.mx/",
+    imagenUrl: "assets/concert.png",
   ),
   Cita(
-    nombre: "Museo Soumaya (Gratis)",
+    nombre: "Museo Soumaya",
     descripcion: "Vamos al museo Soumaya a ver que expo hay",
     categoria: 'Aventura',
     presupuesto: 'Bajo',
     tiempo: 3,
     link: "https://www.google.com/maps/search/Museo+Soumaya",
+    imagenUrl: "assets/museum.png",
   ),
   Cita(
-    nombre: "Museo del Estanquillo + Terraza",
+    nombre: "Museo del Estanquillo",
     descripcion:
         "Exploremos el museo de Carlos Monsiváis y subamos a la terraza a tomar algo con vista al Centro Histórico. (Sabra Dios donde quede)",
     categoria: 'Romántico',
     presupuesto: 'Medio',
     tiempo: 4,
     link: "https://www.google.com/maps/search/Museo+del+Estanquillo",
+    imagenUrl: "assets/museum.png",
   ),
   Cita(
     nombre: "Palacio de Bellas Artes",
@@ -212,6 +251,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Bajo',
     tiempo: 2,
     link: "https://www.google.com/maps/search/Palacio+de+Bellas+Artes",
+    imagenUrl: "assets/museum.png",
   ),
   Cita(
     nombre: "Museo del Axolotl (Anfibio)",
@@ -220,6 +260,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Bajo',
     tiempo: 3,
     link: "https://www.google.com/maps/search/Museo+del+Axolotl+Chapultepec",
+    imagenUrl: "assets/museum.png",
   ),
   Cita(
     nombre: "Jardín Botánico de la UNAM",
@@ -228,6 +269,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Bajo',
     tiempo: 2,
     link: "https://www.google.com/maps/search/Jardín+Botánico+UNAM",
+    imagenUrl: "assets/park.png",
   ),
   Cita(
     nombre: "Kiosco Morisco + Churros",
@@ -237,6 +279,7 @@ final List<Cita> planesDisponibles = [
     tiempo: 3,
     link:
         "https://www.google.com/maps/search/Kiosco+Morisco+Santa+María+la+Ribera",
+    imagenUrl: "assets/churros.png",
   ),
   Cita(
     nombre: "Los Dinamos (Senderismo)",
@@ -245,14 +288,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Bajo',
     tiempo: 5,
     link: "https://www.google.com/maps/search/Los+Dinamos",
-  ),
-  Cita(
-    nombre: "Paseo Nocturno en Trajinera",
-    descripcion: "Quieres subirte a una trajinera conmigo",
-    categoria: 'Romántico',
-    presupuesto: 'Medio',
-    tiempo: 5,
-    link: "https://www.google.com/maps/search/Xochimilco+Trajineras",
+    imagenUrl: "assets/park.png",
   ),
   Cita(
     nombre: "Patinaje sobre Hielo",
@@ -262,6 +298,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Medio',
     tiempo: 3,
     link: "https://www.google.com/maps/search/Pista+de+Hielo+CDMX",
+    imagenUrl:
+        "https://lottie.host/1eebf5f1-1c13-4111-af74-c9232801fc97/2Cgdv5aiqn.json",
   ),
   Cita(
     nombre: "Peliculas",
@@ -270,6 +308,8 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Medio',
     tiempo: 3,
     link: "https://www.google.com/maps/search/Autocinema+Coyote",
+    imagenUrl:
+        "https://lottie.host/fde030f1-5a0a-43b0-9ddd-37ad9f82deae/Q2JdnTG3aq.json",
   ),
   Cita(
     nombre: "Biblioteca Vasconcelos",
@@ -279,6 +319,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Bajo',
     tiempo: 2,
     link: "https://www.google.com/maps/search/Biblioteca+Vasconcelos",
+    imagenUrl: "assets/museum.png",
   ),
   Cita(
     nombre: "Coyoacán",
@@ -287,6 +328,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Bajo',
     tiempo: 4,
     link: "https://www.google.com/maps/search/Plaza+Hidalgo+Coyoacán",
+    imagenUrl: "assets/park.png",
   ),
   Cita(
     nombre: "Torre Latino",
@@ -295,6 +337,7 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Medio',
     tiempo: 2,
     link: "https://www.google.com/maps/search/Torre+Latinoamericana",
+    imagenUrl: "assets/skyscrapers.png",
   ),
   Cita(
     nombre: "Acuario",
@@ -303,6 +346,17 @@ final List<Cita> planesDisponibles = [
     presupuesto: 'Alto',
     tiempo: 3,
     link: "https://www.google.com/maps/search/Acuario+Inbursa",
+    imagenUrl:
+        "https://lottie.host/c258085a-b4f4-44db-9323-220098cd4e55/MJYBzCTXHQ.json",
+  ),
+  Cita(
+    nombre: "Fiesta",
+    descripcion: "Vamos tomar y bailar.",
+    categoria: 'Romántico',
+    presupuesto: 'Alto',
+    tiempo: 6,
+    link: "https://maps.app.goo.gl/hKDBtwMbLhNjnqo59",
+    imagenUrl: "assets/mirror-ball.png",
   ),
   // Añade tantos planes personalizados y especiales como puedas
 ];

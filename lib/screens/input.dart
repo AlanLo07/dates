@@ -70,7 +70,7 @@ class _InputScreenState extends State<InputScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('💘 Generador de Citas'),
-        backgroundColor: Colors.pink.shade100,
+        backgroundColor: grisClaroCalido,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -131,7 +131,7 @@ class _InputScreenState extends State<InputScreen> {
                   _selectedTimeHours = value;
                 });
               },
-              activeColor: Colors.pink,
+              activeColor: azulCelestePastel,
             ),
             const SizedBox(height: 30),
 
@@ -159,8 +159,8 @@ class _InputScreenState extends State<InputScreen> {
               icon: const Icon(Icons.favorite),
               label: const Text('¡GENERAR CITA!'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.pink.shade300,
-                foregroundColor: Colors.white,
+                backgroundColor: azulCelestePastel,
+                foregroundColor: Colors.black87,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 textStyle: const TextStyle(
                   fontSize: 18,
