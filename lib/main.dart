@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/input.dart';
+import 'screens/home.dart';
 
 const Color lavandaPalida = Color(0xFFD8C9E7);
 const Color malvaSuave = Color(0xFFB0B6E8);
@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
             ),
         useMaterial3: true,
       ),
-      home: const InputScreen(),
+      home: const HomeScreen(),
     );
   }
 }
