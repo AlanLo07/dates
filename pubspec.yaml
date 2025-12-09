@@ -37,10 +37,11 @@ dependencies:
   url_launcher: ^6.3.2
   # Para mostrar imágenes (necesario si las fotos están en la web)
   cached_network_image: ^3.3.1 
-  shared_preferences: ^2.2.2
+  shared_preferences: ^2.2.2 # Para la cuadrícula del calendario
 
   # Para usar animaciones Lottie (JSON)
   lottie: ^3.0.0
+  table_calendar: ^3.0.9
 
 dev_dependencies:
   flutter_test:
