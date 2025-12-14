@@ -69,8 +69,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           borderRadius: BorderRadius.circular(15),
                           child: Image.asset(
                             event.imagePath,
-                            width: 200,
-                            height: 200,
+                            width: 500,
+                            height: 500,
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -195,8 +195,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     borderRadius: BorderRadius.circular(4.0),
                     child: Image.asset(
                       event.imagePath,
-                      width: 30,
-                      height: 30,
+                      width: 50,
+                      height: 50,
                       fit: BoxFit.cover,
                     ),
                   ),

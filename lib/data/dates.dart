@@ -7,7 +7,7 @@ final Map<String, List<DateEvent>> kImportantDates = {
     const DateEvent(
       'Aniversario: Un año juntos',
       '¡Celebramos 365 días de risas, aventuras y mucho amor! Por muchos más.',
-      'assets/massage.png', // Debe existir en tu carpeta assets
+      'assets/novios.jpeg', // Debe existir en tu carpeta assets
     ),
   ],
   // Ejemplo: Primer beso
@@ -15,7 +15,7 @@ final Map<String, List<DateEvent>> kImportantDates = {
     const DateEvent(
       'Primera Citao',
       'El día en que el mundo se detuvo por primera vez. Un recuerdo precioso.',
-      '',
+      'assets/beso.jpeg',
     ),
   ],
   // Ejemplo: Cumpleaños de tu Novia
@@ -23,7 +23,7 @@ final Map<String, List<DateEvent>> kImportantDates = {
     const DateEvent(
       '¡Feliz Cumpleaños, Amor!',
       'El día más importante del año, celebramos tu vida. ¡Te amo!',
-      '',
+      'assets/nati.jpeg',
     ),
   ],
 };
