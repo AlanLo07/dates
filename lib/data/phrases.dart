@@ -10,6 +10,19 @@ const List<String> favoriteAnimalEmojis = [
   '🐰', // Conejo
   '🐧', // Pingüino
   '🐨', // Koala
+  '🪼',
+  '🐳',
+  '🦆',
+  '🐼',
+  '🐒',
+  '🐮',
+  '🐛',
+  '🦄',
+  '🐢',
+  '🦒',
+  '🐄',
+  '🐖',
+  '🦥',
 ];
 
 const List<LovePhrase> lovePhrases = [
@@ -90,6 +103,11 @@ const List<LovePhrase> lovePhrases = [
   ),
   LovePhrase(text: "Mi amor por ti crece con cada amanecer.", emoji: '🌅'),
   LovePhrase(text: "Gracias por ser mi cómplice en cada locura.", emoji: '😈'),
+  LovePhrase(
+    text:
+        "Si contaras cada hoja de cada arbol solo sería el 0.00000000000001% de todo lo que te amo",
+    emoji: '*',
+  ),
 ];
 
 // Función para obtener una frase de amor aleatoria con un emoticón de animal favorito
