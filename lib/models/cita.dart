@@ -18,6 +18,30 @@ class Cita {
     required this.link,
     this.imagenUrl = '',
   });
+
+  factory Cita.fromJson(Map<String, dynamic> json) {
+    return Cita(
+      nombre: json['nombre'] as String,
+      descripcion: json['descripcion'] as String,
+      categoria: json['categoria'] as String,
+      presupuesto: json['presupuesto'] as String,
+      tiempo: json['tiempo'] as int,
+      link: json['link'] as String,
+      imagenUrl: json['imagenUrl'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'nombre': nombre,
+      'descripcion': descripcion,
+      'categoria': categoria,
+      'presupuesto': presupuesto,
+      'tiempo': tiempo,
+      'link': link,
+      'imagenUrl': imagenUrl,
+    };
+  }
 }
 
 const Color lavandaPalida = Color(0xFFD8C9E7);
