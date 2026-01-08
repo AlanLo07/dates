@@ -8,6 +8,7 @@ class Cita {
   final int tiempo; // Tiempo estimado en horas
   final String link; // Enlace a Google Maps o a una web
   final String imagenUrl;
+  final String typeLocation;
 
   Cita({
     required this.nombre,
@@ -17,6 +18,7 @@ class Cita {
     required this.tiempo,
     required this.link,
     this.imagenUrl = '',
+    this.typeLocation = '',
   });
 
   factory Cita.fromJson(Map<String, dynamic> json) {
@@ -28,6 +30,7 @@ class Cita {
       tiempo: json['tiempo'] as int,
       link: json['link'] as String,
       imagenUrl: json['imagenUrl'] as String,
+      typeLocation: json['typeLocation'] as String,
     );
   }
 
@@ -40,6 +43,7 @@ class Cita {
       'tiempo': tiempo,
       'link': link,
       'imagenUrl': imagenUrl,
+      'typeLocation': typeLocation,
     };
   }
 }

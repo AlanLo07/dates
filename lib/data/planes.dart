@@ -131,6 +131,7 @@ final List<Cita> planesDisponibles = [
     tiempo: 6,
     link: "https://www.google.com.mx/maps/search/Museos",
     imagenUrl: "assets/museum.png",
+    typeLocation: 'museo',
   ),
   Cita(
     nombre: "Masaje",
@@ -168,6 +169,7 @@ final List<Cita> planesDisponibles = [
     tiempo: 48,
     link: "https://www.google.com.mx/maps",
     imagenUrl: "assets/village.png",
+    typeLocation: "pueblo",
   ),
   Cita(
     nombre: "Playa",
@@ -233,6 +235,7 @@ final List<Cita> planesDisponibles = [
     tiempo: 3,
     link: "https://www.google.com/maps/search/Museo+Soumaya",
     imagenUrl: "assets/museum.png",
+    typeLocation: 'museo',
   ),
   Cita(
     nombre: "Museo del Estanquillo",
@@ -243,6 +246,7 @@ final List<Cita> planesDisponibles = [
     tiempo: 4,
     link: "https://www.google.com/maps/search/Museo+del+Estanquillo",
     imagenUrl: "assets/museum.png",
+    typeLocation: 'museo',
   ),
   Cita(
     nombre: "Palacio de Bellas Artes",
@@ -252,6 +256,7 @@ final List<Cita> planesDisponibles = [
     tiempo: 2,
     link: "https://www.google.com/maps/search/Palacio+de+Bellas+Artes",
     imagenUrl: "assets/museum.png",
+    typeLocation: 'museo',
   ),
   Cita(
     nombre: "Museo del Axolotl (Anfibio)",
@@ -261,6 +266,7 @@ final List<Cita> planesDisponibles = [
     tiempo: 3,
     link: "https://www.google.com/maps/search/Museo+del+Axolotl+Chapultepec",
     imagenUrl: "assets/museum.png",
+    typeLocation: 'museo',
   ),
   Cita(
     nombre: "Jardín Botánico de la UNAM",

@@ -4,6 +4,7 @@ import '../data/planes.dart';
 import 'result.dart';
 import 'dart:math';
 import '../utils/animations.dart';
+import 'checklist.dart';
 
 class InputScreen extends StatefulWidget {
   const InputScreen({super.key});
@@ -19,6 +20,7 @@ class _InputScreenState extends State<InputScreen> {
   double _selectedTimeHours = 2.0; // Valor por defecto en horas
   final double maxDailyTime = 2.0;
   final double maxTotalTime = 200.0;
+  List<String> typesLocations = ['museo', 'parque', 'pueblo'];
 
   // Lista de opciones para los Dropdowns
   final List<String> categories = [
@@ -142,10 +144,16 @@ class _InputScreenState extends State<InputScreen> {
                 Cita? citaElegida = _generarCita();
 
                 if (citaElegida != null) {
+                  if (typesLocations.contains(citaElegida.typeLocation)) {
+                    Navigator.of(
+                      context,
+                    ).push(createRoute(AdventureListScreen(cita: citaElegida)));
+                  } else {
+                    Navigator.of(
+                      context,
+                    ).push(createRoute(ResultScreen(cita: citaElegida)));
+                  }
                   // Navega a la pantalla de resultados, pasando la cita como argumento
-                  Navigator.of(
-                    context,
-                  ).push(createRoute(ResultScreen(cita: citaElegida)));
                 } else {
                   // Muestra un mensaje si no hay planes
                   ScaffoldMessenger.of(context).showSnackBar(
