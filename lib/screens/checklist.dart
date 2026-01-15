@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/cita_service.dart';
-import '../models/location.dart';
 import '../models/cita.dart';
 import 'result.dart';
 import '../utils/animations.dart';
@@ -28,7 +27,7 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
     const Color violetaProfundo = Color(0xFF796B9B);
 
     final lugares = listaLugares
-        .where((l) => l.type == citaSelected.typeLocation)
+        .where((l) => l.typeLocation == citaSelected.typeLocation)
         .toList();
 
     return Scaffold(
@@ -58,7 +57,7 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
                 },
               ),
               title: Text(
-                lugar.name,
+                lugar.nombre,
                 style: TextStyle(
                   decoration: lugar.isVisited
                       ? TextDecoration.lineThrough
@@ -67,7 +66,7 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              subtitle: Text(lugar.type),
+              subtitle: Text(lugar.descripcion),
 
               // 2. FUNCIÓN ENLACE (Botón al final)
               trailing: const Icon(
@@ -78,6 +77,7 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
 
               // También podemos hacer que al tocar el título se tache
               onTap: () {
+                citaSelected = lugar;
                 Navigator.of(
                   context,
                 ).push(createRoute(ResultScreen(cita: citaSelected)));

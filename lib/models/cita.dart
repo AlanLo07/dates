@@ -9,6 +9,7 @@ class Cita {
   final String link; // Enlace a Google Maps o a una web
   final String imagenUrl;
   final String typeLocation;
+  bool isVisited;
 
   Cita({
     required this.nombre,
@@ -19,6 +20,7 @@ class Cita {
     required this.link,
     this.imagenUrl = '',
     this.typeLocation = '',
+    this.isVisited = false,
   });
 
   factory Cita.fromJson(Map<String, dynamic> json) {
@@ -31,6 +33,7 @@ class Cita {
       link: json['link'] as String,
       imagenUrl: json['imagenUrl'] as String,
       typeLocation: json['typeLocation'] as String,
+      isVisited: json['isVisited'] as bool,
     );
   }
 
@@ -44,6 +47,7 @@ class Cita {
       'link': link,
       'imagenUrl': imagenUrl,
       'typeLocation': typeLocation,
+      'isVisited': isVisited,
     };
   }
 }

@@ -124,16 +124,6 @@ final List<Cita> planesDisponibles = [
         "https://lottie.host/d8c00199-7ba7-4ec8-af0c-59dee6c5ba42/p6B72XyHMa.json",
   ),
   Cita(
-    nombre: "Ida a museo",
-    descripcion: "Vamos a un museo nuevo",
-    categoria: "Aventura",
-    presupuesto: "Bajo",
-    tiempo: 6,
-    link: "https://www.google.com.mx/maps/search/Museos",
-    imagenUrl: "assets/museum.png",
-    typeLocation: 'museo',
-  ),
-  Cita(
     nombre: "Masaje",
     descripcion: "Vamos a hacernos un masaje ... si quieres con final feliz",
     categoria: "Romántico",

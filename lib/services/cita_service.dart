@@ -3,7 +3,6 @@ import 'dart:convert'; // Necesario para codificar y decodificar JSON
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/cita.dart';
 import '../data/planes.dart';
-import '../models/location.dart';
 
 // Clave para guardar y cargar los datos
 const String _citasKey = 'custom_citas_list';
@@ -61,13 +60,7 @@ void agregarNuevaCita(Cita nuevaCita) {
   saveCitas();
 }
 
-List<Location> listaLugares = [
-  // Puedes precargar algunos aquí
-  Location(name: 'Museo de Antropología', type: 'museo'),
-  Location(name: 'Parque La Mexicana', type: 'parque'),
-  Location(name: 'Peña de Bernal', type: 'pueblo'),
-  // ... agrega todos los que quieras
-];
+List<Cita> listaLugares = planesDisponibles;
 
 const String _lugaresKey = 'lugares_checklist';
 
@@ -84,6 +77,6 @@ Future<void> loadLugares() async {
   final String? encoded = prefs.getString(_lugaresKey);
   if (encoded != null) {
     final List<dynamic> decoded = json.decode(encoded);
-    listaLugares = decoded.map((item) => Location.fromJson(item)).toList();
+    listaLugares = decoded.map((item) => Cita.fromJson(item)).toList();
   }
 }
