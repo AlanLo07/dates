@@ -6,7 +6,12 @@ import '../utils/animations.dart';
 
 class AdventureListScreen extends StatefulWidget {
   final Cita cita;
-  const AdventureListScreen({required this.cita, super.key});
+  final List<Cita> citas;
+  const AdventureListScreen({
+    required this.cita,
+    required this.citas,
+    super.key,
+  });
 
   @override
   State<AdventureListScreen> createState() => _AdventureListScreenState();
@@ -14,12 +19,14 @@ class AdventureListScreen extends StatefulWidget {
 
 class _AdventureListScreenState extends State<AdventureListScreen> {
   late Cita citaSelected;
+  late List<Cita> listaLugares;
 
   @override
   void initState() {
     super.initState();
     // Inicializamos usando la variable recibida
     citaSelected = widget.cita;
+    listaLugares = widget.citas;
   }
 
   @override
@@ -42,6 +49,7 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
         itemCount: lugares.length,
         itemBuilder: (context, index) {
           final lugar = lugares[index];
+          print("Lugar: $lugar.isVisited $lugar.nombre");
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
             child: ListTile(
@@ -87,5 +95,20 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
         },
       ),
     );
+  }
+
+  Future<void> saveLugares() async {
+    // 1. Opcional: Puedes seguir guardando localmente como "respaldo" (Cache)
+    // final prefs = await SharedPreferences.getInstance();
+    // final String encoded = json.encode(listaLugares.map((l) => l.toJson()).toList());
+    // await prefs.setString(_lugaresKey, encoded);
+
+    // 2. Sincronizar con la API (DynamoDB)
+    try {
+      await ApiService().syncLugares(listaLugares);
+    } catch (e) {
+      // Aquí puedes manejar qué pasa si no hay internet
+      print("No se pudo guardar en la nube, se intentará más tarde.");
+    }
   }
 }

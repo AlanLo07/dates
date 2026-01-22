@@ -13,7 +13,7 @@ final Map<String, List<DateEvent>> kImportantDates = {
   // Ejemplo: Primer beso
   "11-28": [
     const DateEvent(
-      'Primera Citao',
+      'Primera Cita',
       'El día en que el mundo se detuvo por primera vez. Un recuerdo precioso.',
       'assets/beso.jpeg',
     ),

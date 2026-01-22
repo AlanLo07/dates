@@ -23,17 +23,18 @@ class Cita {
     this.isVisited = false,
   });
 
+  // Método para convertir JSON a objeto Cita
   factory Cita.fromJson(Map<String, dynamic> json) {
     return Cita(
-      nombre: json['nombre'] as String,
-      descripcion: json['descripcion'] as String,
-      categoria: json['categoria'] as String,
-      presupuesto: json['presupuesto'] as String,
-      tiempo: json['tiempo'] as int,
-      link: json['link'] as String,
-      imagenUrl: json['imagenUrl'] as String,
-      typeLocation: json['typeLocation'] as String,
-      isVisited: json['isVisited'] as bool,
+      nombre: json['nombre'],
+      descripcion: json['descripcion'],
+      categoria: json['categoria'],
+      presupuesto: json['presupuesto'],
+      tiempo: json['tiempo'],
+      link: json['link'],
+      imagenUrl: json['imagenUrl'],
+      typeLocation: json['typeLocation'],
+      isVisited: json["isVisited"],
     );
   }
 

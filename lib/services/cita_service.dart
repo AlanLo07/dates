@@ -1,82 +1,44 @@
-// lib/services/cita_service.dart
-import 'dart:convert'; // Necesario para codificar y decodificar JSON
-import 'package:shared_preferences/shared_preferences.dart';
+// lib/services/api_service.dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../models/cita.dart';
-import '../data/planes.dart';
 
-// Clave para guardar y cargar los datos
-const String _citasKey = 'custom_citas_list';
+class ApiService {
+  // Reemplaza con la URL de tu API Gateway
+  final String url =
+      'https://4gwpsw5bk6xxkxv4bdnuvvbnve0kgjfx.lambda-url.us-east-2.on.aws/';
 
-// La lista principal de citas. Inicializada con las citas por defecto.
-List<Cita> planesDeCitas = [...planesDisponibles];
+  Future<List<Cita>> getCitas() async {
+    try {
+      final response = await http.get(Uri.parse(url));
 
-// ==========================================================
-// A. PERSISTENCIA (GUARDAR Y CARGAR)
-// ==========================================================
-
-// Función para guardar la lista completa de citas en el dispositivo
-Future<void> saveCitas() async {
-  final prefs = await SharedPreferences.getInstance();
-
-  // 1. Convertir la lista de objetos Cita a una lista de mapas JSON.
-  final jsonList = planesDeCitas.map((cita) => cita.toJson()).toList();
-
-  // 2. Convertir la lista de mapas en una sola cadena JSON.
-  final jsonString = json.encode(jsonList);
-
-  // 3. Guardar la cadena en shared_preferences.
-  await prefs.setString(_citasKey, jsonString);
-}
-
-// Función para cargar las citas guardadas
-Future<void> loadCitas() async {
-  final prefs = await SharedPreferences.getInstance();
-  final jsonString = prefs.getString(_citasKey);
-
-  if (jsonString != null) {
-    // 1. Decodificar la cadena JSON a una lista de mapas.
-    final jsonList = json.decode(jsonString) as List;
-
-    // 2. Convertir la lista de mapas de vuelta a objetos Cita.
-    final loadedCitas = jsonList.map((item) => Cita.fromJson(item)).toList();
-
-    // 3. Si se cargaron citas, reemplazamos la lista global.
-    // De lo contrario, mantenemos la lista inicial (planesDisponibles).
-    if (loadedCitas.isNotEmpty) {
-      planesDeCitas = loadedCitas;
+      if (response.statusCode == 200) {
+        // Si el servidor devuelve una respuesta OK, parseamos el JSON
+        List<dynamic> body = json.decode(response.body);
+        return body.map((dynamic item) => Cita.fromJson(item)).toList();
+      } else {
+        throw Exception('Error al cargar las citas: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('No se pudo conectar con el servidor: $e');
     }
   }
-}
 
-// ==========================================================
-// B. FUNCIÓN DE AÑADIR (QUE AHORA TAMBIÉN GUARDA)
-// ==========================================================
+  Future<void> syncLugares(List<Cita> lista) async {
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode(lista.map((l) => l.toJson()).toList()),
+      );
 
-void agregarNuevaCita(Cita nuevaCita) {
-  // 1. Añadir la cita a la lista en memoria
-  planesDeCitas.add(nuevaCita);
-
-  // 2. ¡GUARDAR LOS CAMBIOS EN EL DISPOSITIVO!
-  saveCitas();
-}
-
-List<Cita> listaLugares = planesDisponibles;
-
-const String _lugaresKey = 'lugares_checklist';
-
-Future<void> saveLugares() async {
-  final prefs = await SharedPreferences.getInstance();
-  final String encoded = json.encode(
-    listaLugares.map((l) => l.toJson()).toList(),
-  );
-  await prefs.setString(_lugaresKey, encoded);
-}
-
-Future<void> loadLugares() async {
-  final prefs = await SharedPreferences.getInstance();
-  final String? encoded = prefs.getString(_lugaresKey);
-  if (encoded != null) {
-    final List<dynamic> decoded = json.decode(encoded);
-    listaLugares = decoded.map((item) => Cita.fromJson(item)).toList();
+      if (response.statusCode != 200) {
+        throw Exception('Fallo al sincronizar: ${response.statusCode}');
+      }
+      print("Sincronización exitosa con la nube");
+    } catch (e) {
+      print("Error de red: $e");
+      rethrow; // Re-lanzamos el error para manejarlo en la UI si es necesario
+    }
   }
 }
