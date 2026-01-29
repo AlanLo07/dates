@@ -10,6 +10,7 @@ class Cita {
   final String imagenUrl;
   final String typeLocation;
   bool isVisited;
+  double rating;
 
   Cita({
     required this.nombre,
@@ -21,6 +22,7 @@ class Cita {
     this.imagenUrl = '',
     this.typeLocation = '',
     this.isVisited = false,
+    this.rating = 0.0,
   });
 
   // Método para convertir JSON a objeto Cita
@@ -35,6 +37,7 @@ class Cita {
       imagenUrl: json['imagenUrl'],
       typeLocation: json['typeLocation'],
       isVisited: json["isVisited"],
+      rating: json["rating"],
     );
   }
 
@@ -49,6 +52,7 @@ class Cita {
       'imagenUrl': imagenUrl,
       'typeLocation': typeLocation,
       'isVisited': isVisited,
+      'rating': rating,
     };
   }
 }

@@ -158,6 +158,20 @@ class ResultScreen extends StatelessWidget {
               ),
               const SizedBox(height: 50),
 
+              Row(
+                mainAxisSize: MainAxisSize.min, // Evita que ocupe todo el ancho
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  return Icon(
+                    index < (cita.rating) ? Icons.star : Icons.star_border,
+                    color: Colors.black,
+                    size: 28,
+                  );
+                }),
+              ),
+
+              const SizedBox(height: 50),
+
               // Botón de Enlace
               if (cita.link.isNotEmpty)
                 ElevatedButton.icon(

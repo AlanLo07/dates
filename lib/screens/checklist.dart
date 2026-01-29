@@ -29,6 +29,30 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
     listaLugares = widget.citas;
   }
 
+  // Función para construir las estrellas de calificación
+  Widget _buildRatingStars(Cita lugar) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(5, (index) {
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              // Si presiona la misma estrella, bajamos el rating (opcional)
+              // o simplemente asignamos el nuevo valor
+              lugar.rating = index + 1.0;
+            });
+            saveLugares(); // Sincroniza con la API
+          },
+          child: Icon(
+            index < (lugar.rating) ? Icons.star : Icons.star_border,
+            color: Colors.amber,
+            size: 28, // Tamaño ideal para tocar en iPhone
+          ),
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color violetaProfundo = Color(0xFF796B9B);
@@ -51,45 +75,57 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
           final lugar = lugares[index];
           print("Lugar: $lugar.isVisited $lugar.nombre");
           return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-            child: ListTile(
-              // 1. FUNCIÓN TACHADO (Al tocar el cuerpo del Card o el Checkbox)
-              leading: Checkbox(
-                activeColor: violetaProfundo,
-                value: lugar.isVisited,
-                onChanged: (bool? value) {
-                  setState(() {
-                    lugar.isVisited = value ?? false;
-                  });
-                  saveLugares();
-                },
-              ),
-              title: Text(
-                lugar.nombre,
-                style: TextStyle(
-                  decoration: lugar.isVisited
-                      ? TextDecoration.lineThrough
-                      : null,
-                  color: lugar.isVisited ? Colors.grey : violetaProfundo,
-                  fontWeight: FontWeight.bold,
+            margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Checkbox(
+                    activeColor: violetaProfundo,
+                    value: lugar.isVisited,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        lugar.isVisited = value ?? false;
+                      });
+                      saveLugares();
+                    },
+                  ),
+                  title: Text(
+                    lugar.nombre,
+                    style: TextStyle(
+                      decoration: lugar.isVisited
+                          ? TextDecoration.lineThrough
+                          : null,
+                      color: lugar.isVisited ? Colors.grey : violetaProfundo,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(lugar.descripcion),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.of(
+                      context,
+                    ).push(createRoute(ResultScreen(cita: lugar)));
+                  },
                 ),
-              ),
-              subtitle: Text(lugar.descripcion),
-
-              // 2. FUNCIÓN ENLACE (Botón al final)
-              trailing: const Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Colors.grey,
-              ),
-
-              // También podemos hacer que al tocar el título se tache
-              onTap: () {
-                citaSelected = lugar;
-                Navigator.of(
-                  context,
-                ).push(createRoute(ResultScreen(cita: citaSelected)));
-              },
+                // Sección de calificación al final del Card
+                Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: 10,
+                    left: 16,
+                    right: 16,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "¿Qué tan increíble fue?",
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      _buildRatingStars(lugar),
+                    ],
+                  ),
+                ),
+              ],
             ),
           );
         },

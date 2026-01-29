@@ -5,6 +5,7 @@ import '../utils/animations.dart'; // Tu función de animación
 // import 'dart:math';
 import 'phrases.dart';
 import 'calendar.dart';
+import 'memories.dart';
 
 // Colores de tu paleta
 const Color violetaProfundo = Color(0xFF796B9B);
@@ -55,6 +56,15 @@ class HomeScreen extends StatelessWidget {
                 title: 'De mi pa tu',
                 subtitle: 'Por que te amo.',
                 destination: const PhrasesScreen(), // Pantalla por crear
+                color: violetaProfundo,
+              ),
+              const SizedBox(height: 25),
+              _buildMenuItem(
+                context,
+                icon: Icons.book,
+                title: 'Nuestro checklist de aventuras',
+                subtitle: 'Repasa a todos los lugare, que hemos ido',
+                destination: ExperienceMenuScreen(), // Pantalla por crear
                 color: violetaProfundo,
               ),
             ],
