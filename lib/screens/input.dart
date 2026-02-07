@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/cita.dart';
-import '../data/planes.dart';
 import 'result.dart';
 import 'dart:math';
 import '../utils/animations.dart';
-import 'checklist.dart';
 import '../services/cita_service.dart';
 
 class InputScreen extends StatefulWidget {
@@ -65,18 +63,9 @@ class _InputScreenState extends State<InputScreen> {
         Cita citaElegida =
             citasFiltradas[random.nextInt(citasFiltradas.length)];
 
-        // Navegación según el tipo de locación
-        if (typesLocations.contains(citaElegida.typeLocation)) {
-          Navigator.of(context).push(
-            createRoute(
-              AdventureListScreen(cita: citaElegida, citas: citasActualizadas),
-            ),
-          );
-        } else {
-          Navigator.of(
-            context,
-          ).push(createRoute(ResultScreen(cita: citaElegida)));
-        }
+        Navigator.of(
+          context,
+        ).push(createRoute(ResultScreen(cita: citaElegida)));
       } else {
         _mostrarSnackBar('No encontramos planes con esos filtros.');
       }

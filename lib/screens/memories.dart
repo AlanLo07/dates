@@ -11,7 +11,7 @@ class ExperienceMenuScreen extends StatelessWidget {
     {
       'nombre': 'Conciertos',
       'icono': Icons.confirmation_number,
-      'tipo': 'festival',
+      'tipo': 'concierto',
     },
     {'nombre': 'Pueblos', 'icono': Icons.holiday_village, 'tipo': 'pueblo'},
     {'nombre': 'Países', 'icono': Icons.public, 'tipo': 'pais'},

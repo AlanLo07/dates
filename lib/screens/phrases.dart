@@ -1,6 +1,5 @@
 // lib/screens/phrases_screen.dart
 import 'package:flutter/material.dart';
-import 'dart:math'; // Necesario para Random
 import '../data/phrases.dart'; // Importa tus frases
 import '../models/phrase.dart'; // Importa el modelo
 
