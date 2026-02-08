@@ -43,6 +43,9 @@ dependencies:
   lottie: ^3.0.0
   table_calendar: ^3.0.9
   http: ^1.1.0  # Añade esta línea
+  intl: ^0.19.0
+  confetti: ^0.8.0
+
 
 dev_dependencies:
   flutter_test:

@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/date.dart';
 import '../data/dates.dart';
+import '../models/fecha.dart';
+import 'counter.dart';
+import '../models/carta.dart';
+import 'package:intl/intl.dart';
+import 'letters.dart';
 
 // Colores de tu paleta
 const Color violetaProfundo = Color(0xFF796B9B);
@@ -127,7 +132,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: violetaProfundo),
       ),
-      body: TableCalendar(
+      body: Column(children: [
+        const SizedBox(height: 20),
+        ProximaCitaCounter(eventos: misEventos), // Tu lista de eventos
+        const SizedBox(height: 20),
+        TableCalendar(
         firstDay: _date(
           DateTime.now().year - 1,
           1,
@@ -182,6 +191,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           },
           // Constructor para celdas con eventos
           markerBuilder: (context, day, events) {
+            String formattedDate = DateFormat("dd-MM-yyyy").format(day);
+            bool tieneCarta = misCartas.any((c) => c.fechaLiberacion == formattedDate);
             if (events.isNotEmpty) {
               final event = events.first as DateEvent;
               // El tag debe ser único. Usamos la ruta de la imagen como clave.
@@ -203,12 +214,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               );
             }
+            if (tieneCarta) {
+              DateTime now = DateTime.now();
+              // Solo comparamos la fecha sin la hora para desbloquear justo a medianoche
+              bool estaBloqueada = day.isAfter(DateTime(now.year, now.month, now.day));
+
+              return Positioned(
+                bottom: 1,
+                child: Icon(
+                  estaBloqueada ? Icons.lock : Icons.lock_open,
+                  color: estaBloqueada ? Colors.grey : Colors.pinkAccent,
+                  size: 16,
+                ),
+              );
+            }
             return null; // No hay evento, no hay marcador
           },
         ),
 
         // 4. Lógica al tocar un día
         onDaySelected: (selectedDay, focusedDay) {
+          _verificarCarta(selectedDay);
           final events = _getEventsForDay(selectedDay);
           if (events.isNotEmpty) {
             final heroTag = 'event-image-${(events.first).imagePath}';
@@ -223,6 +249,33 @@ class _CalendarScreenState extends State<CalendarScreen> {
         },
         selectedDayPredicate: (day) => isSameDay(day, _focusedDay),
       ),
+      ],)
+      
     );
   }
+
+  void _verificarCarta(DateTime date) {
+  String formattedDate = DateFormat("dd-MM-yyyy").format(date);
+  
+  try {
+    CartaSorpresa cartaEncontrada = misCartas.firstWhere((c) => c.fechaLiberacion == formattedDate);
+    
+    DateTime now = DateTime.now();
+    DateTime today = DateTime(now.year, now.month, now.day);
+
+    if (date.isAfter(today)) {
+      // Caso: Bloqueado
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("🔒 ¡Aún no es tiempo! Espera a la fecha.")),
+      );
+    } else {
+      // Caso: Desbloqueado - Abrir animación
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => LetterScreen(carta: cartaEncontrada))
+      );
+    }
+  } catch (e) {
+    // No hay carta en esta fecha, no pasa nada
+  }
+}
 }
