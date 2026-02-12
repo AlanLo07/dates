@@ -21,7 +21,9 @@ class _ProximaCitaCounterState extends State<ProximaCitaCounter> {
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 10));
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 10),
+    );
     _calcularProximoEvento();
     _startTimer();
   }
@@ -32,10 +34,12 @@ class _ProximaCitaCounterState extends State<ProximaCitaCounter> {
 
     // Filtramos eventos futuros y ordenamos por el más cercano
     List<EventoImportante> futuros = widget.eventos.where((e) {
-      return format.parse(e.fecha).isAfter(now);
+      return format.parse(e.date).isAfter(now);
     }).toList();
 
-    futuros.sort((a, b) => format.parse(a.fecha).compareTo(format.parse(b.fecha)));
+    futuros.sort(
+      (a, b) => format.parse(a.date).compareTo(format.parse(b.date)),
+    );
 
     if (futuros.isNotEmpty) {
       setState(() {
@@ -48,7 +52,7 @@ class _ProximaCitaCounterState extends State<ProximaCitaCounter> {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (proximoEvento == null) return;
 
-      DateTime eventDate = DateFormat("dd-MM-yyyy").parse(proximoEvento!.fecha);
+      DateTime eventDate = DateFormat("dd-MM-yyyy").parse(proximoEvento!.date);
       final remaining = eventDate.difference(DateTime.now());
 
       if (remaining.isNegative) {
@@ -79,8 +83,11 @@ class _ProximaCitaCounterState extends State<ProximaCitaCounter> {
         Column(
           children: [
             Text(
-              "FALTA PARA: ${proximoEvento!.nombre.toUpperCase()}",
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+              "FALTA PARA: ${proximoEvento!.title.toUpperCase()}",
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
             ),
             const SizedBox(height: 10),
             Row(
@@ -97,7 +104,12 @@ class _ProximaCitaCounterState extends State<ProximaCitaCounter> {
         ConfettiWidget(
           confettiController: _confettiController,
           blastDirectionality: BlastDirectionality.explosive,
-          colors: const [Colors.pink, Colors.blue, Colors.orange, Colors.purple],
+          colors: const [
+            Colors.pink,
+            Colors.blue,
+            Colors.orange,
+            Colors.purple,
+          ],
         ),
       ],
     );
@@ -113,8 +125,14 @@ class _ProximaCitaCounterState extends State<ProximaCitaCounter> {
       ),
       child: Column(
         children: [
-          Text(value.padLeft(2, '0'), 
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF796B9B))),
+          Text(
+            value.padLeft(2, '0'),
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF796B9B),
+            ),
+          ),
           Text(label, style: const TextStyle(fontSize: 10)),
         ],
       ),
