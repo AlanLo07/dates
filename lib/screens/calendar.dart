@@ -151,161 +151,172 @@ class _CalendarScreenState extends State<CalendarScreen> {
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: violetaProfundo),
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          ProximaCitaCounter(eventos: misEventos), // Tu lista de eventos
-          const SizedBox(height: 20),
-          TableCalendar(
-            firstDay: _date(
-              DateTime.now().year - 1,
-              1,
-              1,
-            ), // Rango de visualización
-            lastDay: _date(DateTime.now().year + 1, 12, 31),
-            focusedDay: _focusedDay,
-            calendarFormat:
-                CalendarFormat.month, // Mostrar siempre el mes completo
-            // Estilos de la cabecera (Header)
-            headerStyle: const HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-              titleTextStyle: TextStyle(
-                color: violetaProfundo,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            ProximaCitaCounter(eventos: misEventos), // Tu lista de eventos
+            const SizedBox(height: 20),
+            TableCalendar(
+              calendarStyle: const CalendarStyle(
+                outsideDaysVisible:
+                    false, // Oculta días de otros meses para evitar conflictos
+                isTodayHighlighted: true,
+                todayDecoration: BoxDecoration(
+                  color: azulCelestePastel,
+                  shape: BoxShape.circle,
+                ),
+                selectedDecoration: BoxDecoration(
+                  color: violetaProfundo,
+                  shape: BoxShape.circle,
+                ),
               ),
-              leftChevronIcon: Icon(Icons.chevron_left, color: violetaProfundo),
-              rightChevronIcon: Icon(
-                Icons.chevron_right,
-                color: violetaProfundo,
+              firstDay: _date(
+                DateTime.now().year - 1,
+                1,
+                1,
+              ), // Rango de visualización
+              lastDay: _date(DateTime.now().year + 1, 12, 31),
+              focusedDay: _focusedDay,
+              calendarFormat:
+                  CalendarFormat.month, // Mostrar siempre el mes completo
+              // Estilos de la cabecera (Header)
+              headerStyle: const HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+                titleTextStyle: TextStyle(
+                  color: violetaProfundo,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                leftChevronIcon: Icon(
+                  Icons.chevron_left,
+                  color: violetaProfundo,
+                ),
+                rightChevronIcon: Icon(
+                  Icons.chevron_right,
+                  color: violetaProfundo,
+                ),
               ),
-            ),
 
-            // Estilos de los Días de la Semana
-            daysOfWeekStyle: const DaysOfWeekStyle(
-              weekdayStyle: TextStyle(
-                color: violetaProfundo,
-                fontWeight: FontWeight.bold,
+              // Estilos de los Días de la Semana
+              daysOfWeekStyle: const DaysOfWeekStyle(
+                weekdayStyle: TextStyle(
+                  color: violetaProfundo,
+                  fontWeight: FontWeight.bold,
+                ),
+                weekendStyle: TextStyle(
+                  color: violetaProfundo,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              weekendStyle: TextStyle(
-                color: violetaProfundo,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
 
-            // Eventos: Llama a la función para cargar los eventos
-            eventLoader: _getEventsForDay,
+              // Eventos: Llama a la función para cargar los eventos
+              eventLoader: _getEventsForDay,
 
-            // 3. Estilo y Lógica de los Cuadrados (Día)
-            calendarBuilders: CalendarBuilders(
-              defaultBuilder: (context, day, focusedDay) {
-                // Personaliza los días normales (fondo)
-                return Container(
-                  margin: const EdgeInsets.all(4.0),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Text(
-                    day.day.toString(),
-                    style: const TextStyle(color: violetaProfundo),
-                  ),
-                );
-              },
-              // Constructor para celdas con eventos
-              markerBuilder: (context, day, events) {
-                if (events.isEmpty) return null;
+              // 3. Estilo y Lógica de los Cuadrados (Día)
+              calendarBuilders: CalendarBuilders(
+                defaultBuilder: (context, day, focusedDay) {
+                  // Personaliza los días normales (fondo)
+                  return Container(
+                    margin: const EdgeInsets.all(4.0),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    child: Text(
+                      day.day.toString(),
+                      style: const TextStyle(color: violetaProfundo),
+                    ),
+                  );
+                },
+                // Constructor para celdas con eventos
+                markerBuilder: (context, day, events) {
+                  if (events.isEmpty) return null;
 
-                final dateEvents = events.cast<DateEvent>();
+                  final dateEvents = events.cast<DateEvent>();
 
-                return Positioned(
-                  bottom: 1,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: dateEvents.map((event) {
-                      if (event is Carta) {
-                        DateTime now = DateTime.now();
-                        // Solo comparamos la fecha sin la hora para desbloquear justo a medianoche
-                        bool estaBloqueada = day.isAfter(
-                          DateTime(now.year, now.month, now.day),
-                        );
+                  return Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: dateEvents.map((event) {
+                        if (event is Carta) {
+                          DateTime now = DateTime.now();
+                          // Solo comparamos la fecha sin la hora para desbloquear justo a medianoche
+                          bool estaBloqueada = day.isAfter(
+                            DateTime(now.year, now.month, now.day),
+                          );
 
-                        return Positioned(
-                          bottom: 1,
-                          child: Icon(
+                          return Icon(
                             estaBloqueada ? Icons.lock : Icons.lock_open,
                             color: estaBloqueada
                                 ? Colors.grey
                                 : Colors.pinkAccent,
-                            size: 16,
-                          ),
-                        );
-                      } else if (event is EventoImportante) {
-                        return Positioned(
-                          bottom: 1,
-                          child: Icon(
+                            size: 20,
+                          );
+                        } else if (event is EventoImportante) {
+                          return Icon(
                             event.icon,
                             color: Colors.deepPurple,
-                            size: 16,
-                          ),
-                        );
-                      } else if (event is Recuerdo) {
-                        // Agregamos el año al Hero Tag para que sea único por celda
-                        final heroTag =
-                            'marker-${event.imagePath}-${day.year}-${day.month}-${day.day}';
+                            size: 20,
+                          );
+                        } else if (event is Recuerdo) {
+                          // Agregamos el año al Hero Tag para que sea único por celda
+                          final heroTag =
+                              'marker-${event.imagePath}-${day.year}-${day.month}-${day.day}';
 
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 1),
-                          child: Hero(
-                            tag: heroTag,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: Image.asset(
-                                event.imagePath,
-                                width: 24,
-                                height: 24,
-                                fit: BoxFit.cover,
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 1),
+                            child: Hero(
+                              tag: heroTag,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: Image.asset(
+                                  event.imagePath,
+                                  width: 24,
+                                  height: 24,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      }
-                      return const SizedBox();
-                    }).toList(),
-                  ),
-                );
-              },
-            ),
+                          );
+                        }
+                        return const SizedBox();
+                      }).toList(),
+                    ),
+                  );
+                },
+              ),
 
-            // 4. Lógica al tocar un día
-            onDaySelected: (selectedDay, focusedDay) {
-              _verificarCarta(selectedDay);
-              _verificarEvento(selectedDay);
-              final events = _getEventsForDay(selectedDay);
-              if (events.isNotEmpty) {
-                final firstEvent = events.first;
+              // 4. Lógica al tocar un día
+              onDaySelected: (selectedDay, focusedDay) {
+                _verificarCarta(selectedDay);
+                _verificarEvento(selectedDay);
+                final events = _getEventsForDay(selectedDay);
+                if (events.isNotEmpty) {
+                  final firstEvent = events.first;
 
-                // Solo disparamos el detalle si el primer evento es un Recuerdo
-                if (firstEvent is Recuerdo) {
-                  final heroTag =
-                      'marker-${firstEvent.imagePath}-${selectedDay.year}-${selectedDay.month}-${selectedDay.day}';
+                  // Solo disparamos el detalle si el primer evento es un Recuerdo
+                  if (firstEvent is Recuerdo) {
+                    final heroTag =
+                        'marker-${firstEvent.imagePath}-${selectedDay.year}-${selectedDay.month}-${selectedDay.day}';
 
-                  _showEventDetailsRoute(
-                    events
-                        .cast<Recuerdo>()
-                        .toList(), // Casteamos la lista para el detalle
-                    heroTag,
-                  ); // Muestra el diálogo de expansión
+                    _showEventDetailsRoute(
+                      events
+                          .cast<Recuerdo>()
+                          .toList(), // Casteamos la lista para el detalle
+                      heroTag,
+                    ); // Muestra el diálogo de expansión
+                  }
                 }
-              }
-              setState(() {
-                _focusedDay = focusedDay;
-              });
-            },
-            selectedDayPredicate: (day) => isSameDay(day, _focusedDay),
-          ),
-        ],
+                setState(() {
+                  _focusedDay = focusedDay;
+                });
+              },
+              selectedDayPredicate: (day) => isSameDay(day, _focusedDay),
+            ),
+          ],
+        ),
       ),
     );
   }
