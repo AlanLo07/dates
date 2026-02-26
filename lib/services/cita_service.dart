@@ -6,7 +6,7 @@ import '../models/cita.dart';
 class ApiService {
   // Reemplaza con la URL de tu API Gateway
   final String url =
-      'https://4gwpsw5bk6xxkxv4bdnuvvbnve0kgjfx.lambda-url.us-east-2.on.aws/';
+      'https://zuidcmnv2qooaw6gjvfvmxoboy0ptqav.lambda-url.us-east-2.on.aws/';
 
   Future<List<Cita>> getCitas() async {
     try {
