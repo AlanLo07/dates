@@ -1,21 +1,20 @@
-// lib/services/api_service.dart
+// lib/services/cita_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/cita.dart';
+import 'api_config.dart';
 
 class ApiService {
-  // Reemplaza con la URL de tu API Gateway
-  final String url =
-      'https://zuidcmnv2qooaw6gjvfvmxoboy0ptqav.lambda-url.us-east-2.on.aws/';
+  final String _url = ApiConfig.baseUrl + ApiConfig.citasPath;
 
   Future<List<Cita>> getCitas() async {
     try {
-      final response = await http.get(Uri.parse(url));
-
+      final response = await http.get(Uri.parse(_url));
+      print(response.body);
       if (response.statusCode == 200) {
-        // Si el servidor devuelve una respuesta OK, parseamos el JSON
-        List<dynamic> body = json.decode(response.body);
-        return body.map((dynamic item) => Cita.fromJson(item)).toList();
+        Map<String, dynamic> body = json.decode(response.body);
+        List<dynamic> items = body['items'];
+        return items.map((item) => Cita.fromJson(item)).toList();
       } else {
         throw Exception('Error al cargar las citas: ${response.statusCode}');
       }
@@ -27,18 +26,15 @@ class ApiService {
   Future<void> syncLugares(List<Cita> lista) async {
     try {
       final response = await http.put(
-        Uri.parse(url),
+        Uri.parse(_url),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
         body: jsonEncode(lista.map((l) => l.toJson()).toList()),
       );
-
       if (response.statusCode != 200) {
         throw Exception('Fallo al sincronizar: ${response.statusCode}');
       }
-      print("Sincronización exitosa con la nube");
     } catch (e) {
-      print("Error de red: $e");
-      rethrow; // Re-lanzamos el error para manejarlo en la UI si es necesario
+      rethrow;
     }
   }
 }
