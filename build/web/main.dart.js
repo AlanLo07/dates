@@ -46768,7 +46768,7 @@ rS(){var s=0,r=A.P(t.d0),q,p=2,o=[],n,m,l,k,j,i,h
 var $async$rS=A.L(function(a,b){if(a===1){o.push(b)
 s=p}for(;;)switch(s){case 0:p=4
 s=7
-return A.K(A.aWs(A.eE("https://6r8m82a95e.execute-api.us-east-2.amazonaws.com/planes",0,null)),$async$rS)
+return A.K(A.aWs(A.eE("https://zs261b4dig.execute-api.us-east-2.amazonaws.com//planes",0,null)),$async$rS)
 case 7:n=b
 if(n.b===200){j=n
 m=B.ct.fi(A.aW8(A.aTI(j.e)).fi(j.w))
@@ -46800,7 +46800,7 @@ s=q}for(;;)switch(s){case 0:q=3
 l=J.bp(a),k=t.N
 case 6:if(!l.u()){s=7
 break}o=l.gJ()
-n="https://6r8m82a95e.execute-api.us-east-2.amazonaws.com/planes/"+o.a
+n="https://zs261b4dig.execute-api.us-east-2.amazonaws.com//planes/"+o.a
 j=A.eE(n,0,null)
 i=A.aB(["Content-Type","application/json; charset=UTF-8"],k,k)
 s=8
