@@ -29,39 +29,36 @@ class _ProximaCitaCounterState extends State<ProximaCitaCounter> {
   }
 
   void _calcularProximoEvento() {
-    DateTime now = DateTime.now();
-    DateFormat format = DateFormat("dd-MM-yyyy");
+    final now = DateTime.now();
+    final format = DateFormat('dd-MM-yyyy');
 
-    // Filtramos eventos futuros y ordenamos por el más cercano
-    List<EventoImportante> futuros = widget.eventos.where((e) {
-      return format.parse(e.date).isAfter(now);
-    }).toList();
-
-    futuros.sort(
-      (a, b) => format.parse(a.date).compareTo(format.parse(b.date)),
-    );
+    final futuros =
+        widget.eventos.where((e) {
+          try {
+            return format.parse(e.date).isAfter(now);
+          } catch (_) {
+            return false;
+          }
+        }).toList()..sort(
+          (a, b) => format.parse(a.date).compareTo(format.parse(b.date)),
+        );
 
     if (futuros.isNotEmpty) {
-      setState(() {
-        proximoEvento = futuros.first;
-      });
+      setState(() => proximoEvento = futuros.first);
     }
   }
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (proximoEvento == null) return;
-
-      DateTime eventDate = DateFormat("dd-MM-yyyy").parse(proximoEvento!.date);
+      final eventDate = DateFormat('dd-MM-yyyy').parse(proximoEvento!.date);
       final remaining = eventDate.difference(DateTime.now());
 
       if (remaining.isNegative) {
         timer.cancel();
-        _confettiController.play(); // ¡ANIMACIÓN DE CELEBRACIÓN!
+        _confettiController.play();
       } else {
-        setState(() {
-          _duration = remaining;
-        });
+        setState(() => _duration = remaining);
       }
     });
   }
@@ -75,7 +72,9 @@ class _ProximaCitaCounterState extends State<ProximaCitaCounter> {
 
   @override
   Widget build(BuildContext context) {
-    if (proximoEvento == null) return const Text("¡No hay citas próximas!");
+    if (proximoEvento == null) {
+      return const Text('¡No hay eventos próximos!');
+    }
 
     return Stack(
       alignment: Alignment.topCenter,
@@ -83,7 +82,7 @@ class _ProximaCitaCounterState extends State<ProximaCitaCounter> {
         Column(
           children: [
             Text(
-              "FALTA PARA: ${proximoEvento!.title.toUpperCase()}",
+              'FALTA PARA: ${proximoEvento!.title.toUpperCase()}',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.grey,
@@ -93,10 +92,10 @@ class _ProximaCitaCounterState extends State<ProximaCitaCounter> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildTimeColumn(_duration.inDays.toString(), "Días"),
-                _buildTimeColumn((_duration.inHours % 24).toString(), "Hrs"),
-                _buildTimeColumn((_duration.inMinutes % 60).toString(), "Min"),
-                _buildTimeColumn((_duration.inSeconds % 60).toString(), "Seg"),
+                _buildTimeColumn(_duration.inDays.toString(), 'Días'),
+                _buildTimeColumn((_duration.inHours % 24).toString(), 'Hrs'),
+                _buildTimeColumn((_duration.inMinutes % 60).toString(), 'Min'),
+                _buildTimeColumn((_duration.inSeconds % 60).toString(), 'Seg'),
               ],
             ),
           ],

@@ -1,23 +1,34 @@
-import 'package:dates/models/date.dart';
-import 'package:flutter/material.dart';
-
-class EventoImportante extends DateEvent {
-  IconData icon;
+class EventoImportante {
+  final String id;
+  final String title;
+  final String description;
+  final String date; // "dd-MM-yyyy"
+  final String icon; // nombre del IconData de Flutter
 
   EventoImportante({
-    required super.title,
-    required super.description,
-    required super.date,
-    this.icon = Icons.backpack_outlined,
-  }) : super(type: 'evento');
-}
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.date,
+    this.icon = 'backpack_outlined',
+  });
 
-// Tu lista de eventos
-List<EventoImportante> misEventos = [
-  EventoImportante(
-    title: "San Luis Potosi",
-    date: "14-03-2026",
-    description:
-        "Vamos a una aveentura con cascadas, un jardis surrealista y mas aventuras",
-  ),
-];
+  factory EventoImportante.fromJson(Map<String, dynamic> json) {
+    return EventoImportante(
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      date: json['date'] ?? '',
+      icon: json['icon'] ?? 'backpack_outlined',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'type': 'evento',
+    'id': id,
+    'title': title,
+    'description': description,
+    'date': date,
+    'icon': icon,
+  };
+}

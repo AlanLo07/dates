@@ -1,12 +1,34 @@
-import 'package:dates/models/date.dart';
-
-class Recuerdo extends DateEvent {
+class Recuerdo {
+  final String id;
+  final String title;
+  final String description;
+  final String date; // "dd-MM-yyyy"
   final String imagePath;
 
-  Recuerdo({
-    required super.title,
-    required super.description,
-    required super.date,
+  const Recuerdo({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.date,
     required this.imagePath,
-  }) : super(type: 'recuerdo');
+  });
+
+  factory Recuerdo.fromJson(Map<String, dynamic> json) {
+    return Recuerdo(
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      date: json['date'] ?? '',
+      imagePath: json['imagePath'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'type': 'recuerdo',
+    'id': id,
+    'title': title,
+    'description': description,
+    'date': date,
+    'imagePath': imagePath,
+  };
 }
