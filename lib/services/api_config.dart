@@ -6,7 +6,6 @@ class ApiConfig {
 
   // Rutas de cada recurso
   static const String citasPath = '/planes';
-  static const String usuariosPath = '/usuarios';
   static const String eventosPath = '/citas';
   // Agrega aquí las rutas que necesites en el futuro
 }
