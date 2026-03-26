@@ -2,7 +2,7 @@
 
 class ApiConfig {
   static const String baseUrl =
-      'https://zs261b4dig.execute-api.us-east-2.amazonaws.com';
+      'https://ujq4e9csj9.execute-api.us-east-2.amazonaws.com/';
 
   // Rutas de cada recurso
   static const String citasPath = '/planes';
