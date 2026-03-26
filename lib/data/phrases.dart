@@ -352,6 +352,181 @@ const List<LovePhrase> kLovePhrases = [
     link:
         'https://open.spotify.com/intl-es/track/2OBaoP7DfWvlm4gc0QPkgg?si=6816a30bf8934395',
   ),
+  LovePhrase(
+    text: 'ERES TAN BELLA QUE ME DUELE MIRARTE',
+    type: PhraseType.pelicula,
+    title: 'Shrek 2',
+    minute: '1:15:00',
+    credits: 'Burro (Andrew Adamson)',
+    emoji: '🐴',
+    link: 'https://play.hbomax.com/movie/da3876b4-2cbb-4e1c-bc45-160e9b8f3700',
+  ),
+  LovePhrase(
+    text: 'PROMETO NO VOLVER A HACERTE LLORAR',
+    type: PhraseType.pelicula,
+    title: 'Shrek 2',
+    minute: '1:25:00',
+    credits: 'Shrek (Andrew Adamson)',
+    emoji: '🟢',
+    link: 'https://play.hbomax.com/movie/da3876b4-2cbb-4e1c-bc45-160e9b8f3700',
+  ),
+  LovePhrase(
+    text: 'POR TI SERIA CAPAZ DE CAMBIAR',
+    type: PhraseType.pelicula,
+    title: 'Shrek 2',
+    minute: '1:10:00',
+    credits: 'Shrek (Andrew Adamson)',
+    emoji: '🤴',
+    link: 'https://play.hbomax.com/movie/da3876b4-2cbb-4e1c-bc45-160e9b8f3700',
+  ),
+
+  // ── ONE PIECE ───────────────────────────────────────────────────────────────
+  LovePhrase(
+    text: 'GRACIAS POR QUERERME',
+    type: PhraseType.serie,
+    title: 'One Piece',
+    minute: 'Ep. 483',
+    credits: 'Ace a Luffy (Eiichiro Oda)',
+    emoji: '🔥',
+    link:
+        'https://www.netflix.com/es/title/80107103?s=a&trkid=13747225&shareType=Title&shareUuid=2758d9b2-a040-489f-9075-9cf90e4c6fb5&trg=wha&unifiedEntityIdEncoded=Video%3A80107103&vlang=es&clip=82653079',
+  ),
+  LovePhrase(
+    text: 'QUIERO VIVIR LLEVAME AL MAR CONTIGO',
+    type: PhraseType.serie,
+    title: 'One Piece',
+    minute: 'Ep. 278',
+    credits: 'Robin (Eiichiro Oda)',
+    emoji: '👒',
+    link:
+        'https://www.netflix.com/es/title/80107103?s=a&trkid=13747225&shareType=Title&shareUuid=2758d9b2-a040-489f-9075-9cf90e4c6fb5&trg=wha&unifiedEntityIdEncoded=Video%3A80107103&vlang=es&clip=82653079',
+  ),
+  LovePhrase(
+    text: 'PROTEGERE LO QUE MAS AMAS',
+    type: PhraseType.serie,
+    title: 'One Piece',
+    minute: 'Arco Wano',
+    credits: 'Zoro (Eiichiro Oda)',
+    emoji: '⚔️',
+    link:
+        'https://www.netflix.com/es/title/80107103?s=a&trkid=13747225&shareType=Title&shareUuid=2758d9b2-a040-489f-9075-9cf90e4c6fb5&trg=wha&unifiedEntityIdEncoded=Video%3A80107103&vlang=es&clip=82653079',
+  ),
+
+  // ── EL CADÁVER DE LA NOVIA ──────────────────────────────────────────────────
+  LovePhrase(
+    text: 'CON ESTA MANO YO SOSTENDRE TUS ANHELOS',
+    type: PhraseType.pelicula,
+    title: 'Corpse Bride',
+    minute: '0:15:00',
+    credits: 'Victor Van Dort (Tim Burton)',
+    emoji: '🦋',
+    link: 'https://play.hbomax.com/movie/d28771bd-73ed-49a7-9259-bdb33a115cbc',
+  ),
+  LovePhrase(
+    text: 'TU COPA NUNCA ESTARA VACIA PORQUE YO SERE TU VINO',
+    type: PhraseType.pelicula,
+    title: 'Corpse Bride',
+    minute: '0:15:30',
+    credits: 'Votos matrimoniales (Tim Burton)',
+    emoji: '🍷',
+    link: 'https://play.hbomax.com/movie/d28771bd-73ed-49a7-9259-bdb33a115cbc',
+  ),
+  LovePhrase(
+    text: 'TE AMO PERO NO ERES MIA',
+    type: PhraseType.pelicula,
+    title: 'Corpse Bride',
+    minute: '1:12:00',
+    credits: 'Emily (Tim Burton)',
+    emoji: '👰‍♀️',
+    link: 'https://play.hbomax.com/movie/d28771bd-73ed-49a7-9259-bdb33a115cbc',
+  ),
+
+  // ── MARTIN GARRIX ───────────────────────────────────────────────────────────
+  LovePhrase(
+    text: 'I WILL BE THERE FOR YOU',
+    type: PhraseType.cancion,
+    title: 'There For You',
+    minute: '1:05',
+    credits: 'Martin Garrix ft. Troye Sivan',
+    emoji: '➕',
+    link:
+        "https://open.spotify.com/intl-es/track/6jA8HL9i4QGzsj6fjoxp8Y?si=c59c87e5a9c34eb9",
+  ),
+  LovePhrase(
+    text: 'IN THE NAME OF LOVE',
+    type: PhraseType.cancion,
+    title: 'In the Name of Love',
+    minute: '0:50',
+    credits: 'Martin Garrix & Bebe Rexha',
+    emoji: '✖️',
+    link:
+        'https://open.spotify.com/intl-es/track/23L5CiUhw2jV1OIMwthR3S?si=ef30217cf2194ab8',
+  ),
+
+  // ── DUKI (Adicionales) ──────────────────────────────────────────────────────
+  LovePhrase(
+    text: 'SI TU NO ESTAS NO SE QUE HACER',
+    type: PhraseType.cancion,
+    title: 'She Don’t Give a FO',
+    minute: '1:20',
+    credits: 'Duki (2017)',
+    emoji: '🧛‍♂️',
+    link:
+        'https://open.spotify.com/intl-es/track/03a359wbiUsjN9h6yzXvmS?si=38c07742fb03497b',
+  ),
+  LovePhrase(
+    text: 'MI UNICA DROGA ES TU AMOR',
+    type: PhraseType.cancion,
+    title: 'Si Te Sentís Sola',
+    minute: '0:45',
+    credits: 'Duki (2018)',
+    emoji: '💎',
+    link:
+        'https://open.spotify.com/intl-es/track/7Kf6WE45fNBoyRkAuQKfrA?si=ccf30e57238f46bd',
+  ),
+
+  // ── LITERATURA ─────────────────────────────────────────────────────────────
+  LovePhrase(
+    text: 'EL AMOR ES LA ARITMETICA DEL CORAZON',
+    type: PhraseType.libro,
+    title: 'El hombre que calculaba',
+    credits: 'Malba Tahan',
+    emoji: '🧮',
+  ),
+  LovePhrase(
+    text: 'TENES UN CORAZON DE ALMENDRA',
+    type: PhraseType.libro,
+    title: 'Almendra',
+    credits: 'Won-pyung Sohn',
+    emoji: '🌰',
+  ),
+  LovePhrase(
+    text: 'LOS OGROS SON COMO LAS CEBOLLAS TIENEN CAPAS',
+    type: PhraseType.pelicula,
+    title: 'Shrek',
+    minute: '0:25:40',
+    credits: 'Shrek (Andrew Adamson)',
+    emoji: '🧅',
+    link: 'https://play.hbomax.com/movie/d8702a49-eced-457f-87b5-afe881ee72a0',
+  ),
+  LovePhrase(
+    text: 'ERES TAN HERMOSA QUE ME QUEDO SIN PALABRAS',
+    type: PhraseType.pelicula,
+    title: 'Shrek',
+    minute: '1:10:15',
+    credits: 'Shrek a Fiona (Andrew Adamson)',
+    emoji: '🌻',
+    link: 'https://play.hbomax.com/movie/d8702a49-eced-457f-87b5-afe881ee72a0',
+  ),
+  LovePhrase(
+    text: 'VI EL MIEDO EN SUS OJOS PERO NO EN LOS TUYOS',
+    type: PhraseType.pelicula,
+    title: 'Shrek',
+    minute: '0:45:20',
+    credits: 'Fiona a Shrek (Andrew Adamson)',
+    emoji: '🛡️',
+    link: 'https://play.hbomax.com/movie/d8702a49-eced-457f-87b5-afe881ee72a0',
+  ),
 ];
 
 LovePhrase getRandomLovePhrase() {
