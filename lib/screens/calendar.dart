@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/recuerdos.dart';
 import '../models/carta.dart';
 import '../models/fecha.dart';
@@ -14,6 +14,54 @@ const Color violetaProfundo = Color(0xFF796B9B);
 const Color lavandaPalida = Color(0xFFD8C9E7);
 const Color azulCelestePastel = Color(0xFFA9D1DF);
 
+// ── Widget helper reutilizable ──────────────────────────────────────────────
+class _EventImage extends StatelessWidget {
+  final String imageUrl;
+  final double width;
+  final double height;
+  final BoxFit fit;
+  final BorderRadius? borderRadius;
+
+  const _EventImage({
+    required this.imageUrl,
+    required this.width,
+    required this.height,
+    this.fit = BoxFit.cover,
+    this.borderRadius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final image = imageUrl.isEmpty
+        ? _fallback()
+        : CachedNetworkImage(
+            imageUrl: imageUrl,
+            width: width,
+            height: height,
+            fit: fit,
+            placeholder: (_, __) => SizedBox(
+              width: width,
+              height: height,
+              child: const Center(
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+            errorWidget: (_, __, ___) => _fallback(),
+          );
+
+    if (borderRadius != null) {
+      return ClipRRect(borderRadius: borderRadius!, child: image);
+    }
+    return image;
+  }
+
+  Widget _fallback() => SizedBox(
+    width: width,
+    height: height,
+    child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+  );
+}
+
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
@@ -23,6 +71,9 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
+  bool _mostrarCartas = true;
+  bool _mostrarCitas = true;
+  bool _mostrarRecuerdos = true;
 
   List<Recuerdo> _recuerdos = [];
   List<CartaSorpresa> _cartas = [];
@@ -85,28 +136,37 @@ class _CalendarScreenState extends State<CalendarScreen> {
   // ── Getters por día ───────────────────────────────────────────────────────
 
   List<Recuerdo> _getRecuerdosForDay(DateTime day) {
-    final key = _toMonthDayKey(day);
-    return _recuerdos
-        .where((r) => _monthDayFromApiDate(r.date) == key)
-        .toList();
+    if (_mostrarRecuerdos) {
+      final key = _toMonthDayKey(day);
+      return _recuerdos
+          .where((r) => _monthDayFromApiDate(r.date) == key)
+          .toList();
+    }
+    return [];
   }
 
   CartaSorpresa? _getCartaForDay(DateTime day) {
-    final key = _toApiDateKey(day);
-    try {
-      return _cartas.firstWhere((c) => c.date == key);
-    } catch (_) {
-      return null;
+    if (_mostrarCartas) {
+      final key = _toApiDateKey(day);
+      try {
+        return _cartas.firstWhere((c) => c.date == key);
+      } catch (_) {
+        return null;
+      }
     }
+    return null;
   }
 
   EventoImportante? _getEventoForDay(DateTime day) {
-    final key = _toApiDateKey(day);
-    try {
-      return _eventos.firstWhere((e) => e.date == key);
-    } catch (_) {
-      return null;
+    if (_mostrarCitas) {
+      final key = _toApiDateKey(day);
+      try {
+        return _eventos.firstWhere((e) => e.date == key);
+      } catch (_) {
+        return null;
+      }
     }
+    return null;
   }
 
   List<Object> _getEventsForDay(DateTime day) {
@@ -115,6 +175,79 @@ class _CalendarScreenState extends State<CalendarScreen> {
       if (_getCartaForDay(day) != null) _getCartaForDay(day)!,
       if (_getEventoForDay(day) != null) _getEventoForDay(day)!,
     ];
+  }
+
+  // Widget de filtro
+
+  Widget _buildFilterBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildFilterChip(
+            label: '💌 Cartas',
+            value: _mostrarCartas,
+            onChanged: (v) => setState(() => _mostrarCartas = v),
+            activeColor: Colors.pinkAccent,
+          ),
+          _buildFilterChip(
+            label: '📍 Citas',
+            value: _mostrarCitas,
+            onChanged: (v) => setState(() => _mostrarCitas = v),
+            activeColor: azulCelestePastel,
+          ),
+          _buildFilterChip(
+            label: '🎞 Recuerdos',
+            value: _mostrarRecuerdos,
+            onChanged: (v) => setState(() => _mostrarRecuerdos = v),
+            activeColor: violetaProfundo,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required Color activeColor,
+  }) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: value ? activeColor.withOpacity(0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: value ? activeColor : Colors.grey.shade300,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              value ? Icons.check_box : Icons.check_box_outline_blank,
+              size: 16,
+              color: value ? activeColor : Colors.grey,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: value ? activeColor : Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ── Widgets de imagen ─────────────────────────────────────────────────────
@@ -158,17 +291,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
       );
     }
-    return Image.asset(
-      imagePath,
+    return _EventImage(
+      imageUrl: imagePath,
       width: width,
       height: height,
       fit: fit,
-      errorBuilder: (_, __, ___) => Container(
-        width: width,
-        height: height,
-        color: lavandaPalida,
-        child: const Icon(Icons.broken_image, size: 48, color: violetaProfundo),
-      ),
     );
   }
 
@@ -200,13 +327,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
-      child: Image.asset(
-        imagePath,
+      child: _EventImage(
+        imageUrl: imagePath,
         width: size,
         height: size,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) =>
-            Container(width: size, height: size, color: lavandaPalida),
       ),
     );
   }
@@ -428,6 +553,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           : Column(
               children: [
                 const SizedBox(height: 20),
+                _buildFilterBar(), // ← nuevo
+                const SizedBox(height: 8),
                 if (_eventos.isNotEmpty) ProximaCitaCounter(eventos: _eventos),
                 const SizedBox(height: 20),
                 Expanded(
@@ -481,7 +608,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         final carta = _getCartaForDay(day);
                         final evento = _getEventoForDay(day);
 
-                        if (recuerdos.isNotEmpty) {
+                        if (recuerdos.isNotEmpty && _mostrarRecuerdos) {
                           final r = recuerdos.first;
                           if (r.imagePath.isNotEmpty) {
                             return Positioned(
@@ -509,7 +636,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           );
                         }
 
-                        if (carta != null) {
+                        if (carta != null && _mostrarCartas) {
                           final now = DateTime.now();
                           final today = DateTime(now.year, now.month, now.day);
                           final localDay = DateTime(
@@ -531,7 +658,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           );
                         }
 
-                        if (evento != null) {
+                        if (evento != null && _mostrarCitas) {
                           return Positioned(
                             bottom: 1,
                             child: Container(
@@ -559,15 +686,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       final recuerdos = _getRecuerdosForDay(selectedDay);
                       final evento = _getEventoForDay(selectedDay);
 
-                      if (carta != null) {
+                      if (carta != null && _mostrarCartas) {
                         await _verificarCarta(selectedDay);
                         return;
                       }
-                      if (recuerdos.isNotEmpty) {
+                      if (recuerdos.isNotEmpty && _mostrarRecuerdos) {
                         _showRecuerdoDialog(recuerdos.first);
                         return;
                       }
-                      if (evento != null) {
+                      if (evento != null && _mostrarCitas) {
                         _showEventoDialog(evento);
                         return;
                       }

@@ -101,7 +101,11 @@ class ResultScreen extends StatelessWidget {
         fit: BoxFit.scaleDown,
         placeholder: (context, url) =>
             const Center(child: CircularProgressIndicator()),
-        errorWidget: (context, url, error) => const Icon(Icons.error),
+        errorWidget: (context, url, error) => const Icon(
+          Icons.image_not_supported_outlined,
+          size: 80,
+          color: violetaProfundo,
+        ),
       ),
     );
   }
