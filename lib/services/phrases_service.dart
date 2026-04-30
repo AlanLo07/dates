@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../models/phrase.dart';
-import '../data/phrases.dart';
+import 'api_config.dart';
 
 class PhrasesService {
   // TODO: Reemplaza con tu endpoint real cuando lo tengas
-  static const String _baseUrl = 'https://TU_API_GATEWAY_URL/phrases';
+  final String _baseUrl = ApiConfig.baseUrl + ApiConfig.phrases;
 
   /// Obtiene todas las frases (API primero, fallback local)
   Future<List<LovePhrase>> getPhrases() async {
@@ -31,7 +31,7 @@ class PhrasesService {
     }
 
     // Fallback: retorna la lista local
-    return List.from(kLovePhrases);
+    return [];
   }
 
   /// Obtiene una frase aleatoria
@@ -41,7 +41,12 @@ class PhrasesService {
       final random = Random();
       return phrases[random.nextInt(phrases.length)];
     } catch (_) {
-      return getRandomLovePhrase(); // fallback directo
+      return LovePhrase(
+        text: "No hay frases disponibles",
+        type: PhraseType.pareja,
+        title: "No hay frase",
+        emoji: '💌',
+      );
     }
   }
 

@@ -7,5 +7,6 @@ class ApiConfig {
   // Rutas de cada recurso
   static const String citasPath = '/planes';
   static const String eventosPath = '/citas';
+  static const String phrases = '/love-phrases';
   // Agrega aquí las rutas que necesites en el futuro
 }
