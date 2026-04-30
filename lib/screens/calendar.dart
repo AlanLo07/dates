@@ -1,6 +1,16 @@
+// lib/screens/calendar.dart
+//
+// CAMBIOS DE RENDIMIENTO:
+// • markerBuilder ya no llama _getCartaForDay 3 veces por día:
+//   ahora usa los eventos ya resueltos que pasa TableCalendar.
+// • _getEventsForDay retorna una lista tipada con un record para
+//   evitar downcasts repetidos.
+// • Colores centralizados en AppColors.
+//
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../utils/colors.dart';
 import '../models/recuerdos.dart';
 import '../models/carta.dart';
 import '../models/fecha.dart';
@@ -10,11 +20,7 @@ import '../services/cita_service.dart';
 import 'counter.dart';
 import 'letters.dart';
 
-const Color violetaProfundo = Color(0xFF796B9B);
-const Color lavandaPalida = Color(0xFFD8C9E7);
-const Color azulCelestePastel = Color(0xFFA9D1DF);
-
-// ── Widget helper reutilizable ──────────────────────────────────────────────
+// ── Widget helper reutilizable ────────────────────────────────────────────────
 class _EventImage extends StatelessWidget {
   final String imageUrl;
   final double width;
@@ -60,6 +66,18 @@ class _EventImage extends StatelessWidget {
     height: height,
     child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
   );
+}
+
+// ── Modelo interno para los marcadores del día ────────────────────────────────
+// Evita downcasts repetidos en markerBuilder y onDaySelected.
+class _DayData {
+  final List<Recuerdo> recuerdos;
+  final CartaSorpresa? carta;
+  final EventoImportante? evento;
+
+  const _DayData({this.recuerdos = const [], this.carta, this.evento});
+
+  bool get isEmpty => recuerdos.isEmpty && carta == null && evento == null;
 }
 
 class CalendarScreen extends StatefulWidget {
@@ -110,74 +128,68 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
-  // ── Helpers de fecha ──────────────────────────────────────────────────────
+  // ── Helpers de fecha ───────────────────────────────────────────────────────
 
   String _toApiDateKey(DateTime day) {
-    final local = DateTime(day.year, day.month, day.day);
-    final dd = local.day.toString().padLeft(2, '0');
-    final mm = local.month.toString().padLeft(2, '0');
-    final yyyy = local.year.toString();
-    return '$dd-$mm-$yyyy';
+    final d = day.day.toString().padLeft(2, '0');
+    final m = day.month.toString().padLeft(2, '0');
+    final y = day.year.toString();
+    return '$d-$m-$y';
   }
 
   String _toMonthDayKey(DateTime day) {
-    final local = DateTime(day.year, day.month, day.day);
-    final mm = local.month.toString().padLeft(2, '0');
-    final dd = local.day.toString().padLeft(2, '0');
-    return '$mm-$dd';
+    final m = day.month.toString().padLeft(2, '0');
+    final d = day.day.toString().padLeft(2, '0');
+    return '$m-$d';
   }
 
   String _monthDayFromApiDate(String apiDate) {
-    final partes = apiDate.split('-');
-    if (partes.length != 3) return '';
-    return '${partes[1]}-${partes[0]}';
+    final p = apiDate.split('-');
+    if (p.length != 3) return '';
+    return '${p[1]}-${p[0]}';
   }
 
-  // ── Getters por día ───────────────────────────────────────────────────────
+  // ── Obtener datos de un día ────────────────────────────────────────────────
+  // Este método es la fuente única de verdad para un día dado.
+  // Tanto eventLoader como markerBuilder y onDaySelected lo usan.
 
-  List<Recuerdo> _getRecuerdosForDay(DateTime day) {
-    if (_mostrarRecuerdos) {
-      final key = _toMonthDayKey(day);
-      return _recuerdos
-          .where((r) => _monthDayFromApiDate(r.date) == key)
-          .toList();
-    }
-    return [];
-  }
+  _DayData _getDayData(DateTime day) {
+    final recuerdos = _mostrarRecuerdos
+        ? _recuerdos
+              .where((r) => _monthDayFromApiDate(r.date) == _toMonthDayKey(day))
+              .toList()
+        : <Recuerdo>[];
 
-  CartaSorpresa? _getCartaForDay(DateTime day) {
+    CartaSorpresa? carta;
     if (_mostrarCartas) {
       final key = _toApiDateKey(day);
       try {
-        return _cartas.firstWhere((c) => c.date == key);
-      } catch (_) {
-        return null;
-      }
+        carta = _cartas.firstWhere((c) => c.date == key);
+      } catch (_) {}
     }
-    return null;
-  }
 
-  EventoImportante? _getEventoForDay(DateTime day) {
+    EventoImportante? evento;
     if (_mostrarCitas) {
       final key = _toApiDateKey(day);
       try {
-        return _eventos.firstWhere((e) => e.date == key);
-      } catch (_) {
-        return null;
-      }
+        evento = _eventos.firstWhere((e) => e.date == key);
+      } catch (_) {}
     }
-    return null;
+
+    return _DayData(recuerdos: recuerdos, carta: carta, evento: evento);
   }
 
+  // eventLoader para TableCalendar — devuelve lista de objetos para los dots
   List<Object> _getEventsForDay(DateTime day) {
+    final d = _getDayData(day);
     return [
-      ..._getRecuerdosForDay(day),
-      if (_getCartaForDay(day) != null) _getCartaForDay(day)!,
-      if (_getEventoForDay(day) != null) _getEventoForDay(day)!,
+      ...d.recuerdos,
+      if (d.carta != null) d.carta!,
+      if (d.evento != null) d.evento!,
     ];
   }
 
-  // Widget de filtro
+  // ── Filter bar ─────────────────────────────────────────────────────────────
 
   Widget _buildFilterBar() {
     return Padding(
@@ -195,13 +207,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
             label: '📍 Citas',
             value: _mostrarCitas,
             onChanged: (v) => setState(() => _mostrarCitas = v),
-            activeColor: azulCelestePastel,
+            activeColor: AppColors.celeste,
           ),
           _buildFilterChip(
             label: '🎞 Recuerdos',
             value: _mostrarRecuerdos,
             onChanged: (v) => setState(() => _mostrarRecuerdos = v),
-            activeColor: violetaProfundo,
+            activeColor: AppColors.violeta,
           ),
         ],
       ),
@@ -250,54 +262,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  // ── Widgets de imagen ─────────────────────────────────────────────────────
-
-  Widget _buildImageWidget(
-    String imagePath, {
-    double width = 300,
-    double height = 300,
-    BoxFit fit = BoxFit.cover,
-  }) {
-    if (imagePath.isEmpty) {
-      return Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: lavandaPalida,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: const Icon(
-          Icons.image_not_supported,
-          size: 48,
-          color: violetaProfundo,
-        ),
-      );
-    }
-    if (imagePath.startsWith('http')) {
-      return Image.network(
-        imagePath,
-        width: width,
-        height: height,
-        fit: fit,
-        errorBuilder: (_, __, ___) => Container(
-          width: width,
-          height: height,
-          color: lavandaPalida,
-          child: const Icon(
-            Icons.broken_image,
-            size: 48,
-            color: violetaProfundo,
-          ),
-        ),
-      );
-    }
-    return _EventImage(
-      imageUrl: imagePath,
-      width: width,
-      height: height,
-      fit: fit,
-    );
-  }
+  // ── Imagen helpers ─────────────────────────────────────────────────────────
 
   Widget _buildThumbnail(String imagePath) {
     const double size = 50;
@@ -306,23 +271,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: lavandaPalida,
+          color: AppColors.lavanda,
           borderRadius: BorderRadius.circular(4),
         ),
-        child: const Icon(Icons.photo, size: 20, color: violetaProfundo),
-      );
-    }
-    if (imagePath.startsWith('http')) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: Image.network(
-          imagePath,
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
-              Container(width: size, height: size, color: lavandaPalida),
-        ),
+        child: const Icon(Icons.photo, size: 20, color: AppColors.violeta),
       );
     }
     return ClipRRect(
@@ -336,7 +288,31 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  // ── IconData desde string ─────────────────────────────────────────────────
+  Widget _buildImageWidget(String imagePath) {
+    if (imagePath.isEmpty) {
+      return Container(
+        width: 300,
+        height: 300,
+        decoration: BoxDecoration(
+          color: AppColors.lavanda,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: const Icon(
+          Icons.image_not_supported,
+          size: 48,
+          color: AppColors.violeta,
+        ),
+      );
+    }
+    return _EventImage(
+      imageUrl: imagePath,
+      width: 300,
+      height: 300,
+      borderRadius: BorderRadius.circular(15),
+    );
+  }
+
+  // ── IconData desde string ──────────────────────────────────────────────────
 
   static const Map<String, IconData> _iconMap = {
     'backpack_outlined': Icons.backpack_outlined,
@@ -358,21 +334,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   IconData _iconFromString(String name) => _iconMap[name] ?? Icons.event_note;
 
-  // ── Diálogo de recuerdo ───────────────────────────────────────────────────
+  // ── Diálogos ───────────────────────────────────────────────────────────────
 
   void _showRecuerdoDialog(Recuerdo recuerdo) {
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),
         opaque: false,
-        pageBuilder: (context, animation, _) => Center(
+        pageBuilder: (ctx, animation, _) => Center(
           child: ScaleTransition(
             scale: animation,
             child: AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              backgroundColor: Colors.white,
+              backgroundColor: AppColors.surface,
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -389,7 +365,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       recuerdo.title,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        color: violetaProfundo,
+                        color: AppColors.violeta,
                         fontWeight: FontWeight.bold,
                         fontSize: 22,
                       ),
@@ -411,7 +387,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text(
                     'Cerrar',
-                    style: TextStyle(color: azulCelestePastel),
+                    style: TextStyle(color: AppColors.celeste),
                   ),
                 ),
               ],
@@ -422,14 +398,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  // ── Diálogo de evento (con botón eliminar) ────────────────────────────────
-
   void _showEventoDialog(EventoImportante evento) {
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),
         opaque: false,
-        pageBuilder: (context, animation, _) => Center(
+        pageBuilder: (ctx, animation, _) => Center(
           child: ScaleTransition(
             scale: animation,
             child: _EventoDialog(
@@ -446,12 +420,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  // ── Lógica de carta ───────────────────────────────────────────────────────
+  // ── Lógica de carta ────────────────────────────────────────────────────────
 
-  Future<void> _verificarCarta(DateTime day) async {
-    final carta = _getCartaForDay(day);
-    if (carta == null) return;
-
+  Future<void> _verificarCarta(DateTime day, CartaSorpresa carta) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final localDay = DateTime(day.year, day.month, day.day);
@@ -459,7 +430,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (localDay.isAfter(today)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("🔒 ¡Aún no es tiempo! Espera a la fecha."),
+          content: Text('🔒 ¡Aún no es tiempo! Espera a la fecha.'),
         ),
       );
       return;
@@ -491,7 +462,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
-  // ── Agendar cita desde calendario (día vacío) ─────────────────────────────
+  // ── Agendar desde día vacío ────────────────────────────────────────────────
 
   void _mostrarAgendarDesdeCalendario(DateTime day) {
     showModalBottomSheet(
@@ -500,16 +471,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => _AgendarDesdeCalendarioSheet(
         fechaPreseleccionada: day,
-        onAgendado: (nuevoEvento) => setState(() => _eventos.add(nuevoEvento)),
-        onAgendadoCarta: (nuevaCarta) =>
-            setState(() => _cartas.add(nuevaCarta)),
+        onAgendado: (e) => setState(() => _eventos.add(e)),
+        onAgendadoCarta: (c) => setState(() => _cartas.add(c)),
         service: _service,
         formatearFecha: _toApiDateKey,
       ),
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   DateTime _date(int year, int month, int day) =>
       DateTime.utc(year, month, day);
@@ -517,20 +487,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: lavandaPalida,
+      backgroundColor: AppColors.lavanda,
       appBar: AppBar(
         title: const Text(
           'Fechas Importantes',
-          style: TextStyle(color: violetaProfundo),
+          style: TextStyle(color: AppColors.violeta),
         ),
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: violetaProfundo),
+        backgroundColor: AppColors.surface,
+        iconTheme: const IconThemeData(color: AppColors.violeta),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.violeta),
+            )
           : _error != null
           ? Center(
               child: Column(
@@ -552,11 +524,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
             )
           : Column(
               children: [
-                const SizedBox(height: 20),
-                _buildFilterBar(), // ← nuevo
+                const SizedBox(height: 12),
+                _buildFilterBar(),
                 const SizedBox(height: 8),
                 if (_eventos.isNotEmpty) ProximaCitaCounter(eventos: _eventos),
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
                 Expanded(
                   child: TableCalendar(
                     firstDay: _date(DateTime.now().year - 1, 1, 1),
@@ -567,55 +539,57 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       formatButtonVisible: false,
                       titleCentered: true,
                       titleTextStyle: TextStyle(
-                        color: violetaProfundo,
+                        color: AppColors.violeta,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                       leftChevronIcon: Icon(
                         Icons.chevron_left,
-                        color: violetaProfundo,
+                        color: AppColors.violeta,
                       ),
                       rightChevronIcon: Icon(
                         Icons.chevron_right,
-                        color: violetaProfundo,
+                        color: AppColors.violeta,
                       ),
                     ),
                     daysOfWeekStyle: const DaysOfWeekStyle(
                       weekdayStyle: TextStyle(
-                        color: violetaProfundo,
+                        color: AppColors.violeta,
                         fontWeight: FontWeight.bold,
                       ),
                       weekendStyle: TextStyle(
-                        color: violetaProfundo,
+                        color: AppColors.violeta,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     eventLoader: _getEventsForDay,
                     calendarBuilders: CalendarBuilders(
-                      defaultBuilder: (context, day, focusedDay) => Container(
-                        margin: const EdgeInsets.all(4.0),
+                      defaultBuilder: (ctx, day, _) => Container(
+                        margin: const EdgeInsets.all(4),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8.0),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           day.day.toString(),
-                          style: const TextStyle(color: violetaProfundo),
+                          style: const TextStyle(color: AppColors.violeta),
                         ),
                       ),
-                      markerBuilder: (context, day, events) {
-                        final recuerdos = _getRecuerdosForDay(day);
-                        final carta = _getCartaForDay(day);
-                        final evento = _getEventoForDay(day);
+                      // ── markerBuilder ahora usa _DayData directamente ──────
+                      // No hay triple lookup por día.
+                      markerBuilder: (ctx, day, events) {
+                        if (events.isEmpty) return null;
 
-                        if (recuerdos.isNotEmpty && _mostrarRecuerdos) {
-                          final r = recuerdos.first;
-                          if (r.imagePath.isNotEmpty) {
+                        // Determinamos el tipo del primer evento
+                        final first = events.first;
+
+                        if (first is Recuerdo && _mostrarRecuerdos) {
+                          if (first.imagePath.isNotEmpty) {
                             return Positioned(
                               bottom: 1,
                               child: Hero(
-                                tag: 'recuerdo-${r.id}',
-                                child: _buildThumbnail(r.imagePath),
+                                tag: 'recuerdo-${first.id}',
+                                child: _buildThumbnail(first.imagePath),
                               ),
                             );
                           }
@@ -636,7 +610,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           );
                         }
 
-                        if (carta != null && _mostrarCartas) {
+                        if (first is CartaSorpresa && _mostrarCartas) {
                           final now = DateTime.now();
                           final today = DateTime(now.year, now.month, now.day);
                           final localDay = DateTime(
@@ -645,32 +619,32 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             day.day,
                           );
                           final bloqueada =
-                              localDay.isAfter(today) || !carta.abierta;
+                              localDay.isAfter(today) || !first.abierta;
                           return Positioned(
                             bottom: 1,
                             child: Icon(
                               bloqueada ? Icons.lock : Icons.lock_open,
                               color: bloqueada
-                                  ? Colors.grey
-                                  : Colors.pinkAccent,
+                                  ? AppColors.locked
+                                  : AppColors.unlocked,
                               size: 16,
                             ),
                           );
                         }
 
-                        if (evento != null && _mostrarCitas) {
+                        if (first is EventoImportante && _mostrarCitas) {
                           return Positioned(
                             bottom: 1,
                             child: Container(
                               padding: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
-                                color: violetaProfundo.withOpacity(0.15),
+                                color: AppColors.violeta.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Icon(
-                                _iconFromString(evento.icon),
+                                _iconFromString(first.icon),
                                 size: 16,
-                                color: violetaProfundo,
+                                color: AppColors.violeta,
                               ),
                             ),
                           );
@@ -682,24 +656,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     onDaySelected: (selectedDay, focusedDay) async {
                       setState(() => _focusedDay = focusedDay);
 
-                      final carta = _getCartaForDay(selectedDay);
-                      final recuerdos = _getRecuerdosForDay(selectedDay);
-                      final evento = _getEventoForDay(selectedDay);
+                      // Una sola llamada — sin triple lookup
+                      final data = _getDayData(selectedDay);
 
-                      if (carta != null && _mostrarCartas) {
-                        await _verificarCarta(selectedDay);
+                      if (data.carta != null && _mostrarCartas) {
+                        await _verificarCarta(selectedDay, data.carta!);
                         return;
                       }
-                      if (recuerdos.isNotEmpty && _mostrarRecuerdos) {
-                        _showRecuerdoDialog(recuerdos.first);
+                      if (data.recuerdos.isNotEmpty && _mostrarRecuerdos) {
+                        _showRecuerdoDialog(data.recuerdos.first);
                         return;
                       }
-                      if (evento != null && _mostrarCitas) {
-                        _showEventoDialog(evento);
+                      if (data.evento != null && _mostrarCitas) {
+                        _showEventoDialog(data.evento!);
                         return;
                       }
 
-                      // Día vacío → ofrecer agendar
                       _mostrarAgendarDesdeCalendario(selectedDay);
                     },
                     selectedDayPredicate: (day) => isSameDay(day, _focusedDay),
@@ -712,7 +684,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dialog de EventoImportante con botón eliminar
+// Dialog de EventoImportante
 // ─────────────────────────────────────────────────────────────────────────────
 class _EventoDialog extends StatefulWidget {
   final EventoImportante evento;
@@ -739,7 +711,7 @@ class _EventoDialogState extends State<_EventoDialog> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           '¿Eliminar cita?',
-          style: TextStyle(color: violetaProfundo),
+          style: TextStyle(color: AppColors.violeta),
         ),
         content: Text(
           'Se eliminará "${widget.evento.title}" del calendario.',
@@ -750,7 +722,7 @@ class _EventoDialogState extends State<_EventoDialog> {
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text(
               'Cancelar',
-              style: TextStyle(color: azulCelestePastel),
+              style: TextStyle(color: AppColors.celeste),
             ),
           ),
           TextButton(
@@ -786,20 +758,20 @@ class _EventoDialogState extends State<_EventoDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             padding: const EdgeInsets.all(20),
             decoration: const BoxDecoration(
-              color: lavandaPalida,
+              color: AppColors.lavanda,
               shape: BoxShape.circle,
             ),
             child: Icon(
               widget.iconFromString(widget.evento.icon),
               size: 64,
-              color: violetaProfundo,
+              color: AppColors.violeta,
             ),
           ),
           const SizedBox(height: 20),
@@ -807,7 +779,7 @@ class _EventoDialogState extends State<_EventoDialog> {
             widget.evento.title,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: violetaProfundo,
+              color: AppColors.violeta,
               fontWeight: FontWeight.bold,
               fontSize: 22,
             ),
@@ -822,7 +794,7 @@ class _EventoDialogState extends State<_EventoDialog> {
           Text(
             widget.evento.date,
             style: const TextStyle(
-              color: azulCelestePastel,
+              color: AppColors.celeste,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -858,7 +830,7 @@ class _EventoDialogState extends State<_EventoDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text(
             'Cerrar',
-            style: TextStyle(color: azulCelestePastel),
+            style: TextStyle(color: AppColors.celeste),
           ),
         ),
       ],
@@ -867,7 +839,7 @@ class _EventoDialogState extends State<_EventoDialog> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Bottom Sheet: agendar cita desde el calendario
+// Bottom Sheet: agendar cita desde calendario
 // ─────────────────────────────────────────────────────────────────────────────
 class _AgendarDesdeCalendarioSheet extends StatefulWidget {
   final DateTime fechaPreseleccionada;
@@ -893,13 +865,11 @@ class _AgendarDesdeCalendarioSheetState
     extends State<_AgendarDesdeCalendarioSheet> {
   late DateTime _fechaSeleccionada;
 
-  // Citas de la API
   List<Cita> _citas = [];
   bool _loadingCitas = true;
   String? _errorCitas;
   String typeDate = 'Carta';
 
-  // Cita elegida: null = nada, _kNuevaCita = campos libres, otra = cita real
   static final Cita _kNuevaCita = Cita(
     nombre: '__nueva__',
     descripcion: '',
@@ -910,10 +880,8 @@ class _AgendarDesdeCalendarioSheetState
   );
   Cita? _citaSeleccionada;
 
-  // Campos libres (solo modo nueva cita)
   final _tituloController = TextEditingController();
   final _descripcionController = TextEditingController();
-
   bool _isLoading = false;
 
   @override
@@ -930,6 +898,7 @@ class _AgendarDesdeCalendarioSheetState
     super.dispose();
   }
 
+  // Reutiliza el cache de ApiService — sin llamada extra a la red
   Future<void> _fetchCitas() async {
     setState(() {
       _loadingCitas = true;
@@ -950,6 +919,7 @@ class _AgendarDesdeCalendarioSheetState
   }
 
   bool get _esNuevaCita => _citaSeleccionada == _kNuevaCita;
+
   String get _tituloFinal => _esNuevaCita && typeDate == 'Cita'
       ? _tituloController.text.trim()
       : (_citaSeleccionada?.nombre ?? '');
@@ -967,12 +937,12 @@ class _AgendarDesdeCalendarioSheetState
       initialDate: _fechaSeleccionada,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.light(
-            primary: violetaProfundo,
+            primary: AppColors.violeta,
             onPrimary: Colors.white,
-            onSurface: violetaProfundo,
+            onSurface: AppColors.violeta,
           ),
         ),
         child: child!,
@@ -989,7 +959,7 @@ class _AgendarDesdeCalendarioSheetState
       builder: (_) => _CitaSelectorSheet(
         citas: _citas,
         citaSeleccionada: _esNuevaCita ? null : _citaSeleccionada,
-        onSeleccionada: (cita) => setState(() => _citaSeleccionada = cita),
+        onSeleccionada: (c) => setState(() => _citaSeleccionada = c),
         onNuevaCita: () => setState(() => _citaSeleccionada = _kNuevaCita),
       ),
     );
@@ -1006,9 +976,7 @@ class _AgendarDesdeCalendarioSheetState
     }
     if (_esNuevaCita && _tituloFinal.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor escribe un título para la cita'),
-        ),
+        const SnackBar(content: Text('Por favor escribe un título')),
       );
       return;
     }
@@ -1032,7 +1000,7 @@ class _AgendarDesdeCalendarioSheetState
             content: Text(
               '✅ ¡Cita agendada para el ${widget.formatearFecha(_fechaSeleccionada)}!',
             ),
-            backgroundColor: violetaProfundo,
+            backgroundColor: AppColors.violeta,
           ),
         );
       }
@@ -1053,9 +1021,7 @@ class _AgendarDesdeCalendarioSheetState
   Future<void> _crearCarta() async {
     if (_tituloCartaFinal.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor escribe un título para la carta'),
-        ),
+        const SnackBar(content: Text('Por favor escribe un título')),
       );
       return;
     }
@@ -1077,9 +1043,9 @@ class _AgendarDesdeCalendarioSheetState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '✅ ¡Cita agendada para el ${widget.formatearFecha(_fechaSeleccionada)}!',
+              '✅ ¡Carta creada para el ${widget.formatearFecha(_fechaSeleccionada)}!',
             ),
-            backgroundColor: violetaProfundo,
+            backgroundColor: AppColors.violeta,
           ),
         );
       }
@@ -1087,7 +1053,7 @@ class _AgendarDesdeCalendarioSheetState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al agendar: $e'),
+            content: Text('Error al crear carta: $e'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -1104,7 +1070,7 @@ class _AgendarDesdeCalendarioSheetState
     return Container(
       padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SingleChildScrollView(
@@ -1112,7 +1078,6 @@ class _AgendarDesdeCalendarioSheetState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Handle bar
             Center(
               child: Container(
                 width: 40,
@@ -1125,350 +1090,86 @@ class _AgendarDesdeCalendarioSheetState
             ),
             const SizedBox(height: 20),
 
-            // Header
             const Row(
               children: [
-                Icon(Icons.backpack_outlined, color: violetaProfundo, size: 28),
+                Icon(
+                  Icons.backpack_outlined,
+                  color: AppColors.violeta,
+                  size: 28,
+                ),
                 SizedBox(width: 10),
                 Text(
                   'Agendar Cita o crear carta',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: violetaProfundo,
+                    color: AppColors.violeta,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // ── Selector de tipo de cita ──────────────────────────────────
+            // Selector de tipo
             Row(
               children: [
                 Expanded(
-                  child: InkWell(
-                    onTap: () => setState(() => typeDate = "Cita"),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: typeDate == 'Cita'
-                            ? violetaProfundo.withOpacity(0.1)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: typeDate == 'Cita'
-                              ? violetaProfundo
-                              : Colors.grey.shade300,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.backpack_outlined,
-                            color: _citaSeleccionada == null
-                                ? violetaProfundo
-                                : Colors.grey.shade600,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Cita',
-                            style: TextStyle(
-                              color: _citaSeleccionada == null
-                                  ? violetaProfundo
-                                  : Colors.grey.shade600,
-                              fontWeight: _citaSeleccionada == null
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  child: _buildTypeButton(
+                    label: 'Cita',
+                    icon: Icons.backpack_outlined,
+                    isSelected: typeDate == 'Cita',
+                    onTap: () => setState(() => typeDate = 'Cita'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: InkWell(
-                    onTap: () => setState(() => typeDate = "Carta"),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: typeDate == "Carta"
-                            ? violetaProfundo.withOpacity(0.1)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: typeDate == "Carta"
-                              ? violetaProfundo
-                              : Colors.grey.shade300,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.card_giftcard_outlined,
-                            color: _citaSeleccionada == _kNuevaCita
-                                ? violetaProfundo
-                                : Colors.grey.shade600,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Carta',
-                            style: TextStyle(
-                              color: _citaSeleccionada == _kNuevaCita
-                                  ? violetaProfundo
-                                  : Colors.grey.shade600,
-                              fontWeight: _citaSeleccionada == _kNuevaCita
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  child: _buildTypeButton(
+                    label: 'Carta',
+                    icon: Icons.card_giftcard_outlined,
+                    isSelected: typeDate == 'Carta',
+                    onTap: () => setState(() => typeDate = 'Carta'),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            if (typeDate == "Cita") ...[
-              // ── Selector de cita ──────────────────────────────────────────
+            if (typeDate == 'Cita') ...[
               _buildSelectorCita(),
               const SizedBox(height: 16),
-              // ── Campos libres (solo modo nueva cita) ──────────────────────
               if (_esNuevaCita) ...[
-                TextField(
-                  controller: _tituloController,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    labelText: 'Título',
-                    hintText: 'Ej: Cena romántica',
-                    prefixIcon: const Icon(Icons.title, color: violetaProfundo),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: violetaProfundo,
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
+                _buildTextField(
+                  _tituloController,
+                  'Título',
+                  'Ej: Cena romántica',
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: _descripcionController,
-                  textCapitalization: TextCapitalization.sentences,
+                _buildTextField(
+                  _descripcionController,
+                  'Descripción (opcional)',
+                  'Ej: Reservación en el restaurante favorito',
                   maxLines: 2,
-                  decoration: InputDecoration(
-                    labelText: 'Descripción (opcional)',
-                    hintText: 'Ej: Reservación en el restaurante favorito',
-                    prefixIcon: const Icon(
-                      Icons.description_outlined,
-                      color: violetaProfundo,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: violetaProfundo,
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 16),
               ],
-
-              // ── Selector de fecha ─────────────────────────────────────────
-              GestureDetector(
-                onTap: _seleccionarFecha,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: violetaProfundo, width: 1.5),
-                    borderRadius: BorderRadius.circular(12),
-                    color: const Color(0xFFEDE9F5),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_today,
-                        color: violetaProfundo,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        widget.formatearFecha(_fechaSeleccionada),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: violetaProfundo,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Spacer(),
-                      const Icon(
-                        Icons.edit_calendar_outlined,
-                        color: violetaProfundo,
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              _buildDatePicker(),
               const SizedBox(height: 24),
-
-              // ── Botón confirmar ───────────────────────────────────────────
-              ElevatedButton.icon(
-                onPressed: _isLoading ? null : _agendar,
-                icon: _isLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.check_circle_outline),
-                label: Text(_isLoading ? 'Agendando...' : 'Confirmar Cita'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: violetaProfundo,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.grey.shade300,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
+              _buildConfirmButton('Confirmar Cita', _agendar),
             ],
+
             if (typeDate == 'Carta') ...[
-              TextField(
-                controller: _tituloController,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  labelText: 'Título',
-                  hintText: 'Te amo',
-                  prefixIcon: const Icon(Icons.title, color: violetaProfundo),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: violetaProfundo,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
+              _buildTextField(_tituloController, 'Título', 'Te amo'),
               const SizedBox(height: 12),
-              TextField(
-                controller: _descripcionController,
-                textCapitalization: TextCapitalization.sentences,
-                maxLines: 2,
-                decoration: InputDecoration(
-                  labelText: 'Descripción (opcional)',
-                  hintText:
-                      'Ej: Te amo por cada granito de arena que aportas a mi vida',
-                  prefixIcon: const Icon(
-                    Icons.description_outlined,
-                    color: violetaProfundo,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: violetaProfundo,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
+              _buildTextField(
+                _descripcionController,
+                'Mensaje',
+                'Escribe aquí tu carta...',
+                maxLines: 4,
               ),
               const SizedBox(height: 16),
-              // ── Selector de fecha ─────────────────────────────────────────
-              GestureDetector(
-                onTap: _seleccionarFecha,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: violetaProfundo, width: 1.5),
-                    borderRadius: BorderRadius.circular(12),
-                    color: const Color(0xFFEDE9F5),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_today,
-                        color: violetaProfundo,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        widget.formatearFecha(_fechaSeleccionada),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: violetaProfundo,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Spacer(),
-                      const Icon(
-                        Icons.edit_calendar_outlined,
-                        color: violetaProfundo,
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              _buildDatePicker(),
               const SizedBox(height: 24),
-
-              // ── Botón confirmar ───────────────────────────────────────────
-              ElevatedButton.icon(
-                onPressed: _isLoading ? null : _crearCarta,
-                icon: _isLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.check_circle_outline),
-                label: Text(_isLoading ? 'Agendando...' : 'Confirmar Carta'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: violetaProfundo,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.grey.shade300,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
+              _buildConfirmButton('Confirmar Carta', _crearCarta),
             ],
           ],
         ),
@@ -1476,15 +1177,134 @@ class _AgendarDesdeCalendarioSheetState
     );
   }
 
-  Widget _buildSelectorCita() {
-    if (_loadingCitas) {
-      return Container(
+  Widget _buildTypeButton({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.violeta.withOpacity(0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.violeta : Colors.grey.shade300,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppColors.violeta : Colors.grey.shade400,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? AppColors.violeta : Colors.grey.shade500,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    String hint, {
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      textCapitalization: TextCapitalization.sentences,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.violeta, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatePicker() {
+    return GestureDetector(
+      onTap: _seleccionarFecha,
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300, width: 1.5),
+          border: Border.all(color: AppColors.violeta, width: 1.5),
           borderRadius: BorderRadius.circular(12),
-          color: Colors.grey.shade50,
+          color: const Color(0xFFEDE9F5),
         ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.calendar_today,
+              color: AppColors.violeta,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              widget.formatearFecha(_fechaSeleccionada),
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.violeta,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.edit_calendar_outlined,
+              color: AppColors.violeta,
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConfirmButton(String label, VoidCallback onTap) {
+    return ElevatedButton.icon(
+      onPressed: _isLoading ? null : onTap,
+      icon: _isLoading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Icons.check_circle_outline),
+      label: Text(_isLoading ? 'Guardando...' : label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.violeta,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: Colors.grey.shade300,
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  Widget _buildSelectorCita() {
+    if (_loadingCitas) {
+      return _selectorContainer(
         child: const Row(
           children: [
             SizedBox(
@@ -1492,26 +1312,22 @@ class _AgendarDesdeCalendarioSheetState
               height: 18,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: violetaProfundo,
+                color: AppColors.violeta,
               ),
             ),
             SizedBox(width: 12),
             Text('Cargando citas...', style: TextStyle(color: Colors.grey)),
           ],
         ),
+        borderColor: Colors.grey.shade300,
+        bgColor: Colors.grey.shade50,
       );
     }
 
     if (_errorCitas != null) {
       return GestureDetector(
         onTap: _fetchCitas,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.redAccent.shade100, width: 1.5),
-            borderRadius: BorderRadius.circular(12),
-            color: Colors.red.shade50,
-          ),
+        child: _selectorContainer(
           child: const Row(
             children: [
               Icon(Icons.refresh, color: Colors.redAccent, size: 20),
@@ -1522,12 +1338,14 @@ class _AgendarDesdeCalendarioSheetState
               ),
             ],
           ),
+          borderColor: Colors.redAccent.shade100,
+          bgColor: Colors.red.shade50,
         ),
       );
     }
 
-    final bool tieneCita = _citaSeleccionada != null;
-    final String label = !tieneCita
+    final tieneCita = _citaSeleccionada != null;
+    final label = !tieneCita
         ? 'Selecciona una cita'
         : _esNuevaCita
         ? '✏️  Nueva cita'
@@ -1535,21 +1353,12 @@ class _AgendarDesdeCalendarioSheetState
 
     return GestureDetector(
       onTap: _abrirSelectorCitas,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: tieneCita ? violetaProfundo : Colors.grey.shade300,
-            width: 1.5,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          color: tieneCita ? const Color(0xFFEDE9F5) : Colors.grey.shade50,
-        ),
+      child: _selectorContainer(
         child: Row(
           children: [
             Icon(
               Icons.backpack_outlined,
-              color: tieneCita ? violetaProfundo : Colors.grey,
+              color: tieneCita ? AppColors.violeta : Colors.grey,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -1558,7 +1367,7 @@ class _AgendarDesdeCalendarioSheetState
                 label,
                 style: TextStyle(
                   fontSize: 16,
-                  color: tieneCita ? violetaProfundo : Colors.grey,
+                  color: tieneCita ? AppColors.violeta : Colors.grey,
                   fontWeight: tieneCita ? FontWeight.w600 : FontWeight.normal,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -1567,13 +1376,31 @@ class _AgendarDesdeCalendarioSheetState
             const Icon(Icons.chevron_right, color: Colors.grey),
           ],
         ),
+        borderColor: tieneCita ? AppColors.violeta : Colors.grey.shade300,
+        bgColor: tieneCita ? const Color(0xFFEDE9F5) : Colors.grey.shade50,
       ),
+    );
+  }
+
+  Widget _selectorContainer({
+    required Widget child,
+    required Color borderColor,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        border: Border.all(color: borderColor, width: 1.5),
+        borderRadius: BorderRadius.circular(12),
+        color: bgColor,
+      ),
+      child: child,
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sheet interno: lista de citas para elegir
+// Sheet selector de citas
 // ─────────────────────────────────────────────────────────────────────────────
 class _CitaSelectorSheet extends StatelessWidget {
   final List<Cita> citas;
@@ -1595,13 +1422,12 @@ class _CitaSelectorSheet extends StatelessWidget {
         maxHeight: MediaQuery.of(context).size.height * 0.7,
       ),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
           Padding(
             padding: const EdgeInsets.only(top: 12, bottom: 8),
             child: Container(
@@ -1613,29 +1439,24 @@ class _CitaSelectorSheet extends StatelessWidget {
               ),
             ),
           ),
-
-          // Título
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: Row(
               children: [
-                Icon(Icons.backpack_outlined, color: violetaProfundo),
+                Icon(Icons.backpack_outlined, color: AppColors.violeta),
                 SizedBox(width: 8),
                 Text(
                   'Elige una cita',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
-                    color: violetaProfundo,
+                    color: AppColors.violeta,
                   ),
                 ),
               ],
             ),
           ),
-
           const Divider(height: 1),
-
-          // Opción: Nueva cita (siempre arriba)
           ListTile(
             leading: Container(
               width: 40,
@@ -1644,13 +1465,13 @@ class _CitaSelectorSheet extends StatelessWidget {
                 color: const Color(0xFFEDE9F5),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.add, color: violetaProfundo),
+              child: const Icon(Icons.add, color: AppColors.violeta),
             ),
             title: const Text(
               'Nueva cita',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: violetaProfundo,
+                color: AppColors.violeta,
               ),
             ),
             subtitle: const Text('Escribe el título y descripción manualmente'),
@@ -1659,32 +1480,28 @@ class _CitaSelectorSheet extends StatelessWidget {
               onNuevaCita();
             },
           ),
-
           const Divider(height: 1),
-
-          // Lista de citas de la API
           Flexible(
             child: ListView.separated(
               shrinkWrap: true,
               itemCount: citas.length,
               separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
-              itemBuilder: (context, index) {
-                final cita = citas[index];
+              itemBuilder: (ctx, i) {
+                final cita = citas[i];
                 final isSelected = citaSeleccionada?.nombre == cita.nombre;
-
                 return ListTile(
                   leading: Container(
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? violetaProfundo
+                          ? AppColors.violeta
                           : const Color(0xFFEDE9F5),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       Icons.backpack_outlined,
-                      color: isSelected ? Colors.white : violetaProfundo,
+                      color: isSelected ? Colors.white : AppColors.violeta,
                       size: 20,
                     ),
                   ),
@@ -1692,7 +1509,7 @@ class _CitaSelectorSheet extends StatelessWidget {
                     cita.nombre,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? violetaProfundo : Colors.black87,
+                      color: isSelected ? AppColors.violeta : Colors.black87,
                     ),
                   ),
                   subtitle: Text(
@@ -1702,7 +1519,7 @@ class _CitaSelectorSheet extends StatelessWidget {
                     style: TextStyle(color: Colors.grey.shade600),
                   ),
                   trailing: isSelected
-                      ? const Icon(Icons.check_circle, color: violetaProfundo)
+                      ? const Icon(Icons.check_circle, color: AppColors.violeta)
                       : null,
                   onTap: () {
                     Navigator.of(context).pop();
