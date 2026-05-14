@@ -7,6 +7,7 @@ import '../utils/colors.dart';
 import 'phrases.dart';
 import 'calendar.dart';
 import 'memories.dart';
+import 'type_phrases.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -117,7 +118,7 @@ class HomeScreen extends StatelessWidget {
                     icon: Icons.auto_stories_rounded,
                     title: "De mí pa' ti",
                     subtitle: 'Adivina la frase que te dedico',
-                    destination: const PhrasesScreen(),
+                    destination: const TypePhrasesScreen(),
                     gradientColors: const [
                       Color(0xFFD8C9E7),
                       Color(0xFF9C8DC4),

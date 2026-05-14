@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/phrase.dart';
 import '../services/phrases_service.dart';
+import "dart:math";
 
 // ── Paleta ────────────────────────────────────────────────────────────────────
 const Color _violeta = Color(0xFF796B9B);
@@ -13,7 +14,8 @@ const Color _rojo = Color(0xFFE57373);
 const Color _verde = Color(0xFF81C784);
 
 class PhrasesScreen extends StatefulWidget {
-  const PhrasesScreen({super.key});
+  final PhraseType type;
+  const PhrasesScreen({required this.type, super.key});
 
   @override
   State<PhrasesScreen> createState() => _PhrasesScreenState();
@@ -28,15 +30,18 @@ class _PhrasesScreenState extends State<PhrasesScreen>
   int _errors = 0;
   static const int _maxErrors = 6;
   bool _revealed = false; // Si mostramos la respuesta al perder
+  final _random = new Random();
 
   // ── Animaciones ─────────────────────────────────────────────────────────────
   late AnimationController _shakeController;
   late AnimationController _winController;
   late Animation<double> _winScale;
+  late PhraseType _type;
 
   @override
   void initState() {
     super.initState();
+    _type = widget.type;
     _shakeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -61,7 +66,8 @@ class _PhrasesScreenState extends State<PhrasesScreen>
   // ── Lógica ───────────────────────────────────────────────────────────────────
   Future<void> _loadPhrase() async {
     setState(() => _isLoading = true);
-    final phrase = await PhrasesService().getRandomPhrase();
+    final phrases = await PhrasesService().getPhrasesByType(_type);
+    final phrase = phrases[_random.nextInt(phrases.length)];
     setState(() {
       _phrase = phrase;
       _guessed = {};

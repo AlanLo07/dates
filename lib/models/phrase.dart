@@ -50,6 +50,21 @@ extension PhraseTypeX on PhraseType {
     }
   }
 
+  static String fromPhraseType(PhraseType value) {
+    switch (value) {
+      case PhraseType.pelicula:
+        return 'pelicula';
+      case PhraseType.cancion:
+        return 'cancion';
+      case PhraseType.serie:
+        return 'serie';
+      case PhraseType.libro:
+        return 'libro';
+      case PhraseType.pareja:
+        return 'pareja';
+    }
+  }
+
   String get toJson => name; // usa el nombre del enum directamente
 }
 
