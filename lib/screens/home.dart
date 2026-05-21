@@ -4,13 +4,15 @@ import 'package:flutter/services.dart';
 import 'input.dart';
 import '../utils/animations.dart';
 import '../utils/colors.dart';
-import 'phrases.dart';
 import 'calendar.dart';
 import 'memories.dart';
 import 'type_phrases.dart';
+import 'wedding.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  static DateTime _weddingUnlockDate = DateTime(2026, 12, 18);
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +23,6 @@ class HomeScreen extends StatelessWidget {
         statusBarIconBrightness: Brightness.dark,
       ),
     );
-
     return Scaffold(
       // Sin AppBar — el header vive dentro del body con el mismo color de fondo
       backgroundColor: AppColors.lavanda,
@@ -138,11 +139,128 @@ class HomeScreen extends StatelessWidget {
                       Color(0xFFE57373),
                     ],
                   ),
+                  if (DateTime.now().isAfter(_weddingUnlockDate)) ...[
+                    const SizedBox(height: 14),
+                    _buildMenuCard(
+                      context,
+                      index: 4,
+                      emoji: '💍',
+                      icon: Icons.favorite,
+                      title: 'Nuestra Boda',
+                      subtitle: 'Todo en un solo lugar',
+                      destination: const WeddingScreen(),
+                      gradientColors: const [
+                        Color(0xFFF8BBD0),
+                        Color(0xFFE91E63),
+                      ],
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 14),
+                    _buildLockedWeddingCard(),
+                  ],
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLockedWeddingCard() {
+    final daysLeft = _weddingUnlockDate.difference(DateTime.now()).inDays;
+    return Container(
+      height: 100,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFB0B6E8), Color(0xFF796B9B)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF796B9B).withOpacity(0.25),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -8,
+            bottom: -8,
+            child: Text(
+              '💍',
+              style: TextStyle(
+                fontSize: 64,
+                color: Colors.white.withOpacity(0.15),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: const Icon(
+                    Icons.lock_outline,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Nuestra Boda',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        daysLeft > 0
+                            ? 'Se desbloquea en ? días'
+                            : 'Próximamente...',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.75),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    '🔒 pronto',
+                    style: TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
