@@ -1,14 +1,15 @@
-// lib/screens/result_screen.dart
+// lib/screens/result.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/cita.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lottie/lottie.dart';
 import '../services/cita_service.dart';
+import '../utils/colors.dart';
 
+// ── Título con fade-in ────────────────────────────────────────────────────────
 class FadingTitle extends StatefulWidget {
   final String title;
-
   const FadingTitle({required this.title, super.key});
 
   @override
@@ -18,22 +19,19 @@ class FadingTitle extends StatefulWidget {
 class _FadingTitleState extends State<FadingTitle>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _opacityAnimation;
+  late Animation<double> _opacity;
 
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 1),
+      duration: const Duration(milliseconds: 800),
     );
-
-    _opacityAnimation = Tween<double>(
+    _opacity = Tween<double>(
       begin: 0.0,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
-
     _controller.forward();
   }
 
@@ -45,26 +43,24 @@ class _FadingTitleState extends State<FadingTitle>
 
   @override
   Widget build(BuildContext context) {
-    const Color violetaProfundo = Color(0xFF796B9B);
-
     return FadeTransition(
-      opacity: _opacityAnimation,
+      opacity: _opacity,
       child: Text(
         widget.title,
         textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 32,
+        style: const TextStyle(
+          fontSize: 28,
           fontWeight: FontWeight.bold,
-          color: violetaProfundo,
+          color: AppColors.violeta,
         ),
       ),
     );
   }
 }
 
+// ── Pantalla principal ────────────────────────────────────────────────────────
 class ResultScreen extends StatelessWidget {
   final Cita cita;
-
   const ResultScreen({required this.cita, super.key});
 
   Future<void> _launchUrl(String url) async {
@@ -76,41 +72,47 @@ class ResultScreen extends StatelessWidget {
 
   Widget _buildMediaWidget() {
     if (cita.imagenUrl.isEmpty) {
-      return const Icon(
-        Icons.favorite_border,
-        size: 80,
-        color: violetaProfundo,
+      return Container(
+        width: 220,
+        height: 220,
+        decoration: BoxDecoration(
+          color: AppColors.lavanda,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: const Icon(
+          Icons.favorite_rounded,
+          size: 80,
+          color: AppColors.violeta,
+        ),
       );
     }
-
     if (cita.imagenUrl.endsWith('.json')) {
       return Lottie.network(
         cita.imagenUrl,
-        width: 250,
-        height: 250,
+        width: 220,
+        height: 220,
         repeat: true,
       );
     }
-
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20.0),
+      borderRadius: BorderRadius.circular(24),
       child: CachedNetworkImage(
         imageUrl: cita.imagenUrl,
-        width: 250,
-        height: 250,
-        fit: BoxFit.scaleDown,
-        placeholder: (context, url) =>
-            const Center(child: CircularProgressIndicator()),
-        errorWidget: (context, url, error) => const Icon(
+        width: 220,
+        height: 220,
+        fit: BoxFit.cover,
+        placeholder: (_, __) => const Center(
+          child: CircularProgressIndicator(color: AppColors.violeta),
+        ),
+        errorWidget: (_, __, ___) => const Icon(
           Icons.image_not_supported_outlined,
-          size: 80,
-          color: violetaProfundo,
+          size: 60,
+          color: AppColors.violeta,
         ),
       ),
     );
   }
 
-  /// Abre el bottom sheet para seleccionar la fecha y agendar la cita
   void _mostrarAgendarCita(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -123,113 +125,180 @@ class ResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.lavanda,
       appBar: AppBar(
-        title: const Text('¡Su Plan de Aniversario!'),
-        backgroundColor: grisClaroCalido,
+        title: const Text(
+          '🎉 ¡Su Plan!',
+          style: TextStyle(
+            color: AppColors.violeta,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: AppColors.surface,
+        iconTheme: const IconThemeData(color: AppColors.violeta),
+        elevation: 1,
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _buildMediaWidget(),
-              const SizedBox(height: 20),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Media ────────────────────────────────────────────────────
+            Center(child: _buildMediaWidget()),
+            const SizedBox(height: 24),
 
-              FadingTitle(title: cita.nombre),
-              const SizedBox(height: 15),
+            // ── Nombre ───────────────────────────────────────────────────
+            FadingTitle(title: cita.nombre),
+            const SizedBox(height: 12),
 
-              Text(
-                cita.descripcion,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, color: violetaProfundo),
+            // ── Descripción ──────────────────────────────────────────────
+            Text(
+              cita.descripcion,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+                height: 1.5,
               ),
-              const SizedBox(height: 30),
+            ),
+            const SizedBox(height: 24),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildDetail(
-                    Icons.attach_money,
-                    'Presupuesto: ${cita.presupuesto}',
+            // ── Info chips ───────────────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildInfoChip(Icons.attach_money_rounded, cita.presupuesto),
+                const SizedBox(width: 12),
+                _buildInfoChip(Icons.access_time_rounded, '${cita.tiempo}h'),
+                const SizedBox(width: 12),
+                _buildInfoChip(Icons.category_rounded, cita.categoria),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // ── Rating ───────────────────────────────────────────────────
+            if (cita.rating > 0) ...[
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
                   ),
-                  _buildDetail(Icons.access_time, 'Tiempo: ${cita.tiempo}h'),
-                ],
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.violeta.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ...List.generate(5, (i) {
+                        return Icon(
+                          i < cita.rating
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          color: i < cita.rating
+                              ? const Color(0xFFFFCA28)
+                              : Colors.grey.shade300,
+                          size: 26,
+                        );
+                      }),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 50),
+              const SizedBox(height: 24),
+            ],
 
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) {
-                  return Icon(
-                    index < (cita.rating) ? Icons.star : Icons.star_border,
-                    color: Colors.black,
-                    size: 28,
-                  );
-                }),
+            // ── Botón Agendar ─────────────────────────────────────────────
+            ElevatedButton.icon(
+              onPressed: () => _mostrarAgendarCita(context),
+              icon: const Icon(Icons.backpack_outlined),
+              label: const Text('Agendar esta Cita'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.violeta,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 0,
               ),
+            ),
+            const SizedBox(height: 12),
 
-              const SizedBox(height: 30),
-
-              // ── Botón Agendar Cita ──────────────────────────────────────
-              ElevatedButton.icon(
-                onPressed: () => _mostrarAgendarCita(context),
-                icon: const Icon(Icons.backpack_outlined),
-                label: const Text('Agendar Cita'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: violetaProfundo,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
+            // ── Botón Link ────────────────────────────────────────────────
+            if (cita.link.isNotEmpty)
+              OutlinedButton.icon(
+                onPressed: () => _launchUrl(cita.link),
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: const Text('Ver Detalles / Mapa'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.violeta,
+                  side: const BorderSide(color: AppColors.violeta, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
               ),
-
-              const SizedBox(height: 16),
-
-              // Botón de Enlace
-              if (cita.link.isNotEmpty)
-                ElevatedButton.icon(
-                  onPressed: () => _launchUrl(cita.link),
-                  icon: const Icon(Icons.link),
-                  label: const Text('Ver Detalles / Mapa'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: malvaSuave,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                  ),
-                ),
-            ],
-          ),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildDetail(IconData icon, String text) {
-    return Column(
-      children: [
-        Icon(icon, size: 40, color: violetaProfundo),
-        const SizedBox(height: 5),
-        Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
-      ],
+  Widget _buildInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.violeta.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.violeta),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.violeta,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Bottom Sheet: formulario para agendar la cita con fecha
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Bottom Sheet: agendar ─────────────────────────────────────────────────────
 class _AgendarCitaSheet extends StatefulWidget {
   final Cita cita;
-
   const _AgendarCitaSheet({required this.cita});
 
   @override
@@ -241,62 +310,51 @@ class _AgendarCitaSheetState extends State<_AgendarCitaSheet> {
   bool _isLoading = false;
 
   Future<void> _seleccionarFecha() async {
-    final DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now().add(const Duration(days: 1)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: violetaProfundo,
-              onPrimary: Colors.white,
-              onSurface: violetaProfundo,
-            ),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.violeta,
+            onPrimary: Colors.white,
+            onSurface: AppColors.violeta,
           ),
-          child: child!,
-        );
-      },
+        ),
+        child: child!,
+      ),
     );
-
-    if (picked != null) {
-      setState(() => _fechaSeleccionada = picked);
-    }
+    if (picked != null) setState(() => _fechaSeleccionada = picked);
   }
 
   String _formatearFecha(DateTime date) {
-    // Formato dd-MM-yyyy para consistencia con el resto de la app
     final d = date.day.toString().padLeft(2, '0');
     final m = date.month.toString().padLeft(2, '0');
-    final y = date.year.toString();
-    return '$d-$m-$y';
+    return '$d-$m-${date.year}';
   }
 
   Future<void> _agendarCita() async {
     if (_fechaSeleccionada == null) return;
-
     setState(() => _isLoading = true);
-
     try {
-      // Construimos el evento usando DateEvent como referencia,
-      // pero guardamos vía la API de citas con la fecha embebida.
-      // Reutilizamos ApiService para crear/actualizar la cita agendada.
-      final citaAgendada = widget.cita;
-
       await ApiService().agendarCita(
-        cita: citaAgendada,
+        cita: widget.cita,
         fecha: _formatearFecha(_fechaSeleccionada!),
       );
-
       if (mounted) {
-        Navigator.of(context).pop(); // Cierra el sheet
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               '✅ ¡Cita agendada para el ${_formatearFecha(_fechaSeleccionada!)}!',
             ),
-            backgroundColor: violetaProfundo,
+            backgroundColor: AppColors.violeta,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -305,7 +363,7 @@ class _AgendarCitaSheetState extends State<_AgendarCitaSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al agendar: $e'),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -317,18 +375,16 @@ class _AgendarCitaSheetState extends State<_AgendarCitaSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
     return Container(
       padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Handle bar
           Center(
             child: Container(
               width: 40,
@@ -340,23 +396,21 @@ class _AgendarCitaSheetState extends State<_AgendarCitaSheet> {
             ),
           ),
           const SizedBox(height: 20),
-
-          // Título
           Row(
             children: [
               const Icon(
                 Icons.backpack_outlined,
-                color: violetaProfundo,
-                size: 28,
+                color: AppColors.violeta,
+                size: 26,
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Agendar: ${widget.cita.nombre}',
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
-                    color: violetaProfundo,
+                    color: AppColors.violeta,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -364,18 +418,14 @@ class _AgendarCitaSheetState extends State<_AgendarCitaSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-
-          // Descripción (preview)
+          const SizedBox(height: 6),
           Text(
             widget.cita.descripcion,
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 24),
-
-          // Selector de fecha
           GestureDetector(
             onTap: _seleccionarFecha,
             child: Container(
@@ -383,7 +433,7 @@ class _AgendarCitaSheetState extends State<_AgendarCitaSheet> {
               decoration: BoxDecoration(
                 border: Border.all(
                   color: _fechaSeleccionada != null
-                      ? violetaProfundo
+                      ? AppColors.violeta
                       : Colors.grey.shade300,
                   width: 1.5,
                 ),
@@ -395,9 +445,9 @@ class _AgendarCitaSheetState extends State<_AgendarCitaSheet> {
               child: Row(
                 children: [
                   Icon(
-                    Icons.calendar_today,
+                    Icons.calendar_today_rounded,
                     color: _fechaSeleccionada != null
-                        ? violetaProfundo
+                        ? AppColors.violeta
                         : Colors.grey,
                     size: 20,
                   ),
@@ -409,7 +459,7 @@ class _AgendarCitaSheetState extends State<_AgendarCitaSheet> {
                     style: TextStyle(
                       fontSize: 16,
                       color: _fechaSeleccionada != null
-                          ? violetaProfundo
+                          ? AppColors.violeta
                           : Colors.grey,
                       fontWeight: _fechaSeleccionada != null
                           ? FontWeight.w600
@@ -423,8 +473,6 @@ class _AgendarCitaSheetState extends State<_AgendarCitaSheet> {
             ),
           ),
           const SizedBox(height: 24),
-
-          // Botón confirmar
           ElevatedButton.icon(
             onPressed: (_fechaSeleccionada == null || _isLoading)
                 ? null
@@ -438,10 +486,10 @@ class _AgendarCitaSheetState extends State<_AgendarCitaSheet> {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.check_circle_outline),
+                : const Icon(Icons.check_circle_outline_rounded),
             label: Text(_isLoading ? 'Agendando...' : 'Confirmar Cita'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: violetaProfundo,
+              backgroundColor: AppColors.violeta,
               foregroundColor: Colors.white,
               disabledBackgroundColor: Colors.grey.shade300,
               padding: const EdgeInsets.symmetric(vertical: 15),

@@ -363,7 +363,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     const SizedBox(height: 20),
                     Text(
                       recuerdo.title,
-                      textAlign: TextAlign.center,
+                      textAlign: TextAlign.left,
                       style: const TextStyle(
                         color: AppColors.violeta,
                         fontWeight: FontWeight.bold,
@@ -373,7 +373,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     const SizedBox(height: 10),
                     Text(
                       recuerdo.description,
-                      textAlign: TextAlign.center,
+                      textAlign: TextAlign.left,
                       style: TextStyle(
                         color: Colors.grey.shade700,
                         fontSize: 16,

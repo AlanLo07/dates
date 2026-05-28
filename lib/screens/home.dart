@@ -1,6 +1,7 @@
 // lib/screens/home.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'input.dart';
 import '../utils/animations.dart';
 import '../utils/colors.dart';
@@ -9,159 +10,201 @@ import 'memories.dart';
 import 'type_phrases.dart';
 import 'wedding.dart';
 
-class HomeScreen extends StatelessWidget {
+const String _heroImageUrl =
+    'https://planes-crud-stack-images-052869941322.s3.us-east-2.amazonaws.com/assets/beso.jpeg';
+
+const _anniversaryDate = (year: 2023, month: 12, day: 18);
+final _weddingUnlockDate = DateTime(2026, 12, 18);
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  static DateTime _weddingUnlockDate = DateTime(2026, 12, 18);
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late Duration _together;
+  late Stream<Duration> _counterStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _together = _calcDuration();
+    _counterStream = Stream.periodic(
+      const Duration(seconds: 1),
+      (_) => _calcDuration(),
+    );
+  }
+
+  Duration _calcDuration() {
+    final start = DateTime(
+      _anniversaryDate.year,
+      _anniversaryDate.month,
+      _anniversaryDate.day,
+    );
+    return DateTime.now().difference(start);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Iconos del status bar oscuros para que se lean sobre el fondo lavanda
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
       ),
     );
+
     return Scaffold(
-      // Sin AppBar — el header vive dentro del body con el mismo color de fondo
       backgroundColor: AppColors.lavanda,
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Header integrado (mismo color que fondo) ────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Ícono de sobre
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.violeta.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Text('💌', style: TextStyle(fontSize: 22)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Título + subtítulo
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Nuestro Lugar Seguro',
-                        style: TextStyle(
-                          color: AppColors.violeta,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+        child: SingleChildScrollView(
+          // ── El Column hijo de SingleChildScrollView NUNCA debe tener
+          //    mainAxisSize: max ni hijos con Expanded/Flexible ──────────
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // ← clave: se ajusta al contenido
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 1. Foto de portada
+              _HeroHeader(imageUrl: _heroImageUrl),
+
+              // 2. Contador
+              _CounterStrip(stream: _counterStream, initial: _together),
+
+              const SizedBox(height: 12),
+
+              // 3. Header "Nuestro Lugar Seguro" — Row, no Column
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.violeta.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      Text(
-                        '¿Qué hacemos hoy?',
-                        style: TextStyle(
-                          color: AppColors.violeta.withOpacity(0.55),
-                          fontSize: 12,
-                        ),
+                      child: const Center(
+                        child: Text('💌', style: TextStyle(fontSize: 22)),
                       ),
-                    ],
-                  ),
-                  const Spacer(),
-                  // Flor decorativa
-                  const Text('🌸', style: TextStyle(fontSize: 28)),
-                ],
+                    ),
+                    const SizedBox(width: 12),
+                    // Expanded funciona bien dentro de Row
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Nuestro Lugar Seguro',
+                            style: TextStyle(
+                              color: AppColors.violeta,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                          Text(
+                            '¿Qué hacemos hoy?',
+                            style: TextStyle(
+                              color: AppColors.violeta.withOpacity(0.55),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Text('🌸', style: TextStyle(fontSize: 28)),
+                  ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 28),
+              const SizedBox(height: 20),
 
-            // ── Lista de cards ───────────────────────────────────────────────
-            Expanded(
-              child: ListView(
+              // 4. Cards — sin Expanded, sin ListView independiente
+              Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                children: [
-                  _buildMenuCard(
-                    context,
-                    index: 0,
-                    emoji: '✨',
-                    icon: Icons.favorite_rounded,
-                    title: 'Generar Cita',
-                    subtitle: '¿Qué hacemos hoy? Que la suerte decida',
-                    destination: const InputScreen(),
-                    gradientColors: const [
-                      Color(0xFFB0B6E8),
-                      Color(0xFF796B9B),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  _buildMenuCard(
-                    context,
-                    index: 1,
-                    emoji: '📅',
-                    icon: Icons.calendar_month_rounded,
-                    title: 'Fechas Importantes',
-                    subtitle: 'Nuestros momentos más especiales',
-                    destination: const CalendarScreen(),
-                    gradientColors: const [
-                      Color(0xFFA9D1DF),
-                      Color(0xFF6BAED6),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  _buildMenuCard(
-                    context,
-                    index: 2,
-                    emoji: '💬',
-                    icon: Icons.auto_stories_rounded,
-                    title: "De mí pa' ti",
-                    subtitle: 'Adivina la frase que te dedico',
-                    destination: const TypePhrasesScreen(),
-                    gradientColors: const [
-                      Color(0xFFD8C9E7),
-                      Color(0xFF9C8DC4),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  _buildMenuCard(
-                    context,
-                    index: 3,
-                    emoji: '🗺️',
-                    icon: Icons.explore_rounded,
-                    title: 'Nuestras Aventuras',
-                    subtitle: 'Checklist de todos los lugares que fuimos',
-                    destination: ExperienceMenuScreen(),
-                    gradientColors: const [
-                      Color(0xFFFFCDD2),
-                      Color(0xFFE57373),
-                    ],
-                  ),
-                  if (DateTime.now().isAfter(_weddingUnlockDate)) ...[
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildMenuCard(
+                      context,
+                      index: 0,
+                      emoji: '✨',
+                      icon: Icons.favorite_rounded,
+                      title: 'Generar Cita',
+                      subtitle: '¿Qué hacemos hoy? Que la suerte decida',
+                      destination: const InputScreen(),
+                      gradientColors: const [
+                        Color(0xFFB0B6E8),
+                        Color(0xFF796B9B),
+                      ],
+                    ),
                     const SizedBox(height: 14),
                     _buildMenuCard(
                       context,
-                      index: 4,
-                      emoji: '💍',
-                      icon: Icons.favorite,
-                      title: 'Nuestra Boda',
-                      subtitle: 'Todo en un solo lugar',
-                      destination: const WeddingScreen(),
+                      index: 1,
+                      emoji: '📅',
+                      icon: Icons.calendar_month_rounded,
+                      title: 'Fechas Importantes',
+                      subtitle: 'Nuestros momentos más especiales',
+                      destination: const CalendarScreen(),
                       gradientColors: const [
-                        Color(0xFFF8BBD0),
-                        Color(0xFFE91E63),
+                        Color(0xFFA9D1DF),
+                        Color(0xFF6BAED6),
                       ],
                     ),
-                  ] else ...[
                     const SizedBox(height: 14),
-                    _buildLockedWeddingCard(),
+                    _buildMenuCard(
+                      context,
+                      index: 2,
+                      emoji: '💬',
+                      icon: Icons.auto_stories_rounded,
+                      title: "De mí pa' ti",
+                      subtitle: 'Adivina la frase que te dedico',
+                      destination: const TypePhrasesScreen(),
+                      gradientColors: const [
+                        Color(0xFFD8C9E7),
+                        Color(0xFF9C8DC4),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _buildMenuCard(
+                      context,
+                      index: 3,
+                      emoji: '🗺️',
+                      icon: Icons.explore_rounded,
+                      title: 'Nuestras Aventuras',
+                      subtitle: 'Checklist de todos los lugares que fuimos',
+                      destination: ExperienceMenuScreen(),
+                      gradientColors: const [
+                        Color(0xFFFFCDD2),
+                        Color(0xFFE57373),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    if (DateTime.now().isAfter(_weddingUnlockDate))
+                      _buildMenuCard(
+                        context,
+                        index: 4,
+                        emoji: '💍',
+                        icon: Icons.favorite,
+                        title: 'Nuestra Boda',
+                        subtitle: 'Todo en un solo lugar',
+                        destination: const WeddingScreen(),
+                        gradientColors: const [
+                          Color(0xFFF8BBD0),
+                          Color(0xFFE91E63),
+                        ],
+                      )
+                    else
+                      _buildLockedWeddingCard(),
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -219,6 +262,7 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -233,7 +277,7 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 3),
                       Text(
                         daysLeft > 0
-                            ? 'Se desbloquea en ? días'
+                            ? 'Se desbloquea en $daysLeft días'
                             : 'Próximamente...',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.75),
@@ -298,7 +342,6 @@ class HomeScreen extends StatelessWidget {
           ),
           child: Stack(
             children: [
-              // Emoji decorativo de fondo semitransparente
               Positioned(
                 right: -8,
                 bottom: -8,
@@ -310,7 +353,6 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              // Contenido principal
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -318,7 +360,6 @@ class HomeScreen extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    // Ícono en caja semitransparente
                     Container(
                       width: 48,
                       height: 48,
@@ -329,9 +370,9 @@ class HomeScreen extends StatelessWidget {
                       child: Icon(icon, color: Colors.white, size: 26),
                     ),
                     const SizedBox(width: 14),
-                    // Texto
                     Expanded(
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -354,7 +395,6 @@ class HomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // Flecha
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       color: Colors.white.withOpacity(0.65),
@@ -371,7 +411,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// ── Animación de entrada escalonada ──────────────────────────────────────────
+// ── Animación escalonada ─────────────────────────────────────────────────────
 class _AnimatedCard extends StatefulWidget {
   final int index;
   final Widget child;
@@ -419,6 +459,161 @@ class _AnimatedCardState extends State<_AnimatedCard>
     return FadeTransition(
       opacity: _opacity,
       child: SlideTransition(position: _slide, child: widget.child),
+    );
+  }
+}
+
+// ── Hero ─────────────────────────────────────────────────────────────────────
+class _HeroHeader extends StatelessWidget {
+  final String imageUrl;
+  const _HeroHeader({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 200,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          CachedNetworkImage(
+            imageUrl: imageUrl,
+            fit: BoxFit.cover,
+            placeholder: (_, __) =>
+                Container(color: AppColors.violeta.withOpacity(0.4)),
+            errorWidget: (_, __, ___) => Container(
+              color: AppColors.violeta.withOpacity(0.4),
+              child: const Icon(
+                Icons.favorite,
+                size: 48,
+                color: Colors.white54,
+              ),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black.withOpacity(0.65),
+                  Colors.black.withOpacity(0.05),
+                ],
+              ),
+            ),
+          ),
+          const Positioned(
+            left: 18,
+            bottom: 16,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hola, Nati 💌',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Hoy es un buen día para hacer algo especial',
+                  style: TextStyle(fontSize: 13, color: Colors.white70),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Contador ──────────────────────────────────────────────────────────────────
+class _CounterStrip extends StatelessWidget {
+  final Stream<Duration> stream;
+  final Duration initial;
+  const _CounterStrip({required this.stream, required this.initial});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.lavanda,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      child: StreamBuilder<Duration>(
+        stream: stream,
+        initialData: initial,
+        builder: (_, snap) {
+          final d = snap.data!;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _CounterBox(value: d.inDays, label: 'Días'),
+              const SizedBox(width: 6),
+              _CounterBox(value: d.inHours % 24, label: 'Hrs'),
+              const SizedBox(width: 6),
+              _CounterBox(value: d.inMinutes % 60, label: 'Min'),
+              const SizedBox(width: 6),
+              _CounterBox(value: d.inSeconds % 60, label: 'Seg'),
+              const SizedBox(width: 10),
+              const Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'juntos',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                  Text(
+                    'desde',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                  Text(
+                    '18 · 12 · 2023',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.violeta,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CounterBox extends StatelessWidget {
+  final int value;
+  final String label;
+  const _CounterBox({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.grisCalido,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value.toString().padLeft(2, '0'),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.violeta,
+            ),
+          ),
+          Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+        ],
+      ),
     );
   }
 }
