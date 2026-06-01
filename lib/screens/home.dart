@@ -2,13 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'input.dart';
+import 'plans/input.dart';
 import '../utils/animations.dart';
 import '../utils/colors.dart';
-import 'calendar.dart';
-import 'memories.dart';
-import 'type_phrases.dart';
-import 'wedding.dart';
+import 'calendar/calendar.dart';
+import 'memories/memories.dart';
+import 'phrases/type_phrases.dart';
+import 'wedding/wedding.dart';
+import 'games/games_menu.dart';
 
 const String _heroImageUrl =
     'https://planes-crud-stack-images-052869941322.s3.us-east-2.amazonaws.com/assets/beso.jpeg';
@@ -181,6 +182,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       gradientColors: const [
                         Color(0xFFFFCDD2),
                         Color(0xFFE57373),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _buildMenuCard(
+                      context,
+                      index: 4,
+                      emoji: '🔒',
+                      icon: Icons.favorite_border_rounded,
+                      title: 'Juegos para dos',
+                      subtitle: 'Dado, ruleta y Kamasutra',
+                      destination: const GamesMenuScreen(),
+                      gradientColors: const [
+                        Color(0xFFF48FB1),
+                        Color(0xFFAD1457),
                       ],
                     ),
                     const SizedBox(height: 14),
