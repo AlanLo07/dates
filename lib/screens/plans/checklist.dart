@@ -3,6 +3,7 @@ import '../../services/cita_service.dart';
 import '../../models/cita.dart';
 import 'result.dart';
 import '../../utils/animations.dart';
+import 'adventure_map.dart';
 
 class AdventureListScreen extends StatefulWidget {
   final Cita cita;
@@ -61,6 +62,8 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
         .where((l) => l.typeLocation == citaSelected.typeLocation)
         .toList();
 
+    final visitados = lugares.where((l) => l.isVisited).length;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -68,6 +71,21 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
           style: TextStyle(color: violetaProfundo),
         ),
         backgroundColor: Colors.white,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'map_btn',
+        onPressed: () => Navigator.of(context).push(
+          createRoute(
+            AdventureMapScreen(
+              lugares: lugares,
+              titulo: citaSelected.typeLocation,
+            ),
+          ),
+        ),
+        backgroundColor: violetaProfundo,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.map_rounded),
+        label: Text('Mapa ($visitados)'),
       ),
       body: ListView.builder(
         itemCount: lugares.length,
