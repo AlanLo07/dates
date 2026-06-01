@@ -50,6 +50,8 @@ dependencies:
   latlong2: ^0.9.1
   geocoding: ^3.0.0
 
+  just_audio: ^0.9.38
+
 
 dev_dependencies:
   flutter_test:

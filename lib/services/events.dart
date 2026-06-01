@@ -4,6 +4,7 @@ import '../models/recuerdos.dart';
 import '../models/carta.dart';
 import '../models/fecha.dart';
 import 'api_config.dart';
+import '../models/song_of_week.dart';
 
 class EventService {
   final String _baseUrl = ApiConfig.baseUrl + ApiConfig.eventosPath;
@@ -173,6 +174,48 @@ class EventService {
     if (response.statusCode != 200) {
       throw Exception('Error al eliminar evento: ${response.body}');
     }
+  }
+
+  // ── Canción de la semana ──────────────────────────────────────────────────
+
+  Future<SongOfWeek?> getSongOfWeek() async {
+    final all = await _getAll();
+    final weekKey = SongOfWeek.currentWeekKey();
+
+    final items = all
+        .where((i) => i['type'] == 'cancion_semana' && i['weekKey'] == weekKey)
+        .toList();
+
+    if (items.isEmpty) return null;
+    return SongOfWeek.fromJson(items.first);
+  }
+
+  Future<SongOfWeek> setSongOfWeek(SongOfWeek song) async {
+    final response = await http.post(
+      _uri(),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(song.toJson()),
+    );
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      final body = json.decode(response.body);
+      return SongOfWeek.fromJson({
+        ...song.toJson(),
+        'id': body['id'] ?? song.id,
+      });
+    }
+    throw Exception('Error al guardar canción: ${response.body}');
+  }
+
+  Future<SongOfWeek> updateSongOfWeek(SongOfWeek song) async {
+    final response = await http.put(
+      _uri('/${song.id}'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(song.toJson()),
+    );
+    if (response.statusCode == 200) {
+      return song;
+    }
+    throw Exception('Error al actualizar canción: ${response.body}');
   }
 }
 

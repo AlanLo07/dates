@@ -2,7 +2,9 @@ class CartaSorpresa {
   final String id;
   final String title;
   final String description;
-  final String date; // "dd-MM-yyyy"
+  final String date;
+  final String imageUrl; // ← nuevo, puede ser vacío
+  final String audioUrl; // ← nuevo, puede ser vacío
   bool abierta;
 
   CartaSorpresa({
@@ -10,6 +12,8 @@ class CartaSorpresa {
     required this.title,
     required this.description,
     required this.date,
+    this.imageUrl = '',
+    this.audioUrl = '',
     this.abierta = false,
   });
 
@@ -19,6 +23,8 @@ class CartaSorpresa {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       date: json['date'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
+      audioUrl: json['audioUrl'] ?? '',
       abierta: json['abierta'] ?? false,
     );
   }
@@ -29,6 +35,8 @@ class CartaSorpresa {
     'title': title,
     'description': description,
     'date': date,
+    'imageUrl': imageUrl,
+    'audioUrl': audioUrl,
     'abierta': abierta,
   };
 }

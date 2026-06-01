@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'plans/input.dart';
 import '../utils/animations.dart';
 import '../utils/colors.dart';
@@ -10,6 +11,10 @@ import 'memories/memories.dart';
 import 'phrases/type_phrases.dart';
 import 'wedding/wedding.dart';
 import 'games/games_menu.dart';
+import '../models/song_of_week.dart';
+import '../models/phrase.dart';
+import '../services/events.dart';
+import '../services/phrases_service.dart';
 
 const String _heroImageUrl =
     'https://planes-crud-stack-images-052869941322.s3.us-east-2.amazonaws.com/assets/beso.jpeg';
@@ -28,6 +33,11 @@ class _HomeScreenState extends State<HomeScreen> {
   late Duration _together;
   late Stream<Duration> _counterStream;
 
+  SongOfWeek? _songOfWeek;
+  bool _songLoading = true;
+
+  final EventService _eventService = EventService();
+
   @override
   void initState() {
     super.initState();
@@ -36,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const Duration(seconds: 1),
       (_) => _calcDuration(),
     );
+    _loadSong();
   }
 
   Duration _calcDuration() {
@@ -46,6 +57,130 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     return DateTime.now().difference(start);
   }
+
+  // ── Canción de la semana ──────────────────────────────────────────────────
+
+  Future<void> _loadSong() async {
+    setState(() => _songLoading = true);
+    try {
+      final song = await _eventService.getSongOfWeek();
+      if (mounted) {
+        setState(() {
+          _songOfWeek = song;
+          _songLoading = false;
+        });
+      }
+      // Si no hay canción esta semana, elegimos una aleatoria automáticamente
+      if (song == null) await _setRandomSong(notify: false);
+    } catch (_) {
+      if (mounted) setState(() => _songLoading = false);
+    }
+  }
+
+  Future<void> _setRandomSong({bool notify = true}) async {
+    try {
+      final phrases = await PhrasesService().getPhrasesByType(
+        PhraseType.cancion,
+      );
+      if (phrases.isEmpty) return;
+      phrases.shuffle();
+      final picked = phrases.first;
+
+      final newSong = SongOfWeek(
+        id: '',
+        titulo: picked.title,
+        artista: picked.credits,
+        link: picked.link,
+        setBy: 'random',
+        weekKey: SongOfWeek.currentWeekKey(),
+      );
+
+      final saved = _songOfWeek?.id.isNotEmpty == true
+          ? await _eventService.updateSongOfWeek(
+              newSong.copyWith(id: _songOfWeek!.id),
+            )
+          : await _eventService.setSongOfWeek(newSong);
+
+      if (mounted) {
+        setState(() => _songOfWeek = saved);
+        if (notify) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('🎲 Nueva canción: ${saved.titulo}'),
+              backgroundColor: AppColors.violeta,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  void _mostrarEditorCancion() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _SongEditorSheet(
+        current: _songOfWeek,
+        onRandom: () async {
+          Navigator.pop(context);
+          await _setRandomSong();
+        },
+        onSave: (titulo, artista, link) async {
+          Navigator.pop(context);
+          await _saveSongManually(titulo, artista, link);
+        },
+      ),
+    );
+  }
+
+  Future<void> _saveSongManually(
+    String titulo,
+    String artista,
+    String link,
+  ) async {
+    try {
+      final newSong = SongOfWeek(
+        id: _songOfWeek?.id ?? '',
+        titulo: titulo,
+        artista: artista,
+        link: link,
+        setBy: 'manual',
+        weekKey: SongOfWeek.currentWeekKey(),
+      );
+
+      final saved = newSong.id.isNotEmpty
+          ? await _eventService.updateSongOfWeek(newSong)
+          : await _eventService.setSongOfWeek(newSong);
+
+      if (mounted) setState(() => _songOfWeek = saved);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
+      }
+    }
+  }
+
+  Future<void> _launchSong() async {
+    final url = _songOfWeek?.link ?? '';
+    if (url.isEmpty) return;
+    final uri = Uri.parse(url);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -60,21 +195,23 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppColors.lavanda,
       body: SafeArea(
         child: SingleChildScrollView(
-          // ── El Column hijo de SingleChildScrollView NUNCA debe tener
-          //    mainAxisSize: max ni hijos con Expanded/Flexible ──────────
           child: Column(
-            mainAxisSize: MainAxisSize.min, // ← clave: se ajusta al contenido
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 1. Foto de portada
               _HeroHeader(imageUrl: _heroImageUrl),
-
-              // 2. Contador
               _CounterStrip(stream: _counterStream, initial: _together),
+
+              // ── Canción de la semana ──────────────────────────────────
+              _SongOfTheWeekStrip(
+                song: _songOfWeek,
+                isLoading: _songLoading,
+                onTap: _launchSong,
+                onEdit: _mostrarEditorCancion,
+              ),
 
               const SizedBox(height: 12),
 
-              // 3. Header "Nuestro Lugar Seguro" — Row, no Column
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
                 child: Row(
@@ -92,7 +229,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    // Expanded funciona bien dentro de Row
                     Expanded(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -123,7 +259,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 20),
 
-              // 4. Cards — sin Expanded, sin ListView independiente
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                 child: Column(
@@ -202,7 +337,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (DateTime.now().isAfter(_weddingUnlockDate))
                       _buildMenuCard(
                         context,
-                        index: 4,
+                        index: 5,
                         emoji: '💍',
                         icon: Icons.favorite,
                         title: 'Nuestra Boda',
@@ -224,6 +359,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  // ── Widgets (sin cambios respecto al original) ────────────────────────────
 
   Widget _buildLockedWeddingCard() {
     final daysLeft = _weddingUnlockDate.difference(DateTime.now()).inDays;
@@ -426,7 +563,400 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── Animación escalonada ─────────────────────────────────────────────────────
+// ── Canción de la semana — strip ──────────────────────────────────────────────
+class _SongOfTheWeekStrip extends StatelessWidget {
+  final SongOfWeek? song;
+  final bool isLoading;
+  final VoidCallback onTap;
+  final VoidCallback onEdit;
+
+  const _SongOfTheWeekStrip({
+    required this.song,
+    required this.isLoading,
+    required this.onTap,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1DB954), Color(0xFF158a3e)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1DB954).withOpacity(0.30),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: isLoading || song == null ? null : onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                // Ícono de nota musical
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Center(
+                    child: Text('🎵', style: TextStyle(fontSize: 20)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // Texto
+                Expanded(
+                  child: isLoading
+                      ? _buildSkeleton()
+                      : song == null
+                      ? _buildEmpty()
+                      : _buildSongInfo(song!),
+                ),
+
+                const SizedBox(width: 8),
+
+                // Botón editar
+                GestureDetector(
+                  onTap: onEdit,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.edit_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSongInfo(SongOfWeek s) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Text(
+              'CANCIÓN DE LA SEMANA',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withOpacity(0.70),
+                letterSpacing: 1.2,
+              ),
+            ),
+            if (s.setBy == 'random') ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '🎲 aleatoria',
+                  style: TextStyle(
+                    fontSize: 8,
+                    color: Colors.white.withOpacity(0.80),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          s.titulo,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (s.artista.isNotEmpty)
+          Text(
+            s.artista,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.white.withOpacity(0.75),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSkeleton() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 120,
+          height: 8,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          width: 80,
+          height: 8,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmpty() {
+    return Text(
+      'Sin canción esta semana — toca ✏️ para agregar',
+      style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.75)),
+    );
+  }
+}
+
+// ── Bottom sheet editor ───────────────────────────────────────────────────────
+class _SongEditorSheet extends StatefulWidget {
+  final SongOfWeek? current;
+  final VoidCallback onRandom;
+  final void Function(String titulo, String artista, String link) onSave;
+
+  const _SongEditorSheet({
+    required this.current,
+    required this.onRandom,
+    required this.onSave,
+  });
+
+  @override
+  State<_SongEditorSheet> createState() => _SongEditorSheetState();
+}
+
+class _SongEditorSheetState extends State<_SongEditorSheet> {
+  late final TextEditingController _tituloCtrl;
+  late final TextEditingController _artistaCtrl;
+  late final TextEditingController _linkCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _tituloCtrl = TextEditingController(text: widget.current?.titulo ?? '');
+    _artistaCtrl = TextEditingController(text: widget.current?.artista ?? '');
+    _linkCtrl = TextEditingController(text: widget.current?.link ?? '');
+  }
+
+  @override
+  void dispose() {
+    _tituloCtrl.dispose();
+    _artistaCtrl.dispose();
+    _linkCtrl.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final titulo = _tituloCtrl.text.trim();
+    if (titulo.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Escribe al menos el título')),
+      );
+      return;
+    }
+    widget.onSave(titulo, _artistaCtrl.text.trim(), _linkCtrl.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Header
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1DB954).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Center(
+                    child: Text('🎵', style: TextStyle(fontSize: 20)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Canción de la semana',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.violeta,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Botón aleatorio
+            OutlinedButton.icon(
+              onPressed: widget.onRandom,
+              icon: const Text('🎲', style: TextStyle(fontSize: 16)),
+              label: const Text('Elegir una canción aleatoria'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.violeta,
+                side: BorderSide(
+                  color: AppColors.violeta.withOpacity(0.4),
+                  width: 1.5,
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Divisor
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.grey.shade200)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'o pon una manual',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                  ),
+                ),
+                Expanded(child: Divider(color: Colors.grey.shade200)),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Campo título
+            _buildField(
+              _tituloCtrl,
+              'Título de la canción',
+              'Ej: Espera y Suspira',
+            ),
+            const SizedBox(height: 12),
+
+            // Campo artista
+            _buildField(_artistaCtrl, 'Artista', 'Ej: Los Panchos'),
+            const SizedBox(height: 12),
+
+            // Campo link
+            _buildField(
+              _linkCtrl,
+              'Link de Spotify (opcional)',
+              'https://open.spotify.com/track/...',
+              keyboardType: TextInputType.url,
+            ),
+            const SizedBox(height: 24),
+
+            // Botón guardar
+            ElevatedButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.check_circle_outline_rounded),
+              label: const Text('Guardar canción'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1DB954),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildField(
+    TextEditingController ctrl,
+    String label,
+    String hint, {
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: ctrl,
+      keyboardType: keyboardType,
+      textCapitalization: TextCapitalization.sentences,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.violeta, width: 1.5),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Resto de widgets sin cambios ──────────────────────────────────────────────
+
 class _AnimatedCard extends StatefulWidget {
   final int index;
   final Widget child;
@@ -457,7 +987,6 @@ class _AnimatedCardState extends State<_AnimatedCard>
       begin: const Offset(0, 0.12),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
-
     Future.delayed(Duration(milliseconds: 80 * widget.index), () {
       if (mounted) _ctrl.forward();
     });
@@ -478,7 +1007,6 @@ class _AnimatedCardState extends State<_AnimatedCard>
   }
 }
 
-// ── Hero ─────────────────────────────────────────────────────────────────────
 class _HeroHeader extends StatelessWidget {
   final String imageUrl;
   const _HeroHeader({required this.imageUrl});
@@ -545,7 +1073,6 @@ class _HeroHeader extends StatelessWidget {
   }
 }
 
-// ── Contador ──────────────────────────────────────────────────────────────────
 class _CounterStrip extends StatelessWidget {
   final Stream<Duration> stream;
   final Duration initial;
