@@ -6,8 +6,6 @@ import 'api_config.dart';
 
 class ApiService {
   // ── Singleton ──────────────────────────────────────────────────────────────
-  // Evita crear una nueva instancia en cada ApiService() y permite
-  // compartir el cache entre widgets.
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
@@ -22,7 +20,6 @@ class ApiService {
       _cacheTimestamp != null &&
       DateTime.now().difference(_cacheTimestamp!) < _cacheTtl;
 
-  /// Invalida el cache manualmente (llamar después de mutaciones).
   void invalidateCache() {
     _citasCache = null;
     _cacheTimestamp = null;
@@ -46,7 +43,6 @@ class ApiService {
       if (response.statusCode == 200) {
         final dynamic decoded = json.decode(response.body);
 
-        // Soporta { "items": [...] } y array directo [...]
         final List<dynamic> items = decoded is List
             ? decoded
             : (decoded['items'] as List? ?? []);
@@ -58,16 +54,48 @@ class ApiService {
         throw Exception('Error al cargar las citas: ${response.statusCode}');
       }
     } catch (e) {
-      // Si tenemos cache viejo, preferimos devolverlo antes de romper la UI
       if (_citasCache != null) return List.unmodifiable(_citasCache!);
       throw Exception('No se pudo conectar con el servidor: $e');
     }
   }
 
+  // ── Crear nueva cita ───────────────────────────────────────────────────────
+  Future<Cita> createCita(Cita cita) async {
+    final response = await http
+        .post(
+          Uri.parse(_urlCitas),
+          headers: {'Content-Type': 'application/json; charset=UTF-8'},
+          body: jsonEncode({'type': 'cita', ...cita.toJson()}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      invalidateCache(); // fuerza reload en próxima consulta
+      try {
+        final body = json.decode(response.body);
+        // Si la API devuelve el objeto creado, lo usamos; si no, devolvemos
+        // la misma cita que enviamos (con los datos confirmados).
+        if (body is Map && body.containsKey('nombre')) {
+          return Cita.fromJson(Map<String, dynamic>.from(body));
+        }
+        // Algunos backends devuelven { "id": "...", "item": {...} }
+        if (body is Map && body.containsKey('item')) {
+          final item = body['item'];
+          if (item is Map)
+            return Cita.fromJson(Map<String, dynamic>.from(item));
+        }
+      } catch (_) {}
+      // Fallback: devuelve la cita original tal como se envió
+      return cita;
+    }
+
+    throw Exception(
+      'Error al crear la cita: ${response.statusCode} — ${response.body}',
+    );
+  }
+
   // ── Sincronizar lugares visitados ──────────────────────────────────────────
   Future<void> syncLugares(List<Cita> lista) async {
-    // Solo sincroniza las citas que realmente cambiaron (isVisited o rating)
-    // para evitar N llamadas innecesarias.
     final futures = lista.map((cita) async {
       final url =
           '${ApiConfig.baseUrl}${ApiConfig.citasPath}/${Uri.encodeComponent(cita.nombre)}';
@@ -84,8 +112,8 @@ class ApiService {
     });
 
     try {
-      await Future.wait(futures); // Llamadas en paralelo, no secuenciales
-      invalidateCache(); // Forzar refresh en próxima consulta
+      await Future.wait(futures);
+      invalidateCache();
       // ignore: avoid_print
       print('Sincronización exitosa con la nube');
     } catch (e) {
@@ -94,10 +122,7 @@ class ApiService {
   }
 
   // ── Agendar cita ───────────────────────────────────────────────────────────
-  Future<void> agendarCita({
-    required Cita cita,
-    required String fecha, // Formato "dd-MM-yyyy"
-  }) async {
+  Future<void> agendarCita({required Cita cita, required String fecha}) async {
     final body = {
       'type': 'evento',
       'title': cita.nombre,

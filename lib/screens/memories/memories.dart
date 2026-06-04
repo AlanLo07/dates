@@ -1,4 +1,4 @@
-// lib/screens/memories.dart
+// lib/screens/memories/memories.dart
 import 'package:flutter/material.dart';
 import '../../utils/animations.dart';
 import '../../utils/colors.dart';
@@ -14,7 +14,6 @@ class ExperienceMenuScreen extends StatefulWidget {
 }
 
 class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
-  // ── Categorías ─────────────────────────────────────────────────────────────
   static const List<Map<String, dynamic>> _categorias = [
     {
       'nombre': 'Parques',
@@ -60,8 +59,6 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
     },
   ];
 
-  // ── Estado ─────────────────────────────────────────────────────────────────
-  // Guardamos las citas en el state para no re-fetchear al navegar de regreso.
   List<Cita>? _citas;
   bool _isLoading = true;
   String? _error;
@@ -78,7 +75,6 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
       _error = null;
     });
     try {
-      // getCitas() usa cache, así que la 2ª llamada es instantánea
       final citas = await ApiService().getCitas();
       setState(() {
         _citas = citas;
@@ -90,6 +86,31 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _abrirFormularioNuevaCita() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _NuevaCitaSheet(
+        onCreada: (nuevaCita) {
+          setState(() {
+            _citas = [...(_citas ?? []), nuevaCita];
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ "${nuevaCita.nombre}" agregada'),
+              backgroundColor: AppColors.violeta,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -110,9 +131,20 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: AppColors.violeta),
-            onPressed: () => _loadCitas(),
+            onPressed: _loadCitas,
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _abrirFormularioNuevaCita,
+        backgroundColor: AppColors.violeta,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_location_alt_rounded),
+        label: const Text(
+          'Nueva Cita',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        elevation: 4,
       ),
       body: _buildBody(),
     );
@@ -145,7 +177,7 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
     final citas = _citas!;
 
     return GridView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // espacio para FAB
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 14,
@@ -215,7 +247,6 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  // Cuenta cuántos lugares hay de este tipo
                   '${citas.where((c) => c.typeLocation == cat['tipo']).length} lugares',
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                 ),
@@ -224,6 +255,436 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bottom Sheet: Formulario Nueva Cita
+// ─────────────────────────────────────────────────────────────────────────────
+class _NuevaCitaSheet extends StatefulWidget {
+  final void Function(Cita) onCreada;
+  const _NuevaCitaSheet({required this.onCreada});
+
+  @override
+  State<_NuevaCitaSheet> createState() => _NuevaCitaSheetState();
+}
+
+class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
+  final _nombreCtrl = TextEditingController();
+  final _descripcionCtrl = TextEditingController();
+  final _linkCtrl = TextEditingController();
+  final _imagenCtrl = TextEditingController();
+
+  String _categoria = 'Romántico';
+  String _presupuesto = 'Medio';
+  String _typeLocation = 'restaurante';
+  double _tiempo = 2;
+  bool _isLoading = false;
+
+  static const List<String> _categorias = [
+    'Romántico',
+    'Aventura',
+    'Relajante',
+    'Compras',
+    'Comida',
+  ];
+
+  static const List<String> _presupuestos = ['Bajo', 'Medio', 'Alto'];
+
+  static const List<Map<String, String>> _tiposLugar = [
+    {'tipo': 'parque', 'emoji': '🌳', 'label': 'Parque'},
+    {'tipo': 'museo', 'emoji': '🏛️', 'label': 'Museo'},
+    {'tipo': 'concierto', 'emoji': '🎵', 'label': 'Concierto'},
+    {'tipo': 'pueblo', 'emoji': '🏘️', 'label': 'Pueblo'},
+    {'tipo': 'pais', 'emoji': '✈️', 'label': 'País'},
+    {'tipo': 'restaurante', 'emoji': '🍽️', 'label': 'Restaurante'},
+  ];
+
+  @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _descripcionCtrl.dispose();
+    _linkCtrl.dispose();
+    _imagenCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar() async {
+    final nombre = _nombreCtrl.text.trim();
+    final descripcion = _descripcionCtrl.text.trim();
+
+    if (nombre.isEmpty || descripcion.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nombre y descripción son obligatorios')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final nuevaCita = Cita(
+      nombre: nombre,
+      descripcion: descripcion,
+      categoria: _categoria,
+      presupuesto: _presupuesto,
+      tiempo: _tiempo.round(),
+      link: _linkCtrl.text.trim(),
+      imagenUrl: _imagenCtrl.text.trim(),
+      typeLocation: _typeLocation,
+      isVisited: false,
+      rating: 0.0,
+    );
+
+    try {
+      final creada = await ApiService().createCita(nuevaCita);
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onCreada(creada);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al guardar: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + bottomInset),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Título
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.violeta.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.add_location_alt_rounded,
+                    color: AppColors.violeta,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Nueva Cita',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.violeta,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Nombre
+            _buildTextField(
+              controller: _nombreCtrl,
+              label: 'Nombre *',
+              hint: 'Ej: Museo Soumaya',
+              icon: Icons.place_outlined,
+            ),
+            const SizedBox(height: 12),
+
+            // Descripción
+            _buildTextField(
+              controller: _descripcionCtrl,
+              label: 'Descripción *',
+              hint: 'Ej: Vamos a ver la expo de arte moderno',
+              icon: Icons.notes_rounded,
+              maxLines: 2,
+            ),
+            const SizedBox(height: 16),
+
+            // Categoría
+            _buildLabel('Categoría'),
+            const SizedBox(height: 8),
+            _buildChipRow(
+              options: _categorias,
+              selected: _categoria,
+              onSelected: (v) => setState(() => _categoria = v),
+            ),
+            const SizedBox(height: 16),
+
+            // Presupuesto
+            _buildLabel('Presupuesto'),
+            const SizedBox(height: 8),
+            _buildChipRow(
+              options: _presupuestos,
+              selected: _presupuesto,
+              onSelected: (v) => setState(() => _presupuesto = v),
+              emojiMap: {'Bajo': '🪙', 'Medio': '💳', 'Alto': '💎'},
+            ),
+            const SizedBox(height: 16),
+
+            // Tipo de lugar
+            _buildLabel('Tipo de lugar'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _tiposLugar.map((t) {
+                final isSelected = _typeLocation == t['tipo'];
+                return GestureDetector(
+                  onTap: () => setState(() => _typeLocation = t['tipo']!),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.violeta
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.violeta
+                            : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(t['emoji']!, style: const TextStyle(fontSize: 14)),
+                        const SizedBox(width: 5),
+                        Text(
+                          t['label']!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // Tiempo
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildLabel('Duración estimada'),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.violeta.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_tiempo.round()} horas',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.violeta,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: AppColors.violeta,
+                inactiveTrackColor: AppColors.violeta.withOpacity(0.15),
+                thumbColor: AppColors.violeta,
+                overlayColor: AppColors.violeta.withOpacity(0.1),
+                trackHeight: 4,
+              ),
+              child: Slider(
+                value: _tiempo,
+                min: 1,
+                max: 48,
+                divisions: 47,
+                onChanged: (v) => setState(() => _tiempo = v),
+              ),
+            ),
+            const SizedBox(height: 4),
+
+            // Link (opcional)
+            _buildTextField(
+              controller: _linkCtrl,
+              label: 'Link de Google Maps (opcional)',
+              hint: 'https://maps.app.goo.gl/...',
+              icon: Icons.map_outlined,
+              keyboardType: TextInputType.url,
+            ),
+            const SizedBox(height: 12),
+
+            // Imagen (opcional)
+            _buildTextField(
+              controller: _imagenCtrl,
+              label: 'URL de imagen (opcional)',
+              hint: 'https://...',
+              icon: Icons.image_outlined,
+              keyboardType: TextInputType.url,
+            ),
+            const SizedBox(height: 24),
+
+            // Botón guardar
+            ElevatedButton.icon(
+              onPressed: _isLoading ? null : _guardar,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.check_circle_outline_rounded),
+              label: Text(_isLoading ? 'Guardando...' : 'Guardar Cita'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.violeta,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.bold,
+        color: AppColors.violeta,
+        letterSpacing: 0.3,
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      textCapitalization: TextCapitalization.sentences,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, color: AppColors.violeta, size: 20),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.violeta, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChipRow({
+    required List<String> options,
+    required String selected,
+    required ValueChanged<String> onSelected,
+    Map<String, String>? emojiMap,
+  }) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: options.map((opt) {
+        final isSelected = selected == opt;
+        return GestureDetector(
+          onTap: () => onSelected(opt),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.violeta : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected ? AppColors.violeta : Colors.grey.shade300,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (emojiMap != null && emojiMap[opt] != null) ...[
+                  Text(emojiMap[opt]!, style: const TextStyle(fontSize: 13)),
+                  const SizedBox(width: 5),
+                ],
+                Text(
+                  opt,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected ? Colors.white : Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
