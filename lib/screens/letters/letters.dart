@@ -129,10 +129,9 @@ class _LetterScreenState extends State<LetterScreen>
         },
       );
 
-      await _audioPlayer!.setUrl(
-        widget.carta.audioUrl,
-        // Preload para detectar errores de red/formato antes de que el usuario pulse play
-        preload: true,
+      await _audioPlayer!.setAudioSource(
+        AudioSource.uri(Uri.parse(widget.carta.audioUrl)),
+        preload: false,
       );
 
       debugPrint('[Audio] setUrl completado sin excepciones');
