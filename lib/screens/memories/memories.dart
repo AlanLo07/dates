@@ -250,6 +250,52 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
                   '${citas.where((c) => c.typeLocation == cat['tipo']).length} lugares',
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                 ),
+                const SizedBox(height: 6),
+                Container(
+                  margin: const EdgeInsets.all(10.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(
+                        begin: 0,
+                        end:
+                            citas
+                                .where(
+                                  (c) =>
+                                      c.typeLocation == cat['tipo'] &&
+                                      c.isVisited,
+                                )
+                                .length /
+                            citas
+                                .where((c) => c.typeLocation == cat['tipo'])
+                                .length,
+                      ),
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOutCubic,
+                      builder: (_, value, __) => LinearProgressIndicator(
+                        value: value,
+                        minHeight: 10,
+                        backgroundColor: AppColors.lavanda,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          citas
+                                      .where(
+                                        (c) =>
+                                            c.typeLocation == cat['tipo'] &&
+                                            c.isVisited,
+                                      )
+                                      .length ==
+                                  citas
+                                      .where(
+                                        (c) => c.typeLocation == cat['tipo'],
+                                      )
+                                      .length
+                              ? const Color(0xFF4CAF50)
+                              : AppColors.violeta,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

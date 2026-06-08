@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:confetti/confetti.dart'; // ← nuevo
+import 'package:google_fonts/google_fonts.dart';
 import '../../models/carta.dart';
 import '../../utils/colors.dart';
 
@@ -17,6 +19,7 @@ class LetterScreen extends StatefulWidget {
 class _LetterScreenState extends State<LetterScreen>
     with TickerProviderStateMixin {
   bool _isOpened = false;
+  late final ConfettiController _confettiController;
 
   // ── Animación del sobre (flip 3D) ──────────────────────────────────────────
   late final AnimationController _flipController;
@@ -60,6 +63,11 @@ class _LetterScreenState extends State<LetterScreen>
       vsync: this,
       duration: const Duration(milliseconds: 450),
     );
+
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 3),
+    );
+
     _contentOpacity = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _contentController, curve: Curves.easeIn),
     );
@@ -221,6 +229,7 @@ class _LetterScreenState extends State<LetterScreen>
     _contentController.dispose();
     _waveController.dispose();
     _audioPlayer?.dispose();
+    _confettiController.dispose();
     super.dispose();
   }
 
@@ -228,6 +237,7 @@ class _LetterScreenState extends State<LetterScreen>
     if (_isOpened) return;
     setState(() => _isOpened = true);
     await _flipController.forward();
+    _confettiController.play();
     await _contentController.forward();
   }
 
@@ -313,6 +323,23 @@ class _LetterScreenState extends State<LetterScreen>
                 switchOutCurve: Curves.easeIn,
                 child: _isOpened ? _buildOpenCard() : _buildEnvelope(),
               ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              numberOfParticles: 30,
+              gravity: 0.2,
+              emissionFrequency: 0.05,
+              colors: const [
+                Colors.pinkAccent,
+                Color(0xFFB0B6E8), // malva
+                Color(0xFFA9D1DF), // celeste
+                Colors.white,
+                Color(0xFFD8C9E7), // lavanda
+              ],
             ),
           ),
         ],
@@ -410,7 +437,7 @@ class _LetterScreenState extends State<LetterScreen>
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: GoogleFonts.playfairDisplay(
                       color: AppColors.violeta,
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
@@ -576,7 +603,7 @@ class _LetterScreenState extends State<LetterScreen>
                           child: Text(
                             widget.carta.description,
                             textAlign: TextAlign.justify,
-                            style: TextStyle(
+                            style: GoogleFonts.playfairDisplay(
                               fontSize: 15,
                               height: 1.75,
                               color: _hasImage
@@ -651,7 +678,7 @@ class _LetterScreenState extends State<LetterScreen>
           Expanded(
             child: Text(
               widget.carta.title,
-              style: TextStyle(
+              style: GoogleFonts.playfairDisplay(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
                 color: onImage ? Colors.white : AppColors.violeta,
