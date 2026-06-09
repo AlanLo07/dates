@@ -48,7 +48,7 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
         return GestureDetector(
           onTap: () {
             setState(() => lugar.rating = index + 1.0);
-            saveLugares();
+            saveLugares(lugar);
           },
           child: Icon(
             index < lugar.rating
@@ -139,11 +139,11 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
                         lugar: lugar,
                         onVisitadoChanged: (value) {
                           setState(() => lugar.isVisited = value);
-                          saveLugares();
+                          saveLugares(lugar);
                         },
                         onRatingChanged: (value) {
                           setState(() => lugar.rating = value);
-                          saveLugares();
+                          saveLugares(lugar);
                         },
                         onTap: () => Navigator.of(
                           context,
@@ -182,9 +182,10 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
     );
   }
 
-  Future<void> saveLugares() async {
+  Future<void> saveLugares(lugar) async {
+    List<Cita> lista = [lugar];
     try {
-      await ApiService().syncLugares(listaLugares);
+      await ApiService().syncLugares(lista);
     } catch (e) {
       debugPrint('No se pudo guardar en la nube: $e');
     }

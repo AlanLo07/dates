@@ -54,6 +54,9 @@ dependencies:
 
   google_fonts: ^6.2.1
 
+  image_picker: ^1.0.7
+  path: ^1.9.0
+
 
 dev_dependencies:
   flutter_test:

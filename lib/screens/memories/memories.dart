@@ -1,10 +1,14 @@
 // lib/screens/memories/memories.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../utils/animations.dart';
 import '../../utils/colors.dart';
 import '../../models/cita.dart';
 import '../../services/cita_service.dart';
+import '../../services/upload_service.dart';
 import '../plans/checklist.dart';
+import 'location_picker.dart';
 
 class ExperienceMenuScreen extends StatefulWidget {
   const ExperienceMenuScreen({super.key});
@@ -177,7 +181,7 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
     final citas = _citas!;
 
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // espacio para FAB
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 14,
@@ -258,17 +262,20 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
                     child: TweenAnimationBuilder<double>(
                       tween: Tween(
                         begin: 0,
-                        end:
-                            citas
-                                .where(
-                                  (c) =>
-                                      c.typeLocation == cat['tipo'] &&
-                                      c.isVisited,
-                                )
-                                .length /
-                            citas
-                                .where((c) => c.typeLocation == cat['tipo'])
-                                .length,
+                        end: () {
+                          final total = citas
+                              .where((c) => c.typeLocation == cat['tipo'])
+                              .length;
+                          if (total == 0) return 0.0;
+                          return citas
+                                  .where(
+                                    (c) =>
+                                        c.typeLocation == cat['tipo'] &&
+                                        c.isVisited,
+                                  )
+                                  .length /
+                              total;
+                        }(),
                       ),
                       duration: const Duration(milliseconds: 600),
                       curve: Curves.easeOutCubic,
@@ -276,22 +283,21 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
                         value: value,
                         minHeight: 10,
                         backgroundColor: AppColors.lavanda,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          citas
-                                      .where(
-                                        (c) =>
-                                            c.typeLocation == cat['tipo'] &&
-                                            c.isVisited,
-                                      )
-                                      .length ==
-                                  citas
-                                      .where(
-                                        (c) => c.typeLocation == cat['tipo'],
-                                      )
-                                      .length
+                        valueColor: AlwaysStoppedAnimation<Color>(() {
+                          final total = citas
+                              .where((c) => c.typeLocation == cat['tipo'])
+                              .length;
+                          final visitados = citas
+                              .where(
+                                (c) =>
+                                    c.typeLocation == cat['tipo'] &&
+                                    c.isVisited,
+                              )
+                              .length;
+                          return total > 0 && visitados == total
                               ? const Color(0xFF4CAF50)
-                              : AppColors.violeta,
-                        ),
+                              : AppColors.violeta;
+                        }()),
                       ),
                     ),
                   ),
@@ -307,6 +313,7 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Bottom Sheet: Formulario Nueva Cita
+// Con selector de ubicación (mapa) y upload de imagen a S3
 // ─────────────────────────────────────────────────────────────────────────────
 class _NuevaCitaSheet extends StatefulWidget {
   final void Function(Cita) onCreada;
@@ -320,13 +327,18 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
   final _nombreCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
   final _linkCtrl = TextEditingController();
-  final _imagenCtrl = TextEditingController();
 
   String _categoria = 'Romántico';
   String _presupuesto = 'Medio';
   String _typeLocation = 'restaurante';
   double _tiempo = 2;
   bool _isLoading = false;
+
+  // ── Imagen ─────────────────────────────────────────────────────────────────
+  File? _imageFile; // archivo local elegido
+  String? _imageUrl; // URL pública en S3 después del upload
+  bool _isUploadingImage = false;
+  String? _imageError;
 
   static const List<String> _categorias = [
     'Romántico',
@@ -352,10 +364,67 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
     _nombreCtrl.dispose();
     _descripcionCtrl.dispose();
     _linkCtrl.dispose();
-    _imagenCtrl.dispose();
     super.dispose();
   }
 
+  // ── Seleccionar ubicación con mapa ─────────────────────────────────────────
+  Future<void> _seleccionarUbicacion() async {
+    // Cerramos el teclado antes de abrir el mapa
+    FocusScope.of(context).unfocus();
+
+    final url = await showLocationPicker(context);
+    if (url != null && mounted) {
+      setState(() => _linkCtrl.text = url);
+    }
+  }
+
+  // ── Seleccionar imagen y subir a S3 ───────────────────────────────────────
+  Future<void> _seleccionarImagen() async {
+    final picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+      maxHeight: 1200,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return;
+
+    final file = File(picked.path);
+    setState(() {
+      _imageFile = file;
+      _imageUrl = null;
+      _imageError = null;
+      _isUploadingImage = true;
+    });
+
+    try {
+      final publicUrl = await UploadService().uploadImage(file, picked);
+      if (mounted) {
+        setState(() {
+          _imageUrl = publicUrl;
+          _isUploadingImage = false;
+        });
+      }
+    } catch (e) {
+      print("Error ${e.toString()}");
+      if (mounted) {
+        setState(() {
+          _imageError = e.toString();
+          _isUploadingImage = false;
+        });
+      }
+    }
+  }
+
+  void _quitarImagen() {
+    setState(() {
+      _imageFile = null;
+      _imageUrl = null;
+      _imageError = null;
+    });
+  }
+
+  // ── Guardar ────────────────────────────────────────────────────────────────
   Future<void> _guardar() async {
     final nombre = _nombreCtrl.text.trim();
     final descripcion = _descripcionCtrl.text.trim();
@@ -363,6 +432,15 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
     if (nombre.isEmpty || descripcion.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Nombre y descripción son obligatorios')),
+      );
+      return;
+    }
+
+    if (_isUploadingImage) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Espera a que termine de subir la imagen'),
+        ),
       );
       return;
     }
@@ -376,7 +454,7 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
       presupuesto: _presupuesto,
       tiempo: _tiempo.round(),
       link: _linkCtrl.text.trim(),
-      imagenUrl: _imagenCtrl.text.trim(),
+      imagenUrl: _imageUrl ?? '',
       typeLocation: _typeLocation,
       isVisited: false,
       rating: 0.0,
@@ -402,6 +480,7 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
     }
   }
 
+  // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
@@ -590,32 +669,24 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
                 onChanged: (v) => setState(() => _tiempo = v),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
 
-            // Link (opcional)
-            _buildTextField(
-              controller: _linkCtrl,
-              label: 'Link de Google Maps (opcional)',
-              hint: 'https://maps.app.goo.gl/...',
-              icon: Icons.map_outlined,
-              keyboardType: TextInputType.url,
-            ),
-            const SizedBox(height: 12),
+            // ── Selector de ubicación (mapa) ──────────────────────────────
+            _buildLabel('Ubicación'),
+            const SizedBox(height: 8),
+            _buildLocationField(),
+            const SizedBox(height: 16),
 
-            // Imagen (opcional)
-            _buildTextField(
-              controller: _imagenCtrl,
-              label: 'URL de imagen (opcional)',
-              hint: 'https://...',
-              icon: Icons.image_outlined,
-              keyboardType: TextInputType.url,
-            ),
+            // ── Selector de imagen ────────────────────────────────────────
+            _buildLabel('Foto del lugar (opcional)'),
+            const SizedBox(height: 8),
+            _buildImagePicker(),
             const SizedBox(height: 24),
 
             // Botón guardar
             ElevatedButton.icon(
-              onPressed: _isLoading ? null : _guardar,
-              icon: _isLoading
+              onPressed: (_isLoading || _isUploadingImage) ? null : _guardar,
+              icon: (_isLoading || _isUploadingImage)
                   ? const SizedBox(
                       width: 18,
                       height: 18,
@@ -625,7 +696,13 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
                       ),
                     )
                   : const Icon(Icons.check_circle_outline_rounded),
-              label: Text(_isLoading ? 'Guardando...' : 'Guardar Cita'),
+              label: Text(
+                _isUploadingImage
+                    ? 'Subiendo imagen...'
+                    : _isLoading
+                    ? 'Guardando...'
+                    : 'Guardar Cita',
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.violeta,
                 foregroundColor: Colors.white,
@@ -646,6 +723,303 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
     );
   }
 
+  // ── Campo de ubicación ─────────────────────────────────────────────────────
+  Widget _buildLocationField() {
+    final hasLink = _linkCtrl.text.trim().isNotEmpty;
+
+    return GestureDetector(
+      onTap: _seleccionarUbicacion,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: hasLink
+              ? AppColors.violeta.withOpacity(0.06)
+              : Colors.grey.shade50,
+          border: Border.all(
+            color: hasLink ? AppColors.violeta : Colors.grey.shade300,
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.map_outlined,
+              color: hasLink ? AppColors.violeta : Colors.grey,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: hasLink
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ubicación seleccionada ✓',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.violeta,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _linkCtrl.text,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Text(
+                      'Toca para abrir el mapa',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+            ),
+            // Botón limpiar
+            if (hasLink)
+              GestureDetector(
+                onTap: () => setState(() => _linkCtrl.clear()),
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: Colors.grey.shade400,
+                  ),
+                ),
+              )
+            else
+              Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.grey.shade400,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Selector de imagen ─────────────────────────────────────────────────────
+  Widget _buildImagePicker() {
+    // Estado: imagen cargada y subida con éxito
+    if (_imageUrl != null && !_isUploadingImage) {
+      return Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              _imageUrl!,
+              width: double.infinity,
+              height: 160,
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Overlay verde de "subida correcta"
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E7D32),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.cloud_done_rounded, color: Colors.white, size: 14),
+                  SizedBox(width: 4),
+                  Text(
+                    'Subida',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Botón quitar
+          Positioned(
+            top: 8,
+            left: 8,
+            child: GestureDetector(
+              onTap: _quitarImagen,
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.55),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Estado: subiendo
+    if (_isUploadingImage) {
+      return Container(
+        height: 100,
+        decoration: BoxDecoration(
+          color: AppColors.violeta.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.violeta.withOpacity(0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: AppColors.violeta,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Subiendo imagen a S3...',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.violeta.withOpacity(0.7),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Estado: error al subir
+    if (_imageError != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.red.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      color: Colors.red.shade400,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Error al subir imagen',
+                      style: TextStyle(
+                        color: Colors.red.shade600,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _imageError!,
+                  style: TextStyle(fontSize: 11, color: Colors.red.shade700),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildPickerButton(label: 'Intentar con otra imagen', isRetry: true),
+        ],
+      );
+    }
+
+    // Estado: vacío — botón para elegir
+    return _buildPickerButton();
+  }
+
+  Widget _buildPickerButton({String? label, bool isRetry = false}) {
+    return GestureDetector(
+      onTap: _seleccionarImagen,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          color: isRetry
+              ? Colors.red.shade50
+              : AppColors.violeta.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isRetry
+                ? Colors.red.shade200
+                : AppColors.violeta.withOpacity(0.25),
+            width: 1.5,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isRetry
+                  ? Icons.refresh_rounded
+                  : Icons.add_photo_alternate_outlined,
+              size: 32,
+              color: isRetry
+                  ? Colors.red.shade400
+                  : AppColors.violeta.withOpacity(0.6),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label ?? 'Agregar foto del lugar',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isRetry
+                    ? Colors.red.shade600
+                    : AppColors.violeta.withOpacity(0.7),
+              ),
+            ),
+            if (!isRetry) ...[
+              const SizedBox(height: 3),
+              Text(
+                'Desde tu galería · Se sube automáticamente',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Widgets helpers ────────────────────────────────────────────────────────
   Widget _buildLabel(String text) {
     return Text(
       text,
