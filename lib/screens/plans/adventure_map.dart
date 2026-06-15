@@ -8,6 +8,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/cita.dart';
 import '../../utils/colors.dart';
+import '../../utils/animations.dart';
+import 'result.dart';
 
 // ── Modelo interno para el marker ────────────────────────────────────────────
 class _PlaceMarker {
@@ -82,7 +84,6 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
   /// Intenta extraer coords del link de Google Maps o geocodifica el nombre.
   Future<LatLng?> _resolveCoords(Cita cita) async {
     // 1. Intentar parsear lat/lng del link de Google Maps
-    //    Soporta: @lat,lng,  ll=lat,lng,  ?q=lat,lng
     if (cita.link.isNotEmpty) {
       final fromLink = _parseCoordsFromGoogleMapsUrl(cita.link);
       if (fromLink != null) return fromLink;
@@ -112,12 +113,7 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
     return null;
   }
 
-  /// Extrae lat/lng de URLs tipo:
-  /// https://maps.app.goo.gl/... (no parseable directamente)
-  /// https://www.google.com/maps/place/.../@19.43,-99.13,17z
-  /// https://maps.google.com/?q=19.43,-99.13
   LatLng? _parseCoordsFromGoogleMapsUrl(String url) {
-    // Patrón @lat,lng
     final atPattern = RegExp(r'@(-?\d+\.?\d*),(-?\d+\.?\d*)');
     var match = atPattern.firstMatch(url);
     if (match != null) {
@@ -126,7 +122,6 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
       if (lat != null && lng != null) return LatLng(lat, lng);
     }
 
-    // Patrón ll=lat,lng o q=lat,lng
     final llPattern = RegExp(r'(?:ll|q)=(-?\d+\.?\d*),(-?\d+\.?\d*)');
     match = llPattern.firstMatch(url);
     if (match != null) {
@@ -178,6 +173,10 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
         );
       }
     }
+  }
+
+  void _navigateToResult(Cita cita) {
+    Navigator.of(context).push(createRoute(ResultScreen(cita: cita)));
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -241,7 +240,7 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('🗺️', style: const TextStyle(fontSize: 56)),
+          const Text('🗺️', style: TextStyle(fontSize: 56)),
           const SizedBox(height: 16),
           const Text(
             'Sin lugares visitados aún',
@@ -276,13 +275,11 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
             onTap: (_, __) => setState(() => _selectedMarker = null),
           ),
           children: [
-            // Tiles de OpenStreetMap
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.nuestrolugarseguro.app',
               maxZoom: 19,
             ),
-            // Markers
             MarkerLayer(
               markers: _markers.map((pm) => _buildMarker(pm)).toList(),
             ),
@@ -375,97 +372,127 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
       borderRadius: BorderRadius.circular(20),
       shadowColor: AppColors.violeta.withOpacity(0.2),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Foto o emoji
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: cita.imagenUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: cita.imagenUrl,
-                      width: 72,
-                      height: 72,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => _cardEmojiBox(),
-                    )
-                  : _cardEmojiBox(),
-            ),
+            // ── Fila principal: foto + info + link ─────────────────────────
+            Row(
+              children: [
+                // Foto o emoji
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: cita.imagenUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: cita.imagenUrl,
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) => _cardEmojiBox(),
+                        )
+                      : _cardEmojiBox(),
+                ),
 
-            const SizedBox(width: 14),
+                const SizedBox(width: 12),
 
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    cita.nombre,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: AppColors.violeta,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (cita.descripcion.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      cita.descripcion,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        cita.nombre,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppColors.violeta,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  if (cita.rating > 0) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      children: List.generate(5, (i) {
-                        return Icon(
-                          i < cita.rating
-                              ? Icons.star_rounded
-                              : Icons.star_border_rounded,
-                          size: 14,
-                          color: i < cita.rating
-                              ? const Color(0xFFFFCA28)
-                              : Colors.grey.shade300,
-                        );
-                      }),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 8),
-
-            // Botón link
-            if (cita.link.isNotEmpty)
-              GestureDetector(
-                onTap: () => _launchUrl(cita.link),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.violeta.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.open_in_new_rounded,
-                    size: 20,
-                    color: AppColors.violeta,
+                      if (cita.descripcion.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          cita.descripcion,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      if (cita.rating > 0) ...[
+                        const SizedBox(height: 5),
+                        Row(
+                          children: List.generate(5, (i) {
+                            return Icon(
+                              i < cita.rating
+                                  ? Icons.star_rounded
+                                  : Icons.star_border_rounded,
+                              size: 13,
+                              color: i < cita.rating
+                                  ? const Color(0xFFFFCA28)
+                                  : Colors.grey.shade300,
+                            );
+                          }),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
+
+                const SizedBox(width: 8),
+
+                // Botón link externo (mapa)
+                if (cita.link.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => _launchUrl(cita.link),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.violeta.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.open_in_new_rounded,
+                        size: 18,
+                        color: AppColors.violeta,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+
+            // ── Botón "Más detalles" ────────────────────────────────────────
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _navigateToResult(cita),
+                icon: const Icon(Icons.info_outline_rounded, size: 17),
+                label: const Text('Ver detalle'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.violeta,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
               ),
+            ),
           ],
         ),
       ),
@@ -474,13 +501,13 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
 
   Widget _cardEmojiBox() {
     return Container(
-      width: 72,
-      height: 72,
+      width: 64,
+      height: 64,
       decoration: BoxDecoration(
         color: AppColors.lavanda,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: const Center(child: Text('✈️', style: TextStyle(fontSize: 30))),
+      child: const Center(child: Text('✈️', style: TextStyle(fontSize: 26))),
     );
   }
 }
