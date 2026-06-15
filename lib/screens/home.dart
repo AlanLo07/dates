@@ -429,7 +429,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 3),
                       Text(
                         daysLeft > 0
-                            ? 'Se desbloquea en $daysLeft días'
+                            ? 'Se desbloquea en ? días'
                             : 'Próximamente...',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.75),

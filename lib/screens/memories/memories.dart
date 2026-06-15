@@ -1,7 +1,6 @@
 // lib/screens/memories/memories.dart
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 import '../../utils/animations.dart';
 import '../../utils/colors.dart';
 import '../../models/cita.dart';
@@ -335,10 +334,11 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
   bool _isLoading = false;
 
   // ── Imagen ─────────────────────────────────────────────────────────────────
-  File? _imageFile; // archivo local elegido
   String? _imageUrl; // URL pública en S3 después del upload
+  dynamic _imageFile;
   bool _isUploadingImage = false;
   String? _imageError;
+  String? _uploadLog; // mensaje de etapa actual (visible en UI y consola)
 
   static const List<String> _categorias = [
     'Romántico',
@@ -380,37 +380,49 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
 
   // ── Seleccionar imagen y subir a S3 ───────────────────────────────────────
   Future<void> _seleccionarImagen() async {
-    final picker = ImagePicker();
-    final XFile? picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1200,
-      maxHeight: 1200,
-      imageQuality: 85,
-    );
-    if (picked == null || !mounted) return;
+    debugPrint('📷 [memories] Iniciando selección de imagen...');
 
-    final file = File(picked.path);
     setState(() {
-      _imageFile = file;
       _imageUrl = null;
+      _imageFile = null;
       _imageError = null;
       _isUploadingImage = true;
+      _uploadLog = 'Abriendo galería...';
     });
 
     try {
-      final publicUrl = await UploadService().uploadImage(file, picked);
+      // UploadService maneja web (dart:html) y móvil (image_picker) automáticamente
+      if (mounted) setState(() => _uploadLog = 'Subiendo imagen...');
+
+      final publicUrl = await UploadService().pickAndUpload();
+
+      if (publicUrl == null) {
+        // Usuario canceló
+        debugPrint('ℹ️ [memories] Selección cancelada');
+        if (mounted) {
+          setState(() {
+            _isUploadingImage = false;
+            _uploadLog = null;
+          });
+        }
+        return;
+      }
+
+      debugPrint('✅ [memories] URL recibida: $publicUrl');
       if (mounted) {
         setState(() {
           _imageUrl = publicUrl;
           _isUploadingImage = false;
+          _uploadLog = null;
         });
       }
-    } catch (e) {
-      print("Error ${e.toString()}");
+    } catch (e, st) {
+      debugPrint('❌ [memories] Error: $e\n$st');
       if (mounted) {
         setState(() {
           _imageError = e.toString();
           _isUploadingImage = false;
+          _uploadLog = null;
         });
       }
     }
@@ -418,7 +430,6 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
 
   void _quitarImagen() {
     setState(() {
-      _imageFile = null;
       _imageUrl = null;
       _imageError = null;
     });
@@ -816,11 +827,33 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
+            // Usamos la URL pública de S3 para el preview (funciona en web y móvil)
             child: Image.network(
               _imageUrl!,
               width: double.infinity,
               height: 160,
               fit: BoxFit.cover,
+              loadingBuilder: (_, child, progress) => progress == null
+                  ? child
+                  : Container(
+                      height: 160,
+                      color: AppColors.lavanda,
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.violeta,
+                        ),
+                      ),
+                    ),
+              errorBuilder: (_, __, ___) => Container(
+                height: 160,
+                color: AppColors.lavanda,
+                child: const Center(
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    color: AppColors.violeta,
+                  ),
+                ),
+              ),
             ),
           ),
           // Overlay verde de "subida correcta"
@@ -875,10 +908,10 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
       );
     }
 
-    // Estado: subiendo
+    // Estado: subiendo — muestra etapa actual en pantalla
     if (_isUploadingImage) {
       return Container(
-        height: 100,
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.violeta.withOpacity(0.06),
           borderRadius: BorderRadius.circular(12),
@@ -888,7 +921,7 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
           ),
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(
               width: 28,
@@ -900,18 +933,25 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
             ),
             const SizedBox(height: 10),
             Text(
-              'Subiendo imagen a S3...',
+              _uploadLog ?? 'Preparando...',
               style: TextStyle(
                 fontSize: 13,
-                color: AppColors.violeta.withOpacity(0.7),
+                fontWeight: FontWeight.w500,
+                color: AppColors.violeta.withOpacity(0.8),
               ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Revisa la consola para más detalles',
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
             ),
           ],
         ),
       );
     }
 
-    // Estado: error al subir
+    // Estado: error al subir — mensaje completo visible y scrollable
     if (_imageError != null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -937,19 +977,38 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
                     Text(
                       'Error al subir imagen',
                       style: TextStyle(
-                        color: Colors.red.shade600,
+                        color: Colors.red.shade700,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 13,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
+                // Contenedor scrollable para el mensaje completo
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 120),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(8),
+                    child: SelectableText(
+                      _imageError!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.red.shade900,
+                        fontFamily: 'monospace',
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
                 Text(
-                  _imageError!,
-                  style: TextStyle(fontSize: 11, color: Colors.red.shade700),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+                  'Revisa también la consola del navegador (F12 → Console)',
+                  style: TextStyle(fontSize: 10, color: Colors.red.shade400),
                 ),
               ],
             ),

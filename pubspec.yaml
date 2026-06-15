@@ -57,6 +57,8 @@ dependencies:
   image_picker: ^1.0.7
   path: ^1.9.0
 
+  web: ^1.0.0
+
 
 dev_dependencies:
   flutter_test:

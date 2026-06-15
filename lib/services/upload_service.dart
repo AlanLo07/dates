@@ -1,104 +1,157 @@
 // lib/services/upload_service.dart
 //
-// Flujo:
-//   1. POST /upload {fileName, contentType}  → Lambda devuelve { uploadUrl, publicUrl }
-//   2. PUT uploadUrl  con los bytes del archivo
-//   3. Retorna publicUrl (la URL pública en S3)
+// Compatible con Flutter Web Y móvil (iOS/Android).
+// - Web: usa dart:html FileUploadInputElement (sin plugins)
+// - Móvil: usa image_picker (XFile)
 //
-import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as p;
 import 'api_config.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:typed_data';
+
+// Importaciones condicionales según plataforma
+import 'upload_service_web.dart'
+    if (dart.library.io) 'upload_service_mobile.dart'
+    as platform;
 
 class UploadService {
-  // ── Singleton ──────────────────────────────────────────────────────────────
   static final UploadService _instance = UploadService._internal();
   factory UploadService() => _instance;
   UploadService._internal();
 
-  final String _uploadUrl = ApiConfig.baseUrl + ApiConfig.uploadPath;
+  final String _uploadEndpoint = '${ApiConfig.baseUrl}${ApiConfig.uploadPath}';
 
-  // ── Upload principal ───────────────────────────────────────────────────────
-  /// Sube [file] a S3 a través de la presigned URL que genera Lambda.
-  /// Devuelve la URL pública del objeto en S3.
-  Future<String> uploadImage(File file, XFile? image) async {
-    print("File: ${file}");
-    // 1. Pedir presigned URL a Lambda
-    final fileName = _uniqueFileName(file);
-    final contentType = _contentType(file);
+  /// Abre el selector de imagen según la plataforma y sube a S3.
+  /// Devuelve la URL pública, o null si el usuario canceló.
+  Future<String?> pickAndUpload() async {
+    debugPrint(
+      '📷 [UploadService] Seleccionando imagen (${kIsWeb ? "web" : "móvil"})...',
+    );
 
-    print("File Name: ${fileName}");
-    print("Content Type: ${contentType}");
+    // 1. Elegir imagen según plataforma
+    late Uint8List bytes;
+    late String fileName;
+    try {
+      final result = await platform.pickImage();
+      if (result == null) {
+        debugPrint('ℹ️ [UploadService] Usuario canceló');
+        return null;
+      }
+      bytes = result.bytes;
+      fileName = result.name;
+      debugPrint('✅ [UploadService] Imagen: $fileName (${bytes.length} bytes)');
+    } catch (e, st) {
+      debugPrint('❌ [UploadService] Error al seleccionar imagen: $e\n$st');
+      rethrow;
+    }
 
-    final presignedRes = await http
-        .post(
-          Uri.parse(_uploadUrl),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'fileName': fileName, 'fileType': contentType}),
-        )
-        .timeout(const Duration(seconds: 15));
+    final ext = _extension(fileName);
+    final fileType = _contentType(ext);
+    final uploadName = 'cita_${DateTime.now().millisecondsSinceEpoch}$ext';
 
-    if (presignedRes.statusCode != 200 && presignedRes.statusCode != 201) {
+    // 2. Presigned URL
+    debugPrint('📡 [UploadService] POST presigned URL...');
+    late http.Response presignedRes;
+    try {
+      presignedRes = await http
+          .post(
+            Uri.parse(_uploadEndpoint),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'fileName': uploadName, 'fileType': fileType}),
+          )
+          .timeout(const Duration(seconds: 15));
+    } catch (e, st) {
+      debugPrint('❌ [UploadService] Fallo POST presigned: $e\n$st');
+      rethrow;
+    }
+
+    debugPrint('   status: ${presignedRes.statusCode}');
+    debugPrint('   body  : ${presignedRes.body}');
+
+    if (presignedRes.statusCode != 200) {
       throw Exception(
-        'Error al obtener presigned URL: ${presignedRes.statusCode} — ${presignedRes.body}',
+        'Error al obtener presigned URL\n'
+        'Status: ${presignedRes.statusCode}\n'
+        'Body: ${presignedRes.body}',
       );
     }
 
-    final body = jsonDecode(presignedRes.body) as Map<String, dynamic>;
-    final uploadUrl = body['uploadUrl'] as String?;
-    final publicUrl = body['finalUrl'] as String?;
-
-    if (uploadUrl == null || publicUrl == null) {
+    late Map<String, dynamic> responseBody;
+    try {
+      responseBody = jsonDecode(presignedRes.body) as Map<String, dynamic>;
+    } catch (e) {
       throw Exception(
-        'La Lambda no devolvió uploadUrl o publicUrl. Respuesta: ${presignedRes.body}',
+        'Respuesta de Lambda no es JSON válido.\n'
+        'Body: ${presignedRes.body}\nError: $e',
       );
     }
 
-    // 2. PUT directo a S3 con los bytes del archivo
-    final Uint8List bytes = await image!.readAsBytes();
-    final putRes = await http
-        .put(
-          Uri.parse(uploadUrl),
-          headers: {
-            'Content-Type': contentType,
-            'Content-Length': bytes.length.toString(),
-          },
-          body: bytes,
-        )
-        .timeout(const Duration(seconds: 60));
+    final uploadUrl = responseBody['uploadUrl'] as String?;
+    final finalUrl = responseBody['finalUrl'] as String?;
 
-    print("Respuesta PUT: ${putRes} ${putRes.body}");
+    debugPrint('   uploadUrl: $uploadUrl');
+    debugPrint('   finalUrl : $finalUrl');
+
+    if (uploadUrl == null || finalUrl == null) {
+      throw Exception(
+        'Lambda no devolvió uploadUrl o finalUrl.\n'
+        'Campos: ${responseBody.keys.toList()}\n'
+        'Body: ${presignedRes.body}',
+      );
+    }
+
+    // 3. PUT a S3
+    debugPrint('🚀 [UploadService] PUT a S3...');
+    late http.Response putRes;
+    try {
+      putRes = await http
+          .put(
+            Uri.parse(uploadUrl),
+            headers: {'Content-Type': fileType},
+            body: bytes,
+          )
+          .timeout(const Duration(seconds: 60));
+    } catch (e, st) {
+      debugPrint('❌ [UploadService] Error PUT S3: $e\n$st');
+      rethrow;
+    }
+
+    debugPrint('   PUT status: ${putRes.statusCode}');
+    if (putRes.body.isNotEmpty) debugPrint('   PUT body  : ${putRes.body}');
 
     if (putRes.statusCode != 200 && putRes.statusCode != 204) {
       throw Exception(
-        'Error al subir a S3: ${putRes.statusCode} — ${putRes.body}',
+        'Error al subir a S3\n'
+        'Status: ${putRes.statusCode}\n'
+        'Body: ${putRes.body}',
       );
     }
 
-    return publicUrl;
+    debugPrint('✅ [UploadService] Subida completa → $finalUrl');
+    return finalUrl;
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  /// Genera un nombre único para evitar colisiones en el bucket.
-  String _uniqueFileName(File file) {
-    final ext = p.extension(file.path).toLowerCase(); // .jpg, .png, etc.
-    final ts = DateTime.now().millisecondsSinceEpoch;
-    return 'citas/$ts$ext';
+  String _extension(String name) {
+    final parts = name.split('.');
+    return parts.length < 2 ? '.jpg' : '.${parts.last.toLowerCase()}';
   }
 
-  String _contentType(File file) {
-    final ext = p.extension(file.path).toLowerCase();
+  String _contentType(String ext) {
     const map = {
       '.jpg': 'image/jpeg',
       '.jpeg': 'image/jpeg',
       '.png': 'image/png',
       '.webp': 'image/webp',
       '.heic': 'image/heic',
+      '.gif': 'image/gif',
     };
     return map[ext] ?? 'image/jpeg';
   }
+}
+
+/// Resultado de selección de imagen (plataforma-agnóstico)
+class PickedImage {
+  final Uint8List bytes;
+  final String name;
+  const PickedImage({required this.bytes, required this.name});
 }
