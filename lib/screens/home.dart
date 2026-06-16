@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final newSong = SongOfWeek(
         id: '',
-        titulo: picked.title,
+        title: picked.title,
         artista: picked.credits,
         link: picked.link,
         setBy: 'random',
@@ -106,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (notify) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('🎲 Nueva canción: ${saved.titulo}'),
+              content: Text('🎲 Nueva canción: ${saved.title}'),
               backgroundColor: AppColors.violeta,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
@@ -136,23 +136,23 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.pop(context);
           await _setRandomSong();
         },
-        onSave: (titulo, artista, link) async {
+        onSave: (title, artista, link) async {
           Navigator.pop(context);
-          await _saveSongManually(titulo, artista, link);
+          await _saveSongManually(title, artista, link);
         },
       ),
     );
   }
 
   Future<void> _saveSongManually(
-    String titulo,
+    String title,
     String artista,
     String link,
   ) async {
     try {
       final newSong = SongOfWeek(
         id: _songOfWeek?.id ?? '',
-        titulo: titulo,
+        title: title,
         artista: artista,
         link: link,
         setBy: 'manual',
@@ -692,7 +692,7 @@ class _SongOfTheWeekStrip extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          s.titulo,
+          s.title,
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
@@ -753,7 +753,7 @@ class _SongOfTheWeekStrip extends StatelessWidget {
 class _SongEditorSheet extends StatefulWidget {
   final SongOfWeek? current;
   final VoidCallback onRandom;
-  final void Function(String titulo, String artista, String link) onSave;
+  final void Function(String title, String artista, String link) onSave;
 
   const _SongEditorSheet({
     required this.current,
@@ -766,35 +766,35 @@ class _SongEditorSheet extends StatefulWidget {
 }
 
 class _SongEditorSheetState extends State<_SongEditorSheet> {
-  late final TextEditingController _tituloCtrl;
+  late final TextEditingController _titleCtrl;
   late final TextEditingController _artistaCtrl;
   late final TextEditingController _linkCtrl;
 
   @override
   void initState() {
     super.initState();
-    _tituloCtrl = TextEditingController(text: widget.current?.titulo ?? '');
+    _titleCtrl = TextEditingController(text: widget.current?.title ?? '');
     _artistaCtrl = TextEditingController(text: widget.current?.artista ?? '');
     _linkCtrl = TextEditingController(text: widget.current?.link ?? '');
   }
 
   @override
   void dispose() {
-    _tituloCtrl.dispose();
+    _titleCtrl.dispose();
     _artistaCtrl.dispose();
     _linkCtrl.dispose();
     super.dispose();
   }
 
   void _save() {
-    final titulo = _tituloCtrl.text.trim();
-    if (titulo.isEmpty) {
+    final title = _titleCtrl.text.trim();
+    if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Escribe al menos el título')),
       );
       return;
     }
-    widget.onSave(titulo, _artistaCtrl.text.trim(), _linkCtrl.text.trim());
+    widget.onSave(title, _artistaCtrl.text.trim(), _linkCtrl.text.trim());
   }
 
   @override
@@ -889,7 +889,7 @@ class _SongEditorSheetState extends State<_SongEditorSheet> {
 
             // Campo título
             _buildField(
-              _tituloCtrl,
+              _titleCtrl,
               'Título de la canción',
               'Ej: Espera y Suspira',
             ),

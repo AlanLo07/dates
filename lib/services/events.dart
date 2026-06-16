@@ -182,6 +182,8 @@ class EventService {
     final all = await _getAll();
     final weekKey = SongOfWeek.currentWeekKey();
 
+    print("Number week: ${weekKey}");
+
     final items = all
         .where((i) => i['type'] == 'cancion_semana' && i['weekKey'] == weekKey)
         .toList();
