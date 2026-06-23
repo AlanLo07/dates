@@ -17,6 +17,7 @@ import '../../models/fecha.dart';
 import '../../models/cita.dart';
 import '../../services/events.dart';
 import '../../services/cita_service.dart';
+import '../../services/upload_service.dart';
 import 'counter.dart';
 import '../letters/letters.dart';
 
@@ -62,10 +63,11 @@ class _EventImage extends StatelessWidget {
   }
 
   Widget _fallback() => SizedBox(
-    width: width,
-    height: height,
-    child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
-  );
+        width: width,
+        height: height,
+        child:
+            const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+      );
 }
 
 // ── Modelo interno para los marcadores del día ────────────────────────────────
@@ -156,8 +158,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   _DayData _getDayData(DateTime day) {
     final recuerdos = _mostrarRecuerdos
         ? _recuerdos
-              .where((r) => _monthDayFromApiDate(r.date) == _toMonthDayKey(day))
-              .toList()
+            .where((r) => _monthDayFromApiDate(r.date) == _toMonthDayKey(day))
+            .toList()
         : <Recuerdo>[];
 
     CartaSorpresa? carta;
@@ -504,181 +506,185 @@ class _CalendarScreenState extends State<CalendarScreen> {
               child: CircularProgressIndicator(color: AppColors.violeta),
             )
           : _error != null
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Error al cargar datos',
-                    style: TextStyle(color: Colors.grey.shade700),
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: Colors.red, size: 48),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Error al cargar datos',
+                        style: TextStyle(color: Colors.grey.shade700),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: _loadData,
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: _loadData,
-                    child: const Text('Reintentar'),
-                  ),
-                ],
-              ),
-            )
-          : Column(
-              children: [
-                const SizedBox(height: 12),
-                _buildFilterBar(),
-                const SizedBox(height: 8),
-                if (_eventos.isNotEmpty) ProximaCitaCounter(eventos: _eventos),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: TableCalendar(
-                    firstDay: _date(DateTime.now().year - 1, 1, 1),
-                    lastDay: _date(DateTime.now().year + 1, 12, 31),
-                    focusedDay: _focusedDay,
-                    calendarFormat: CalendarFormat.month,
-                    headerStyle: const HeaderStyle(
-                      formatButtonVisible: false,
-                      titleCentered: true,
-                      titleTextStyle: TextStyle(
-                        color: AppColors.violeta,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      leftChevronIcon: Icon(
-                        Icons.chevron_left,
-                        color: AppColors.violeta,
-                      ),
-                      rightChevronIcon: Icon(
-                        Icons.chevron_right,
-                        color: AppColors.violeta,
-                      ),
-                    ),
-                    daysOfWeekStyle: const DaysOfWeekStyle(
-                      weekdayStyle: TextStyle(
-                        color: AppColors.violeta,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      weekendStyle: TextStyle(
-                        color: AppColors.violeta,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    eventLoader: _getEventsForDay,
-                    calendarBuilders: CalendarBuilders(
-                      defaultBuilder: (ctx, day, _) => Container(
-                        margin: const EdgeInsets.all(4),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
+                )
+              : Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    _buildFilterBar(),
+                    const SizedBox(height: 8),
+                    if (_eventos.isNotEmpty)
+                      ProximaCitaCounter(eventos: _eventos),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: TableCalendar(
+                        firstDay: _date(DateTime.now().year - 1, 1, 1),
+                        lastDay: _date(DateTime.now().year + 1, 12, 31),
+                        focusedDay: _focusedDay,
+                        calendarFormat: CalendarFormat.month,
+                        headerStyle: const HeaderStyle(
+                          formatButtonVisible: false,
+                          titleCentered: true,
+                          titleTextStyle: TextStyle(
+                            color: AppColors.violeta,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          leftChevronIcon: Icon(
+                            Icons.chevron_left,
+                            color: AppColors.violeta,
+                          ),
+                          rightChevronIcon: Icon(
+                            Icons.chevron_right,
+                            color: AppColors.violeta,
+                          ),
                         ),
-                        child: Text(
-                          day.day.toString(),
-                          style: const TextStyle(color: AppColors.violeta),
+                        daysOfWeekStyle: const DaysOfWeekStyle(
+                          weekdayStyle: TextStyle(
+                            color: AppColors.violeta,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          weekendStyle: TextStyle(
+                            color: AppColors.violeta,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      // ── markerBuilder ahora usa _DayData directamente ──────
-                      // No hay triple lookup por día.
-                      markerBuilder: (ctx, day, events) {
-                        if (events.isEmpty) return null;
+                        eventLoader: _getEventsForDay,
+                        calendarBuilders: CalendarBuilders(
+                          defaultBuilder: (ctx, day, _) => Container(
+                            margin: const EdgeInsets.all(4),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              day.day.toString(),
+                              style: const TextStyle(color: AppColors.violeta),
+                            ),
+                          ),
+                          // ── markerBuilder ahora usa _DayData directamente ──────
+                          // No hay triple lookup por día.
+                          markerBuilder: (ctx, day, events) {
+                            if (events.isEmpty) return null;
 
-                        // Determinamos el tipo del primer evento
-                        final first = events.first;
+                            // Determinamos el tipo del primer evento
+                            final first = events.first;
 
-                        if (first is Recuerdo && _mostrarRecuerdos) {
-                          if (first.imagePath.isNotEmpty) {
-                            return Positioned(
-                              bottom: 1,
-                              child: Hero(
-                                tag: 'recuerdo-${first.id}',
-                                child: _buildThumbnail(first.imagePath),
-                              ),
-                            );
+                            if (first is Recuerdo && _mostrarRecuerdos) {
+                              if (first.imagePath.isNotEmpty) {
+                                return Positioned(
+                                  bottom: 1,
+                                  child: Hero(
+                                    tag: 'recuerdo-${first.id}',
+                                    child: _buildThumbnail(first.imagePath),
+                                  ),
+                                );
+                              }
+                              return Positioned(
+                                bottom: 1,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.pinkAccent.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Icon(
+                                    Icons.favorite,
+                                    size: 16,
+                                    color: Colors.pinkAccent,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            if (first is CartaSorpresa && _mostrarCartas) {
+                              final now = DateTime.now();
+                              final today =
+                                  DateTime(now.year, now.month, now.day);
+                              final localDay = DateTime(
+                                day.year,
+                                day.month,
+                                day.day,
+                              );
+                              final bloqueada =
+                                  localDay.isAfter(today) || !first.abierta;
+                              return Positioned(
+                                bottom: 1,
+                                child: Icon(
+                                  bloqueada ? Icons.lock : Icons.lock_open,
+                                  color: bloqueada
+                                      ? AppColors.locked
+                                      : AppColors.unlocked,
+                                  size: 16,
+                                ),
+                              );
+                            }
+
+                            if (first is EventoImportante && _mostrarCitas) {
+                              return Positioned(
+                                bottom: 1,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.violeta.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Icon(
+                                    _iconFromString(first.icon),
+                                    size: 16,
+                                    color: AppColors.violeta,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return null;
+                          },
+                        ),
+                        onDaySelected: (selectedDay, focusedDay) async {
+                          setState(() => _focusedDay = focusedDay);
+
+                          // Una sola llamada — sin triple lookup
+                          final data = _getDayData(selectedDay);
+
+                          if (data.carta != null && _mostrarCartas) {
+                            await _verificarCarta(selectedDay, data.carta!);
+                            return;
                           }
-                          return Positioned(
-                            bottom: 1,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: Colors.pinkAccent.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Icon(
-                                Icons.favorite,
-                                size: 16,
-                                color: Colors.pinkAccent,
-                              ),
-                            ),
-                          );
-                        }
+                          if (data.recuerdos.isNotEmpty && _mostrarRecuerdos) {
+                            _showRecuerdoDialog(data.recuerdos.first);
+                            return;
+                          }
+                          if (data.evento != null && _mostrarCitas) {
+                            _showEventoDialog(data.evento!);
+                            return;
+                          }
 
-                        if (first is CartaSorpresa && _mostrarCartas) {
-                          final now = DateTime.now();
-                          final today = DateTime(now.year, now.month, now.day);
-                          final localDay = DateTime(
-                            day.year,
-                            day.month,
-                            day.day,
-                          );
-                          final bloqueada =
-                              localDay.isAfter(today) || !first.abierta;
-                          return Positioned(
-                            bottom: 1,
-                            child: Icon(
-                              bloqueada ? Icons.lock : Icons.lock_open,
-                              color: bloqueada
-                                  ? AppColors.locked
-                                  : AppColors.unlocked,
-                              size: 16,
-                            ),
-                          );
-                        }
-
-                        if (first is EventoImportante && _mostrarCitas) {
-                          return Positioned(
-                            bottom: 1,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: AppColors.violeta.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Icon(
-                                _iconFromString(first.icon),
-                                size: 16,
-                                color: AppColors.violeta,
-                              ),
-                            ),
-                          );
-                        }
-
-                        return null;
-                      },
+                          _mostrarAgendarDesdeCalendario(selectedDay);
+                        },
+                        selectedDayPredicate: (day) =>
+                            isSameDay(day, _focusedDay),
+                      ),
                     ),
-                    onDaySelected: (selectedDay, focusedDay) async {
-                      setState(() => _focusedDay = focusedDay);
-
-                      // Una sola llamada — sin triple lookup
-                      final data = _getDayData(selectedDay);
-
-                      if (data.carta != null && _mostrarCartas) {
-                        await _verificarCarta(selectedDay, data.carta!);
-                        return;
-                      }
-                      if (data.recuerdos.isNotEmpty && _mostrarRecuerdos) {
-                        _showRecuerdoDialog(data.recuerdos.first);
-                        return;
-                      }
-                      if (data.evento != null && _mostrarCitas) {
-                        _showEventoDialog(data.evento!);
-                        return;
-                      }
-
-                      _mostrarAgendarDesdeCalendario(selectedDay);
-                    },
-                    selectedDayPredicate: (day) => isSameDay(day, _focusedDay),
-                  ),
+                  ],
                 ),
-              ],
-            ),
     );
   }
 }
@@ -882,7 +888,14 @@ class _AgendarDesdeCalendarioSheetState
 
   final _tituloController = TextEditingController();
   final _descripcionController = TextEditingController();
+  final UploadService _uploadService = UploadService();
   bool _isLoading = false;
+  bool _isUploadingImage = false;
+  bool _isUploadingAudio = false;
+  String? _imageUrl;
+  String? _audioUrl;
+  String? _imageError;
+  String? _audioError;
 
   @override
   void initState() {
@@ -1018,10 +1031,78 @@ class _AgendarDesdeCalendarioSheetState
     }
   }
 
+  Future<void> _seleccionarImagenCarta() async {
+    setState(() {
+      _isUploadingImage = true;
+      _imageError = null;
+      _imageUrl = null;
+    });
+
+    try {
+      final publicUrl = await _uploadService.pickAndUpload();
+      if (!mounted) return;
+      setState(() {
+        _imageUrl = publicUrl;
+        _isUploadingImage = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _imageError = e.toString();
+        _isUploadingImage = false;
+      });
+    }
+  }
+
+  Future<void> _seleccionarAudioCarta() async {
+    setState(() {
+      _isUploadingAudio = true;
+      _audioError = null;
+      _audioUrl = null;
+    });
+
+    try {
+      final publicUrl = await _uploadService.pickAndUploadAudio();
+      if (!mounted) return;
+      setState(() {
+        _audioUrl = publicUrl;
+        _isUploadingAudio = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _audioError = e.toString();
+        _isUploadingAudio = false;
+      });
+    }
+  }
+
+  void _quitarImagenCarta() {
+    setState(() {
+      _imageUrl = null;
+      _imageError = null;
+    });
+  }
+
+  void _quitarAudioCarta() {
+    setState(() {
+      _audioUrl = null;
+      _audioError = null;
+    });
+  }
+
   Future<void> _crearCarta() async {
     if (_tituloCartaFinal.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor escribe un título')),
+      );
+      return;
+    }
+    if (_isUploadingImage || _isUploadingAudio) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Espera a que termine de subir el archivo'),
+        ),
       );
       return;
     }
@@ -1034,6 +1115,8 @@ class _AgendarDesdeCalendarioSheetState
           title: _tituloCartaFinal,
           description: _descripcionCartaFinal,
           date: widget.formatearFecha(_fechaSeleccionada),
+          imageUrl: _imageUrl ?? '',
+          audioUrl: _audioUrl ?? '',
           abierta: false,
         ),
       );
@@ -1167,6 +1250,32 @@ class _AgendarDesdeCalendarioSheetState
                 maxLines: 4,
               ),
               const SizedBox(height: 16),
+              _buildCartaMediaPicker(
+                label: 'Foto de la carta',
+                emptyText: 'Agregar foto',
+                readyText: 'Foto cargada',
+                errorText: _imageError,
+                isUploading: _isUploadingImage,
+                hasFile: _imageUrl != null,
+                icon: Icons.add_photo_alternate_outlined,
+                readyIcon: Icons.image_outlined,
+                onPick: _seleccionarImagenCarta,
+                onRemove: _quitarImagenCarta,
+              ),
+              const SizedBox(height: 12),
+              _buildCartaMediaPicker(
+                label: 'Audio de la carta',
+                emptyText: 'Agregar audio',
+                readyText: 'Audio cargado',
+                errorText: _audioError,
+                isUploading: _isUploadingAudio,
+                hasFile: _audioUrl != null,
+                icon: Icons.audio_file_outlined,
+                readyIcon: Icons.library_music_outlined,
+                onPick: _seleccionarAudioCarta,
+                onRemove: _quitarAudioCarta,
+              ),
+              const SizedBox(height: 16),
               _buildDatePicker(),
               const SizedBox(height: 24),
               _buildConfirmButton('Confirmar Carta', _crearCarta),
@@ -1174,6 +1283,116 @@ class _AgendarDesdeCalendarioSheetState
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCartaMediaPicker({
+    required String label,
+    required String emptyText,
+    required String readyText,
+    required String? errorText,
+    required bool isUploading,
+    required bool hasFile,
+    required IconData icon,
+    required IconData readyIcon,
+    required VoidCallback onPick,
+    required VoidCallback onRemove,
+  }) {
+    final Color borderColor = errorText != null
+        ? Colors.redAccent.shade100
+        : hasFile
+            ? AppColors.violeta
+            : Colors.grey.shade300;
+    final Color bgColor = errorText != null
+        ? Colors.red.shade50
+        : hasFile
+            ? const Color(0xFFEDE9F5)
+            : Colors.grey.shade50;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.violeta,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 6),
+        _selectorContainer(
+          borderColor: borderColor,
+          bgColor: bgColor,
+          child: Row(
+            children: [
+              if (isUploading)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.violeta,
+                  ),
+                )
+              else
+                Icon(
+                  hasFile ? readyIcon : icon,
+                  color: hasFile ? AppColors.violeta : Colors.grey,
+                  size: 20,
+                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  isUploading
+                      ? 'Subiendo...'
+                      : errorText != null
+                          ? 'Error al subir'
+                          : hasFile
+                              ? readyText
+                              : emptyText,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: errorText != null
+                        ? Colors.redAccent
+                        : hasFile
+                            ? AppColors.violeta
+                            : Colors.grey,
+                    fontWeight: hasFile ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (hasFile && !isUploading)
+                IconButton(
+                  tooltip: 'Quitar',
+                  onPressed: onRemove,
+                  icon: const Icon(Icons.close, size: 18),
+                  color: Colors.grey,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
+                  padding: EdgeInsets.zero,
+                )
+              else
+                TextButton(
+                  onPressed: isUploading ? null : onPick,
+                  child: Text(errorText != null ? 'Reintentar' : 'Elegir'),
+                ),
+            ],
+          ),
+        ),
+        if (errorText != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            errorText,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+          ),
+        ],
+      ],
     );
   }
 
@@ -1348,8 +1567,8 @@ class _AgendarDesdeCalendarioSheetState
     final label = !tieneCita
         ? 'Selecciona una cita'
         : _esNuevaCita
-        ? '✏️  Nueva cita'
-        : _citaSeleccionada!.nombre;
+            ? '✏️  Nueva cita'
+            : _citaSeleccionada!.nombre;
 
     return GestureDetector(
       onTap: _abrirSelectorCitas,

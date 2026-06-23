@@ -1,18 +1,16 @@
 // lib/services/upload_service.dart
 //
-// Compatible con Flutter Web Y móvil (iOS/Android).
-// - Web: usa dart:html FileUploadInputElement (sin plugins)
-// - Móvil: usa image_picker (XFile)
-//
+// Compatible con Flutter Web y movil (iOS/Android).
+// - Web: usa package:web + dart:js_interop.
+// - Movil: usa image_picker para imagenes.
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'api_config.dart';
 
-// Importaciones condicionales según plataforma
+import 'api_config.dart';
 import 'upload_service_web.dart'
-    if (dart.library.io) 'upload_service_mobile.dart'
-    as platform;
+    if (dart.library.io) 'upload_service_mobile.dart' as platform;
 
 class UploadService {
   static final UploadService _instance = UploadService._internal();
@@ -21,36 +19,80 @@ class UploadService {
 
   final String _uploadEndpoint = '${ApiConfig.baseUrl}${ApiConfig.uploadPath}';
 
-  /// Abre el selector de imagen según la plataforma y sube a S3.
-  /// Devuelve la URL pública, o null si el usuario canceló.
-  Future<String?> pickAndUpload() async {
+  /// Abre el selector de imagen segun la plataforma y sube a S3.
+  /// Devuelve la URL publica, o null si el usuario cancelo.
+  Future<String?> pickAndUpload() {
+    return _pickAndUpload(
+      picker: platform.pickImage,
+      mediaLabel: 'imagen',
+      uploadPrefix: 'cita',
+      defaultExtension: '.jpg',
+      contentTypes: const {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.webp': 'image/webp',
+        '.heic': 'image/heic',
+        '.gif': 'image/gif',
+      },
+    );
+  }
+
+  /// Abre el selector de audio segun la plataforma y sube a S3.
+  /// Devuelve la URL publica, o null si el usuario cancelo.
+  Future<String?> pickAndUploadAudio() {
+    return _pickAndUpload(
+      picker: platform.pickAudio,
+      mediaLabel: 'audio',
+      uploadPrefix: 'carta_audio',
+      defaultExtension: '.mp3',
+      contentTypes: const {
+        '.aac': 'audio/aac',
+        '.m4a': 'audio/mp4',
+        '.mp3': 'audio/mpeg',
+        '.oga': 'audio/ogg',
+        '.ogg': 'audio/ogg',
+        '.opus': 'audio/opus',
+        '.wav': 'audio/wav',
+        '.weba': 'audio/webm',
+        '.webm': 'audio/webm',
+      },
+    );
+  }
+
+  Future<String?> _pickAndUpload({
+    required Future<PickedImage?> Function() picker,
+    required String mediaLabel,
+    required String uploadPrefix,
+    required String defaultExtension,
+    required Map<String, String> contentTypes,
+  }) async {
     debugPrint(
-      '📷 [UploadService] Seleccionando imagen (${kIsWeb ? "web" : "móvil"})...',
+      '[UploadService] Seleccionando $mediaLabel (${kIsWeb ? "web" : "movil"})...',
     );
 
-    // 1. Elegir imagen según plataforma
     late Uint8List bytes;
     late String fileName;
     try {
-      final result = await platform.pickImage();
+      final result = await picker();
       if (result == null) {
-        debugPrint('ℹ️ [UploadService] Usuario canceló');
+        debugPrint('[UploadService] Usuario cancelo');
         return null;
       }
       bytes = result.bytes;
       fileName = result.name;
-      debugPrint('✅ [UploadService] Imagen: $fileName (${bytes.length} bytes)');
+      debugPrint('[UploadService] Archivo: $fileName (${bytes.length} bytes)');
     } catch (e, st) {
-      debugPrint('❌ [UploadService] Error al seleccionar imagen: $e\n$st');
+      debugPrint('[UploadService] Error al seleccionar $mediaLabel: $e\n$st');
       rethrow;
     }
 
-    final ext = _extension(fileName);
-    final fileType = _contentType(ext);
-    final uploadName = 'cita_${DateTime.now().millisecondsSinceEpoch}$ext';
+    final ext = _extension(fileName, defaultExtension);
+    final fileType = _contentType(ext, contentTypes);
+    final uploadName =
+        '${uploadPrefix}_${DateTime.now().millisecondsSinceEpoch}$ext';
 
-    // 2. Presigned URL
-    debugPrint('📡 [UploadService] POST presigned URL...');
+    debugPrint('[UploadService] POST presigned URL...');
     late http.Response presignedRes;
     try {
       presignedRes = await http
@@ -61,7 +103,7 @@ class UploadService {
           )
           .timeout(const Duration(seconds: 15));
     } catch (e, st) {
-      debugPrint('❌ [UploadService] Fallo POST presigned: $e\n$st');
+      debugPrint('[UploadService] Fallo POST presigned: $e\n$st');
       rethrow;
     }
 
@@ -81,7 +123,7 @@ class UploadService {
       responseBody = jsonDecode(presignedRes.body) as Map<String, dynamic>;
     } catch (e) {
       throw Exception(
-        'Respuesta de Lambda no es JSON válido.\n'
+        'Respuesta de Lambda no es JSON valido.\n'
         'Body: ${presignedRes.body}\nError: $e',
       );
     }
@@ -94,14 +136,13 @@ class UploadService {
 
     if (uploadUrl == null || finalUrl == null) {
       throw Exception(
-        'Lambda no devolvió uploadUrl o finalUrl.\n'
+        'Lambda no devolvio uploadUrl o finalUrl.\n'
         'Campos: ${responseBody.keys.toList()}\n'
         'Body: ${presignedRes.body}',
       );
     }
 
-    // 3. PUT a S3
-    debugPrint('🚀 [UploadService] PUT a S3...');
+    debugPrint('[UploadService] PUT a S3...');
     late http.Response putRes;
     try {
       putRes = await http
@@ -112,7 +153,7 @@ class UploadService {
           )
           .timeout(const Duration(seconds: 60));
     } catch (e, st) {
-      debugPrint('❌ [UploadService] Error PUT S3: $e\n$st');
+      debugPrint('[UploadService] Error PUT S3: $e\n$st');
       rethrow;
     }
 
@@ -127,29 +168,21 @@ class UploadService {
       );
     }
 
-    debugPrint('✅ [UploadService] Subida completa → $finalUrl');
+    debugPrint('[UploadService] Subida completa -> $finalUrl');
     return finalUrl;
   }
 
-  String _extension(String name) {
+  String _extension(String name, String fallback) {
     final parts = name.split('.');
-    return parts.length < 2 ? '.jpg' : '.${parts.last.toLowerCase()}';
+    return parts.length < 2 ? fallback : '.${parts.last.toLowerCase()}';
   }
 
-  String _contentType(String ext) {
-    const map = {
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.png': 'image/png',
-      '.webp': 'image/webp',
-      '.heic': 'image/heic',
-      '.gif': 'image/gif',
-    };
-    return map[ext] ?? 'image/jpeg';
+  String _contentType(String ext, Map<String, String> contentTypes) {
+    return contentTypes[ext] ?? 'application/octet-stream';
   }
 }
 
-/// Resultado de selección de imagen (plataforma-agnóstico)
+/// Resultado de seleccion de archivo (plataforma-agnostico).
 class PickedImage {
   final Uint8List bytes;
   final String name;

@@ -117,6 +117,8 @@ class EventService {
         title: carta.title,
         description: carta.description,
         date: carta.date,
+        imageUrl: carta.imageUrl,
+        audioUrl: carta.audioUrl,
         abierta: carta.abierta,
       );
     }
