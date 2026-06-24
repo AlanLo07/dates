@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../utils/animations.dart';
 import '../../utils/colors.dart';
 import '../../models/phrase.dart';
@@ -13,6 +14,11 @@ class TypePhrasesScreen extends StatefulWidget {
 }
 
 class _TypePhrasesScreenState extends State<TypePhrasesScreen> {
+  // Parámetros reutilizables para aparición escalonada del grid.
+  static const Duration _kCardFade = Duration(milliseconds: 360);
+  static const Duration _kCardSlide = Duration(milliseconds: 420);
+  static const Duration _kCardStagger = Duration(milliseconds: 70);
+
   List<LovePhrase>? _items;
   bool _isLoading = true;
   String? _error;
@@ -159,7 +165,17 @@ class _TypePhrasesScreenState extends State<TypePhrasesScreen> {
               ),
             ),
           ),
-        );
+        )
+            .animate()
+            .fadeIn(
+              delay: _kCardStagger * index,
+              duration: _kCardFade,
+            )
+            .slideY(
+              begin: 0.10,
+              delay: _kCardStagger * index,
+              duration: _kCardSlide,
+            );
       },
     );
   }

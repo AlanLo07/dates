@@ -53,6 +53,7 @@ dependencies:
   just_audio: ^0.10.5
 
   google_fonts: ^6.2.1
+  flutter_animate: ^4.5.2
 
   image_picker: ^1.0.7
   path: ^1.9.0

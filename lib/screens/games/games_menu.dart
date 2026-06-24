@@ -1,5 +1,6 @@
 // lib/screens/games/games_menu.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../utils/animations.dart';
 import '../../utils/colors.dart';
 import 'kama_screen.dart';
@@ -162,6 +163,10 @@ class _GameItem {
 
 // ── Card animada ───────────────────────────────────────────────────────────────
 class _AnimatedGameCard extends StatefulWidget {
+  static const Duration kFadeDuration = Duration(milliseconds: 360);
+  static const Duration kSlideDuration = Duration(milliseconds: 430);
+  static const Duration kStagger = Duration(milliseconds: 80);
+
   final int index;
   final _GameItem game;
   final VoidCallback? onTap;
@@ -176,87 +181,50 @@ class _AnimatedGameCard extends StatefulWidget {
   State<_AnimatedGameCard> createState() => _AnimatedGameCardState();
 }
 
-class _AnimatedGameCardState extends State<_AnimatedGameCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _opacity;
-  late final Animation<Offset> _slide;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 450),
-    );
-    _opacity = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
-
-    Future.delayed(Duration(milliseconds: 80 * widget.index), () {
-      if (mounted) _ctrl.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
+class _AnimatedGameCardState extends State<_AnimatedGameCard> {
   @override
   Widget build(BuildContext context) {
     final game = widget.game;
     final isEnabled = widget.onTap != null;
+    final delay = _AnimatedGameCard.kStagger * widget.index;
 
-    return FadeTransition(
-      opacity: _opacity,
-      child: SlideTransition(
-        position: _slide,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 14),
-          child: GestureDetector(
-            onTap: isEnabled ? widget.onTap : () => _showComingSoon(context),
-            child: Opacity(
-              opacity: isEnabled ? 1.0 : 0.75,
-              child: Container(
-                height: 110,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [game.gradientStart, game.gradientEnd],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: game.shadowColor.withOpacity(
-                        isEnabled ? 0.30 : 0.15,
-                      ),
-                      blurRadius: 14,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: GestureDetector(
+        onTap: isEnabled ? widget.onTap : () => _showComingSoon(context),
+        child: Opacity(
+          opacity: isEnabled ? 1.0 : 0.75,
+          child: Container(
+            height: 110,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [game.gradientStart, game.gradientEnd],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: game.shadowColor.withOpacity(isEnabled ? 0.30 : 0.15),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
                 ),
-                child: Stack(
-                  children: [
-                    // Emoji decorativo de fondo
-                    Positioned(
-                      right: -8,
-                      bottom: -8,
-                      child: Text(
-                        game.emoji,
-                        style: TextStyle(
-                          fontSize: 70,
-                          color: Colors.white.withOpacity(0.15),
-                        ),
-                      ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Emoji decorativo de fondo
+                Positioned(
+                  right: -8,
+                  bottom: -8,
+                  child: Text(
+                    game.emoji,
+                    style: TextStyle(
+                      fontSize: 70,
+                      color: Colors.white.withOpacity(0.15),
                     ),
+                  ),
+                ),
 
                     // Contenido principal
                     Padding(
@@ -349,14 +317,20 @@ class _AnimatedGameCardState extends State<_AnimatedGameCard>
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
+              ],
             ),
           ),
         ),
       ),
-    );
+    )
+        // Mantiene la secuencia de entrada sin AnimationController manual.
+        .animate()
+        .fadeIn(delay: delay, duration: _AnimatedGameCard.kFadeDuration)
+        .slideY(
+          begin: 0.10,
+          delay: delay,
+          duration: _AnimatedGameCard.kSlideDuration,
+        );
   }
 
   void _showComingSoon(BuildContext context) {

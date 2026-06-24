@@ -1,6 +1,7 @@
 // lib/screens/home.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'plans/input.dart';
@@ -30,6 +31,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Ajustes reutilizables para mantener una entrada visual consistente.
+  static const Duration _kFadeDuration = Duration(milliseconds: 420);
+  static const Duration _kSlideDuration = Duration(milliseconds: 460);
+  static const Duration _kListStagger = Duration(milliseconds: 80);
+
   late Duration _together;
   late Stream<Duration> _counterStream;
 
@@ -200,7 +206,10 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _HeroHeader(imageUrl: _heroImageUrl),
-              _CounterStrip(stream: _counterStream, initial: _together),
+                _CounterStrip(stream: _counterStream, initial: _together)
+                  .animate()
+                  .fadeIn(duration: _kFadeDuration)
+                  .slideY(begin: 0.06, duration: _kSlideDuration),
 
               // ── Canción de la semana ──────────────────────────────────
               _SongOfTheWeekStrip(
@@ -208,7 +217,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 isLoading: _songLoading,
                 onTap: _launchSong,
                 onEdit: _mostrarEditorCancion,
-              ),
+              )
+                  .animate()
+                  .fadeIn(delay: 100.ms, duration: _kFadeDuration)
+                  .slideY(begin: 0.08, delay: 100.ms, duration: _kSlideDuration),
 
               const SizedBox(height: 12),
 
@@ -255,7 +267,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Text('🌸', style: TextStyle(fontSize: 28)),
                   ],
                 ),
-              ),
+                )
+                  .animate()
+                  .fadeIn(delay: 160.ms, duration: _kFadeDuration)
+                  .slideX(begin: -0.05, delay: 160.ms, duration: _kSlideDuration),
 
               const SizedBox(height: 20),
 
@@ -473,6 +488,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return _AnimatedCard(
       index: index,
+      fadeDuration: _kFadeDuration,
+      slideDuration: _kSlideDuration,
+      stagger: _kListStagger,
       child: GestureDetector(
         onTap: () => Navigator.of(context).push(createRoute(destination)),
         child: Container(
@@ -960,50 +978,32 @@ class _SongEditorSheetState extends State<_SongEditorSheet> {
 class _AnimatedCard extends StatefulWidget {
   final int index;
   final Widget child;
-  const _AnimatedCard({required this.index, required this.child});
+  final Duration fadeDuration;
+  final Duration slideDuration;
+  final Duration stagger;
+
+  const _AnimatedCard({
+    required this.index,
+    required this.child,
+    required this.fadeDuration,
+    required this.slideDuration,
+    required this.stagger,
+  });
 
   @override
   State<_AnimatedCard> createState() => _AnimatedCardState();
 }
 
-class _AnimatedCardState extends State<_AnimatedCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _opacity;
-  late final Animation<Offset> _slide;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 450),
-    );
-    _opacity = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
-    Future.delayed(Duration(milliseconds: 80 * widget.index), () {
-      if (mounted) _ctrl.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
+class _AnimatedCardState extends State<_AnimatedCard> {
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _opacity,
-      child: SlideTransition(position: _slide, child: widget.child),
-    );
+    final delay = widget.stagger * widget.index;
+
+    // La animación se deja parametrizable para ajustar ritmo por pantalla.
+    return widget.child
+        .animate()
+        .fadeIn(delay: delay, duration: widget.fadeDuration)
+        .slideY(begin: 0.10, delay: delay, duration: widget.slideDuration);
   }
 }
 

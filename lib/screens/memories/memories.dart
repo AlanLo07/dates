@@ -1,6 +1,7 @@
 // lib/screens/memories/memories.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../utils/animations.dart';
 import '../../utils/colors.dart';
 import '../../models/cita.dart';
@@ -17,6 +18,11 @@ class ExperienceMenuScreen extends StatefulWidget {
 }
 
 class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
+  // Ritmo uniforme para las tarjetas de categorías.
+  static const Duration _kGridFade = Duration(milliseconds: 360);
+  static const Duration _kGridSlide = Duration(milliseconds: 430);
+  static const Duration _kGridStagger = Duration(milliseconds: 75);
+
   static const List<Map<String, dynamic>> _categorias = [
     {
       'nombre': 'Parques',
@@ -304,7 +310,14 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
               ],
             ),
           ),
-        );
+        )
+            .animate()
+            .fadeIn(delay: _kGridStagger * index, duration: _kGridFade)
+            .slideY(
+              begin: 0.10,
+              delay: _kGridStagger * index,
+              duration: _kGridSlide,
+            );
       },
     );
   }

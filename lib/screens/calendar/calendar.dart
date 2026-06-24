@@ -8,6 +8,7 @@
 // • Colores centralizados en AppColors.
 //
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../utils/colors.dart';
@@ -90,6 +91,10 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
+  // Duraciones centralizadas para ajustar el ritmo visual del calendario.
+  static const Duration _kEnterDuration = Duration(milliseconds: 420);
+  static const Duration _kSlideDuration = Duration(milliseconds: 460);
+
   DateTime _focusedDay = DateTime.now();
   bool _mostrarCartas = true;
   bool _mostrarCitas = true;
@@ -528,10 +533,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
               : Column(
                   children: [
                     const SizedBox(height: 12),
-                    _buildFilterBar(),
+                    _buildFilterBar()
+                        .animate()
+                        .fadeIn(duration: _kEnterDuration)
+                        .slideY(begin: -0.04, duration: _kSlideDuration),
                     const SizedBox(height: 8),
                     if (_eventos.isNotEmpty)
-                      ProximaCitaCounter(eventos: _eventos),
+                      ProximaCitaCounter(eventos: _eventos)
+                          .animate()
+                          .fadeIn(delay: 90.ms, duration: _kEnterDuration)
+                          .slideY(
+                            begin: 0.05,
+                            delay: 90.ms,
+                            duration: _kSlideDuration,
+                          ),
                     const SizedBox(height: 8),
                     Expanded(
                       child: TableCalendar(
@@ -681,7 +696,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         },
                         selectedDayPredicate: (day) =>
                             isSameDay(day, _focusedDay),
-                      ),
+                      )
+                          .animate()
+                          .fadeIn(delay: 140.ms, duration: _kEnterDuration)
+                          .slideY(
+                            begin: 0.08,
+                            delay: 140.ms,
+                            duration: _kSlideDuration,
+                          ),
                     ),
                   ],
                 ),
