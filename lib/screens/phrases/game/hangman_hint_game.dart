@@ -14,6 +14,9 @@ class HangmanHintGame extends Forge2DGame {
   bool _spawnedOnce = false;
 
   @override
+  Color backgroudColor() => const Color(0xFFF3ECFB);
+
+  @override
   Future<void> onLoad() async {
     await super.onLoad();
     add(_SoftBackground());
@@ -168,7 +171,7 @@ class _OrbBody extends BodyComponent {
   void render(Canvas canvas) {
     final radiusPx = 0.30;
 
-    final paint = Paint()..color = color.withOpacity(0.85);
+    final paint = Paint()..color = AppColors.violeta.withOpacity(0.85);
     final glow = Paint()..color = AppColors.letterBg.withOpacity(0.26);
 
     canvas.drawCircle(Offset.zero, radiusPx, paint);

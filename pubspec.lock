@@ -189,18 +189,18 @@ packages:
     dependency: "direct main"
     description:
       name: flame
-      sha256: d084557523a45ad446d2480a4fa5a1c75aade5f8eb54251418e0ed4ee73ff3b8
+      sha256: "89d65fdb10b8c4ac46c86b8d5541e560604bf55317c01f3f558d09c4a65953c1"
       url: "https://pub.dev"
     source: hosted
-    version: "1.35.1"
+    version: "1.20.0"
   flame_forge2d:
     dependency: "direct main"
     description:
       name: flame_forge2d
-      sha256: "4ed66a493146f7ec6bd8458527a6fdd7010e36142db3b66f55e7fce6e9186cb2"
+      sha256: "1ec1c5b4978b64d2d16ca90f86de469959991ef996970866c3f9de580b3dbe40"
       url: "https://pub.dev"
     source: hosted
-    version: "0.18.3+1"
+    version: "0.18.1"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -540,10 +540,10 @@ packages:
     dependency: transitive
     description:
       name: ordered_set
-      sha256: d6c1d053a533e84931a388cbf03f1ad21a0543bf06c7a281859d3ffacd8e15f2
+      sha256: fc861bb51fc863cd3e0718e21768af9586e0d5022b91a0fd4437636456cdb7d0
       url: "https://pub.dev"
     source: hosted
-    version: "8.0.0"
+    version: "6.1.1"
   path:
     dependency: "direct main"
     description:
@@ -910,7 +910,7 @@ packages:
     source: hosted
     version: "4.5.2"
   vector_math:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: vector_math
       sha256: d530bd74fea330e6e364cda7a85019c434070188383e1cd8d9777ee586914c5b

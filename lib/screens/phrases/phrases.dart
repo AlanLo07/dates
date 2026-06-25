@@ -212,17 +212,17 @@ class _PhrasesScreenState extends State<PhrasesScreen>
           ),
           const SizedBox(height: 12),
 
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SizedBox(
-              height: 120,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                // child: GameWidget(game: _hintGame),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
+          // Padding(
+          //   padding: const EdgeInsets.symmetric(horizontal: 16),
+          //   child: SizedBox(
+          //     height: 120,
+          //     child: ClipRRect(
+          //       borderRadius: BorderRadius.circular(18),
+          // child: GameWidget(game: _hintGame),
+          //     ),
+          //   ),
+          // ),
+          // const SizedBox(height: 12),
 
           // ── Tipo de frase (chip) ────────────────────────────────────────────
           _buildTypeChip(),
