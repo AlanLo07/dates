@@ -1,17 +1,18 @@
 import 'dart:math' as math;
 
-import 'package:flame/components.dart';
-import 'package:flame/events.dart';
-import 'package:flame_forge2d/flame_forge2d.dart';
-import 'package:flutter/material.dart';
+import 'package:flame/components.dart' hide Vector2;
+import 'package:flame/events.dart' hide Vector2;
+import 'package:flame/input.dart' hide Vector2;
+import 'package:flame_forge2d/flame_forge2d.dart' hide Vector2;
+import 'package:forge2d/forge2d.dart' show Vector2;
+import 'package:flutter/material.dart' hide Vector2;
+import 'package:vector_math/vector_math_64.dart' as v64;
+import 'package:vector_math/vector_math.dart' as v32;
+import '../../../utils/colors.dart';
 
 /// Mini escena Forge2D para dar vida al juego sin alterar su logica.
 class HangmanHintGame extends Forge2DGame with TapDetector {
-  HangmanHintGame()
-    : super(
-        gravity: Vector2(0, 7.5),
-        zoom: 20,
-      );
+  HangmanHintGame() : super(gravity: Vector2(0, 7.5), zoom: 20);
 
   final math.Random _random = math.Random();
   bool _boundsReady = false;
@@ -61,8 +62,8 @@ class HangmanHintGame extends Forge2DGame with TapDetector {
       return;
     }
 
-    final worldW = size.x / zoom;
-    final worldH = size.y / zoom;
+    final worldW = size.x / camera.viewfinder.zoom;
+    final worldH = size.y / camera.viewfinder.zoom;
 
     final position = Vector2(
       0.8 + _random.nextDouble() * (worldW - 1.6),
@@ -73,16 +74,14 @@ class HangmanHintGame extends Forge2DGame with TapDetector {
 
     // Impulso aleatorio para crear movimiento organico.
     final xImpulse = (_random.nextDouble() - 0.5) * 3.2;
-    world.children
-        .whereType<_OrbBody>()
-        .last
-        .body
-        .applyLinearImpulse(Vector2(xImpulse, -forceUp));
+    world.children.whereType<_OrbBody>().last.body.applyLinearImpulse(
+      Vector2(xImpulse, -forceUp),
+    );
   }
 
   void _createBounds() {
-    final worldW = size.x / zoom;
-    final worldH = size.y / zoom;
+    final worldW = size.x / camera.viewfinder.zoom;
+    final worldH = size.y / camera.viewfinder.zoom;
     addAll([
       _WallBody(Vector2(worldW / 2, worldH + 0.2), Vector2(worldW, 0.4)),
       _WallBody(Vector2(-0.2, worldH / 2), Vector2(0.4, worldH)),
@@ -99,12 +98,13 @@ const List<Color> _palette = [
   Color(0xFFF8BBD0),
 ];
 
-class _SoftBackground extends PositionComponent {
+class _SoftBackground extends PositionComponent
+    with HasGameReference<Forge2DGame> {
   _SoftBackground();
 
   @override
   void render(Canvas canvas) {
-    final rect = Rect.fromLTWH(0, 0, parent!.size.x, parent!.size.y);
+    final rect = Rect.fromLTWH(0, 0, game.size.x, game.size.y);
     final paint = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topLeft,
@@ -119,24 +119,25 @@ class _SoftBackground extends PositionComponent {
 }
 
 class _WallBody extends BodyComponent {
-  _WallBody(this.position, this.size);
+  _WallBody(this._position, this._size);
 
-  final Vector2 position;
-  final Vector2 size;
+  final Vector2 _position;
+  final Vector2 _size;
 
   @override
   Body createBody() {
-    final shape = PolygonShape()..setAsBoxXY(size.x / 2, size.y / 2);
+    final shape = PolygonShape()..setAsBoxXY(_size.x / 2, _size.y / 2);
     final fixtureDef = FixtureDef(shape);
-    final bodyDef = BodyDef(position: position, type: BodyType.static);
+    final bodyDef = BodyDef(position: _position, type: BodyType.static);
     return world.createBody(bodyDef)..createFixture(fixtureDef);
   }
 }
 
 class _OrbBody extends BodyComponent {
-  _OrbBody({required this.position, required this.color});
+  _OrbBody({required Vector2 position, required this.color})
+    : _position = position;
 
-  final Vector2 position;
+  final Vector2 _position;
   final Color color;
 
   @override
@@ -151,7 +152,7 @@ class _OrbBody extends BodyComponent {
     );
 
     final bodyDef = BodyDef(
-      position: position,
+      position: _position,
       type: BodyType.dynamic,
       angularDamping: 0.25,
       linearDamping: 0.05,
@@ -165,7 +166,7 @@ class _OrbBody extends BodyComponent {
     final radiusPx = 0.30;
 
     final paint = Paint()..color = color.withOpacity(0.85);
-    final glow = Paint()..color = Colors.white.withOpacity(0.26);
+    final glow = Paint()..color = AppColors.letterBg.withOpacity(0.26);
 
     canvas.drawCircle(Offset.zero, radiusPx, paint);
     canvas.drawCircle(const Offset(-0.08, -0.08), radiusPx * 0.33, glow);

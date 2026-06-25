@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/phrase.dart';
 import '../../services/phrases_service.dart';
 import "dart:math";
-import 'game/hangman_hint_game.dart';
+// import 'game/hangman_hint_game.dart';
 import 'widgets/friendly_action_button.dart';
 import 'widgets/owl_helper_widget.dart';
 
@@ -35,7 +35,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
   static const int _maxErrors = 6;
   bool _revealed = false; // Si mostramos la respuesta al perder
   final _random = new Random();
-  late final HangmanHintGame _hintGame;
+  // late final HangmanHintGame _hintGame;
 
   // ── Animaciones ─────────────────────────────────────────────────────────────
   late AnimationController _shakeController;
@@ -47,7 +47,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
   void initState() {
     super.initState();
     _type = widget.type;
-    _hintGame = HangmanHintGame();
+    // _hintGame = HangmanHintGame();
     _shakeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -104,9 +104,9 @@ class _PhrasesScreenState extends State<PhrasesScreen>
       if (!_normalizedText.contains(letter)) {
         _errors++;
         _shakeController.forward(from: 0);
-        _hintGame.registerWrongGuess();
+        // _hintGame.registerWrongGuess();
       } else {
-        _hintGame.registerCorrectGuess();
+        // _hintGame.registerCorrectGuess();
       }
     });
 
@@ -218,7 +218,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
               height: 120,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(18),
-                child: GameWidget(game: _hintGame),
+                // child: GameWidget(game: _hintGame),
               ),
             ),
           ),
@@ -633,7 +633,8 @@ class _PhrasesScreenState extends State<PhrasesScreen>
           duration: const Duration(milliseconds: 200),
           tween: Tween<double>(begin: 0.94, end: 1),
           curve: Curves.easeOutBack,
-          builder: (_, scale, child) => Transform.scale(scale: scale, child: child),
+          builder: (_, scale, child) =>
+              Transform.scale(scale: scale, child: child),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             width: 40,
