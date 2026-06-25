@@ -1,13 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:flame/components.dart';
-import 'package:flame/events.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/material.dart';
 import '../../../utils/colors.dart';
 
 /// Mini escena Forge2D para dar vida al juego sin alterar su logica.
-class HangmanHintGame extends Forge2DGame with TapDetector {
+class HangmanHintGame extends Forge2DGame {
   HangmanHintGame() : super(gravity: Vector2(0, 7.5), zoom: 20);
 
   final math.Random _random = math.Random();
@@ -46,11 +45,6 @@ class HangmanHintGame extends Forge2DGame with TapDetector {
 
   void registerWrongGuess() {
     _spawnOrb(color: const Color(0xFFE57373), forceUp: 22);
-  }
-
-  @override
-  void onTapDown(TapDownInfo info) {
-    _spawnOrb(color: _palette[_random.nextInt(_palette.length)], forceUp: 16);
   }
 
   void _spawnOrb({required Color color, double forceUp = 12}) {
