@@ -1,13 +1,9 @@
 import 'dart:math' as math;
 
-import 'package:flame/components.dart' hide Vector2;
-import 'package:flame/events.dart' hide Vector2;
-import 'package:flame/input.dart' hide Vector2;
-import 'package:flame_forge2d/flame_forge2d.dart' hide Vector2;
-import 'package:forge2d/forge2d.dart' show Vector2;
-import 'package:flutter/material.dart' hide Vector2;
-import 'package:vector_math/vector_math_64.dart' as v64;
-import 'package:vector_math/vector_math.dart' as v32;
+import 'package:flame/components.dart';
+import 'package:flame/events.dart';
+import 'package:flame_forge2d/flame_forge2d.dart';
+import 'package:flutter/material.dart';
 import '../../../utils/colors.dart';
 
 /// Mini escena Forge2D para dar vida al juego sin alterar su logica.
