@@ -1,9 +1,13 @@
 // lib/screens/hangman_screen.dart
+import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/phrase.dart';
 import '../../services/phrases_service.dart';
 import "dart:math";
+import 'game/hangman_hint_game.dart';
+import 'widgets/friendly_action_button.dart';
+import 'widgets/owl_helper_widget.dart';
 
 // ── Paleta ────────────────────────────────────────────────────────────────────
 const Color _violeta = Color(0xFF796B9B);
@@ -31,6 +35,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
   static const int _maxErrors = 6;
   bool _revealed = false; // Si mostramos la respuesta al perder
   final _random = new Random();
+  late final HangmanHintGame _hintGame;
 
   // ── Animaciones ─────────────────────────────────────────────────────────────
   late AnimationController _shakeController;
@@ -42,6 +47,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
   void initState() {
     super.initState();
     _type = widget.type;
+    _hintGame = HangmanHintGame();
     _shakeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -98,6 +104,9 @@ class _PhrasesScreenState extends State<PhrasesScreen>
       if (!_normalizedText.contains(letter)) {
         _errors++;
         _shakeController.forward(from: 0);
+        _hintGame.registerWrongGuess();
+      } else {
+        _hintGame.registerCorrectGuess();
       }
     });
 
@@ -193,6 +202,28 @@ class _PhrasesScreenState extends State<PhrasesScreen>
         children: [
           const SizedBox(height: 16),
 
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: OwlHelperWidget(
+              message: _helperMessage,
+              celebrate: _hasWon,
+              warning: _hasLost,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              height: 120,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: GameWidget(game: _hintGame),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
           // ── Tipo de frase (chip) ────────────────────────────────────────────
           _buildTypeChip(),
           const SizedBox(height: 16),
@@ -221,21 +252,11 @@ class _PhrasesScreenState extends State<PhrasesScreen>
           if (_isGameOver)
             Padding(
               padding: const EdgeInsets.only(top: 20, bottom: 30),
-              child: ElevatedButton.icon(
+              child: FriendlyActionButton(
                 onPressed: _loadPhrase,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Jugar de nuevo'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _violeta,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
+                icon: Icons.refresh,
+                label: 'Jugar de nuevo',
+                backgroundColor: _violeta,
               ),
             ),
 
@@ -589,25 +610,11 @@ class _PhrasesScreenState extends State<PhrasesScreen>
       icon = Icons.open_in_new;
     }
 
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: _launchLink,
-        icon: Icon(icon, size: 20),
-        label: Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: bgColor,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-          elevation: 2,
-        ),
-      ),
+    return FriendlyActionButton(
+      onPressed: _launchLink,
+      icon: icon,
+      label: label,
+      backgroundColor: bgColor,
     );
   }
 
@@ -622,47 +629,53 @@ class _PhrasesScreenState extends State<PhrasesScreen>
         final isCorrect = isGuessed && _phraseLetters.contains(letter);
         final isWrong = isGuessed && !_phraseLetters.contains(letter);
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          width: 40,
-          height: 44,
-          decoration: BoxDecoration(
-            color: isCorrect
-                ? _verde.withOpacity(0.3)
-                : isWrong
-                ? Colors.grey.shade200
-                : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
+        return TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 200),
+          tween: Tween<double>(begin: 0.94, end: 1),
+          curve: Curves.easeOutBack,
+          builder: (_, scale, child) => Transform.scale(scale: scale, child: child),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            width: 40,
+            height: 44,
+            decoration: BoxDecoration(
               color: isCorrect
-                  ? _verde
+                  ? _verde.withOpacity(0.3)
                   : isWrong
-                  ? Colors.grey.shade300
-                  : _malva,
-              width: 1.5,
-            ),
-            boxShadow: isGuessed
-                ? []
-                : [
-                    BoxShadow(
-                      color: _violeta.withOpacity(0.08),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
+                  ? Colors.grey.shade200
+                  : Colors.white,
               borderRadius: BorderRadius.circular(10),
-              onTap: isGuessed ? null : () => _guess(letter),
-              child: Center(
-                child: Text(
-                  letter,
-                  style: TextStyle(
-                    color: isWrong ? Colors.grey.shade400 : _violeta,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+              border: Border.all(
+                color: isCorrect
+                    ? _verde
+                    : isWrong
+                    ? Colors.grey.shade300
+                    : _malva,
+                width: 1.5,
+              ),
+              boxShadow: isGuessed
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: _violeta.withOpacity(0.08),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: isGuessed ? null : () => _guess(letter),
+                child: Center(
+                  child: Text(
+                    letter,
+                    style: TextStyle(
+                      color: isWrong ? Colors.grey.shade400 : _violeta,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
@@ -671,6 +684,19 @@ class _PhrasesScreenState extends State<PhrasesScreen>
         );
       }).toList(),
     );
+  }
+
+  String get _helperMessage {
+    if (_hasWon) {
+      return 'Excelente. Descubriste la frase. ¿Quieres otra ronda?';
+    }
+    if (_hasLost) {
+      return 'No pasa nada. Mira pistas y vuelve a intentarlo.';
+    }
+    if (_errors >= 4) {
+      return 'Pista: piensa en el titulo y revisa vocales primero.';
+    }
+    return 'Soy Lumi, tu guia. Empieza con vocales para avanzar rapido.';
   }
 }
 
