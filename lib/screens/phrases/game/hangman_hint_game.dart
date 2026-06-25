@@ -60,12 +60,13 @@ class HangmanHintGame extends Forge2DGame {
       worldH * 0.1,
     );
 
-    add(_OrbBody(position: position, color: color));
-
-    // Impulso aleatorio para crear movimiento organico.
     final xImpulse = (_random.nextDouble() - 0.5) * 3.2;
-    world.children.whereType<_OrbBody>().last.body.applyLinearImpulse(
-      Vector2(xImpulse, -forceUp),
+    add(
+      _OrbBody(
+        position: position,
+        color: color,
+        initialImpulse: Vector2(xImpulse, -forceUp),
+      ),
     );
   }
 
@@ -124,11 +125,23 @@ class _WallBody extends BodyComponent {
 }
 
 class _OrbBody extends BodyComponent {
-  _OrbBody({required Vector2 position, required this.color})
-    : _position = position;
+  _OrbBody({
+    required Vector2 position,
+    required this.color,
+    required Vector2 initialImpulse,
+  }) : _position = position,
+       _initialImpulse = initialImpulse;
 
   final Vector2 _position;
+  final Vector2 _initialImpulse;
   final Color color;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    // El body ya existe en este punto, evitando errores por lista vacia.
+    body.applyLinearImpulse(_initialImpulse);
+  }
 
   @override
   Body createBody() {
