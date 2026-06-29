@@ -1,8 +1,10 @@
-// lib/screens/games/kama_screen.dart
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../data/kama.dart';
+import '../../services/kama_service.dart';
 import '../../utils/colors.dart';
 
 class KamaScreen extends StatefulWidget {
@@ -14,12 +16,15 @@ class KamaScreen extends StatefulWidget {
 
 class _KamaScreenState extends State<KamaScreen>
     with SingleTickerProviderStateMixin {
-  KamaLevel? _filterLevel; // null = todos
-  late List<KamaPosition> _pool;
-  late KamaPosition _current;
-  bool _showDetails = false;
+  KamaLevel? _filterLevel;
+  List<KamaPosition> _allPositions = [];
+  List<KamaPosition> _pool = [];
+  KamaPosition? _current;
 
-  // Animación de flip al cambiar de tarjeta
+  bool _showDetails = false;
+  bool _isLoading = true;
+  String? _error;
+
   late AnimationController _flipCtrl;
   late Animation<double> _flipAnim;
 
@@ -30,11 +35,10 @@ class _KamaScreenState extends State<KamaScreen>
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
-    _flipAnim = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _flipCtrl, curve: Curves.easeInOut));
-    _rebuildPool();
+    _flipAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _flipCtrl, curve: Curves.easeInOut),
+    );
+    _loadPositions();
   }
 
   @override
@@ -43,25 +47,55 @@ class _KamaScreenState extends State<KamaScreen>
     super.dispose();
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  Future<void> _loadPositions({bool forceRefresh = false}) async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
-  void _rebuildPool({KamaLevel? level}) {
-    _filterLevel = level;
-    _pool = level == null
-        ? List.from(kKamaPositions)
-        : kKamaPositions.where((p) => p.level == level).toList();
-    _pool.shuffle(Random());
-    _current = _pool.first;
+    try {
+      final positions = await KamaService().getPositions(
+        forceRefresh: forceRefresh,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _allPositions = positions;
+        _rebuildPool(level: _filterLevel, keepLevel: true);
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'No pudimos cargar las posiciones. Intenta de nuevo.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _rebuildPool({KamaLevel? level, bool keepLevel = false}) {
+    if (!keepLevel) _filterLevel = level;
+
+    final source = _allPositions;
+    final filtered = _filterLevel == null
+        ? List<KamaPosition>.from(source)
+        : source.where((p) => p.level == _filterLevel).toList();
+
+    filtered.shuffle(Random());
+    _pool = filtered;
+    _current = _pool.isEmpty ? null : _pool.first;
     _showDetails = false;
   }
 
   Future<void> _nextCard() async {
+    if (_current == null || _pool.isEmpty) return;
+
     await _flipCtrl.forward();
     setState(() {
       _pool.remove(_current);
       if (_pool.isEmpty) {
-        // Recarga la misma lista al terminar el mazo
-        _rebuildPool(level: _filterLevel);
+        _rebuildPool(level: _filterLevel, keepLevel: true);
       } else {
         _current = _pool.first;
         _showDetails = false;
@@ -81,16 +115,14 @@ class _KamaScreenState extends State<KamaScreen>
     }
   }
 
-  // ── Colores por nivel ──────────────────────────────────────────────────────
-
   Color _levelBg(KamaLevel l) {
     switch (l) {
       case KamaLevel.facil:
-        return const Color(0xFFE1F5EE); // teal
+        return const Color(0xFFE1F5EE);
       case KamaLevel.medio:
-        return const Color(0xFFFAEEDA); // amber
+        return const Color(0xFFFAEEDA);
       case KamaLevel.avanzado:
-        return const Color(0xFFFAECE7); // coral
+        return const Color(0xFFFAECE7);
     }
   }
 
@@ -116,8 +148,6 @@ class _KamaScreenState extends State<KamaScreen>
     }
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,66 +164,89 @@ class _KamaScreenState extends State<KamaScreen>
         iconTheme: const IconThemeData(color: AppColors.violeta),
         elevation: 1,
         actions: [
-          // Contador de tarjetas restantes
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Text(
-                '${_pool.length} restantes',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.violeta.withOpacity(0.6),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.violeta),
+            tooltip: 'Recargar',
+            onPressed: () => _loadPositions(forceRefresh: true),
+          ),
+          if (!_isLoading && _error == null)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Center(
+                child: Text(
+                  '${_pool.length} restantes',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.violeta.withValues(alpha: 0.6),
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildFilterBar(),
-          Expanded(
-            child: AnimatedBuilder(
-              animation: _flipAnim,
-              builder: (ctx, child) {
-                // Efecto de volteo: cuando pasa de 0.5 ocultamos el frente
-                final angle = _flipAnim.value * pi;
-                final isBack = angle > pi / 2;
-                return Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001)
-                    ..rotateY(angle),
-                  child: isBack ? const SizedBox.shrink() : child,
-                );
-              },
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                child: _buildCard(),
-              ),
-            ),
-          ),
-        ],
-      ),
+      body: _buildBody(),
     );
   }
 
-  // ── Barra de filtro ────────────────────────────────────────────────────────
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.violeta),
+      );
+    }
+
+    if (_error != null) {
+      return _ErrorView(message: _error!, onRetry: () => _loadPositions());
+    }
+
+    if (_current == null) {
+      return _EmptyView(onRetry: () => _loadPositions(forceRefresh: true));
+    }
+
+    return Column(
+      children: [
+        _buildFilterBar(),
+        Expanded(
+          child: AnimatedBuilder(
+            animation: _flipAnim,
+            builder: (ctx, child) {
+              final angle = _flipAnim.value * pi;
+              final isBack = angle > pi / 2;
+              return Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.001)
+                  ..rotateY(angle),
+                child: isBack ? const SizedBox.shrink() : child,
+              );
+            },
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              child: _buildCard(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildFilterBar() {
     return Container(
       color: AppColors.surface,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          _buildFilterChip(label: 'Todos', level: null),
-          const SizedBox(width: 8),
-          _buildFilterChip(label: '🟢 Fácil', level: KamaLevel.facil),
-          const SizedBox(width: 8),
-          _buildFilterChip(label: '🟠 Medio', level: KamaLevel.medio),
-          const SizedBox(width: 8),
-          _buildFilterChip(label: '🔴 Difícil', level: KamaLevel.avanzado),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildFilterChip(label: 'Todos', level: null),
+            const SizedBox(width: 8),
+            _buildFilterChip(label: '🟢 Fácil', level: KamaLevel.facil),
+            const SizedBox(width: 8),
+            _buildFilterChip(label: '🟠 Medio', level: KamaLevel.medio),
+            const SizedBox(width: 8),
+            _buildFilterChip(label: '🔴 Difícil', level: KamaLevel.avanzado),
+          ],
+        ),
       ),
     );
   }
@@ -203,14 +256,17 @@ class _KamaScreenState extends State<KamaScreen>
     return GestureDetector(
       onTap: () {
         if (_filterLevel == level) return;
-        setState(() => _rebuildPool(level: level));
+        setState(() {
+          _filterLevel = level;
+          _rebuildPool(level: level);
+        });
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.violeta.withOpacity(0.12)
+              ? AppColors.violeta.withValues(alpha: 0.12)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
@@ -230,10 +286,8 @@ class _KamaScreenState extends State<KamaScreen>
     );
   }
 
-  // ── Tarjeta principal ──────────────────────────────────────────────────────
-
   Widget _buildCard() {
-    final pos = _current;
+    final pos = _current!;
     final bg = _levelBg(pos.level);
     final textColor = _levelText(pos.level);
     final fireColor = _levelFire(pos.level);
@@ -241,14 +295,13 @@ class _KamaScreenState extends State<KamaScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Tarjeta ──────────────────────────────────────────────────────────
         Container(
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: AppColors.violeta.withOpacity(0.10),
+                color: AppColors.violeta.withValues(alpha: 0.10),
                 blurRadius: 20,
                 offset: const Offset(0, 6),
               ),
@@ -257,7 +310,6 @@ class _KamaScreenState extends State<KamaScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Cabecera de color
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -281,7 +333,6 @@ class _KamaScreenState extends State<KamaScreen>
                       ),
                     ),
                     const SizedBox(height: 10),
-                    // Indicador de dificultad con fueguitos
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -291,7 +342,7 @@ class _KamaScreenState extends State<KamaScreen>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.surface.withOpacity(0.6),
+                            color: AppColors.surface.withValues(alpha: 0.6),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
@@ -326,8 +377,6 @@ class _KamaScreenState extends State<KamaScreen>
                   ],
                 ),
               ),
-
-              // Descripción corta
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 4),
                 child: Text(
@@ -340,13 +389,8 @@ class _KamaScreenState extends State<KamaScreen>
                   ),
                 ),
               ),
-
-              // Botón "Ver cómo hacerlo"
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: TextButton(
                   onPressed: () => setState(() => _showDetails = !_showDetails),
                   style: TextButton.styleFrom(
@@ -374,8 +418,6 @@ class _KamaScreenState extends State<KamaScreen>
                   ),
                 ),
               ),
-
-              // ── Detalles expandibles ──────────────────────────────────────
               AnimatedCrossFade(
                 firstChild: const SizedBox.shrink(),
                 secondChild: _buildDetails(pos),
@@ -384,15 +426,11 @@ class _KamaScreenState extends State<KamaScreen>
                     : CrossFadeState.showFirst,
                 duration: const Duration(milliseconds: 300),
               ),
-
               const SizedBox(height: 4),
             ],
           ),
         ),
-
         const SizedBox(height: 16),
-
-        // ── Botón siguiente ───────────────────────────────────────────────
         ElevatedButton.icon(
           onPressed: _nextCard,
           icon: const Icon(Icons.shuffle_rounded),
@@ -401,10 +439,7 @@ class _KamaScreenState extends State<KamaScreen>
             backgroundColor: AppColors.violeta,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 15),
-            textStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -414,8 +449,6 @@ class _KamaScreenState extends State<KamaScreen>
     );
   }
 
-  // ── Sección de detalles ────────────────────────────────────────────────────
-
   Widget _buildDetails(KamaPosition pos) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -424,17 +457,12 @@ class _KamaScreenState extends State<KamaScreen>
         children: [
           const Divider(),
           const SizedBox(height: 12),
-
-          // Descripción explícita
           _buildDetailSection(
             icon: Icons.info_outline,
             title: 'Cómo hacerlo',
             content: pos.fullDesc,
           ),
-
           const SizedBox(height: 14),
-
-          // Consejo
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -473,12 +501,9 @@ class _KamaScreenState extends State<KamaScreen>
               ],
             ),
           ),
-
           const SizedBox(height: 16),
-
-          // Botón de referencia visual
           OutlinedButton.icon(
-            onPressed: () => _launchLink(pos.link),
+            onPressed: pos.link.isEmpty ? null : () => _launchLink(pos.link),
             icon: const Icon(Icons.open_in_new, size: 18),
             label: const Text('Ver referencia visual'),
             style: OutlinedButton.styleFrom(
@@ -527,6 +552,81 @@ class _KamaScreenState extends State<KamaScreen>
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ErrorView({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cloud_off_rounded, size: 56, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.violeta),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.violeta,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyView extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _EmptyView({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('🫶', style: TextStyle(fontSize: 44)),
+            const SizedBox(height: 12),
+            const Text(
+              'No hay posiciones disponibles por ahora.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.violeta, fontSize: 15),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Actualizar'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.violeta,
+                side: const BorderSide(color: AppColors.violeta),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
