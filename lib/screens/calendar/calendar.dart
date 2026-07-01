@@ -486,6 +486,31 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+  void _mostrarFormularioNuevoRecuerdo() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CrearRecuerdoSheet(
+        fechaInicial: DateTime.now(),
+        service: _service,
+        formatearFecha: _toApiDateKey,
+        onCreado: (recuerdo) {
+          setState(() {
+            _recuerdos = [..._recuerdos, recuerdo];
+            _focusedDay = DateTime.now();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ Recuerdo "${recuerdo.title}" creado'),
+              backgroundColor: AppColors.violeta,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   // ── Build ──────────────────────────────────────────────────────────────────
 
   DateTime _date(int year, int month, int day) =>
@@ -704,6 +729,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             delay: 140.ms,
                             duration: _kSlideDuration,
                           ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _mostrarFormularioNuevoRecuerdo,
+                          icon: const Icon(Icons.movie_creation_outlined),
+                          label: const Text('Crear recuerdo'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.violeta,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -1773,6 +1821,409 @@ class _CitaSelectorSheet extends StatelessWidget {
           const SizedBox(height: 16),
         ],
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bottom Sheet: crear recuerdo
+// ─────────────────────────────────────────────────────────────────────────────
+class _CrearRecuerdoSheet extends StatefulWidget {
+  final DateTime fechaInicial;
+  final EventService service;
+  final String Function(DateTime) formatearFecha;
+  final void Function(Recuerdo) onCreado;
+
+  const _CrearRecuerdoSheet({
+    required this.fechaInicial,
+    required this.service,
+    required this.formatearFecha,
+    required this.onCreado,
+  });
+
+  @override
+  State<_CrearRecuerdoSheet> createState() => _CrearRecuerdoSheetState();
+}
+
+class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
+  final _tituloController = TextEditingController();
+  final _descripcionController = TextEditingController();
+  final UploadService _uploadService = UploadService();
+
+  late DateTime _fechaSeleccionada;
+  bool _isLoading = false;
+  bool _isUploadingImage = false;
+  String? _imageUrl;
+  String? _imageError;
+
+  @override
+  void initState() {
+    super.initState();
+    _fechaSeleccionada = widget.fechaInicial;
+  }
+
+  @override
+  void dispose() {
+    _tituloController.dispose();
+    _descripcionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _seleccionarFecha() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _fechaSeleccionada,
+      firstDate: DateTime.now().subtract(const Duration(days: 365 * 5)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.violeta,
+            onPrimary: Colors.white,
+            onSurface: AppColors.violeta,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+
+    if (picked != null) {
+      setState(() => _fechaSeleccionada = picked);
+    }
+  }
+
+  Future<void> _seleccionarImagenRecuerdo() async {
+    setState(() {
+      _isUploadingImage = true;
+      _imageError = null;
+    });
+
+    try {
+      final publicUrl = await _uploadService.pickAndUpload();
+      if (!mounted) return;
+      setState(() {
+        _imageUrl = publicUrl;
+        _isUploadingImage = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _imageError = e.toString();
+        _isUploadingImage = false;
+      });
+    }
+  }
+
+  void _quitarImagenRecuerdo() {
+    setState(() {
+      _imageUrl = null;
+      _imageError = null;
+    });
+  }
+
+  Future<void> _crearRecuerdo() async {
+    final titulo = _tituloController.text.trim();
+    final descripcion = _descripcionController.text.trim();
+
+    if (titulo.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('El título es obligatorio')),
+      );
+      return;
+    }
+
+    if (_isUploadingImage) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Espera a que termine de subir la imagen')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final nuevoRecuerdo = await widget.service.createRecuerdo(
+        Recuerdo(
+          id: '',
+          title: titulo,
+          description: descripcion,
+          date: widget.formatearFecha(_fechaSeleccionada),
+          imagePath: _imageUrl ?? '',
+        ),
+      );
+
+      if (!mounted) return;
+      widget.onCreado(nuevoRecuerdo);
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al crear recuerdo: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Row(
+              children: [
+                Icon(
+                  Icons.movie_creation_outlined,
+                  color: AppColors.violeta,
+                  size: 26,
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Crear recuerdo',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.violeta,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(
+              controller: _tituloController,
+              label: 'Título *',
+              hint: 'Ej: Nuestro primer viaje juntos',
+            ),
+            const SizedBox(height: 12),
+            _buildTextField(
+              controller: _descripcionController,
+              label: 'Descripción (opcional)',
+              hint: 'Cuenta qué pasó en este momento especial',
+              maxLines: 3,
+            ),
+            const SizedBox(height: 14),
+            _buildDatePicker(),
+            const SizedBox(height: 14),
+            _buildImagePicker(),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _isLoading ? null : _crearRecuerdo,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.check_circle_outline),
+              label: Text(_isLoading ? 'Guardando...' : 'Guardar recuerdo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.violeta,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      textCapitalization: TextCapitalization.sentences,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.violeta, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatePicker() {
+    return GestureDetector(
+      onTap: _seleccionarFecha,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.violeta, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          color: const Color(0xFFEDE9F5),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.calendar_today,
+              color: AppColors.violeta,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              widget.formatearFecha(_fechaSeleccionada),
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.violeta,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.edit_calendar_outlined,
+              color: AppColors.violeta,
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImagePicker() {
+    final hasImage = _imageUrl != null;
+    final borderColor = _imageError != null
+        ? Colors.redAccent.shade100
+        : hasImage
+            ? AppColors.violeta
+            : Colors.grey.shade300;
+    final bgColor = _imageError != null
+        ? Colors.red.shade50
+        : hasImage
+            ? const Color(0xFFEDE9F5)
+            : Colors.grey.shade50;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Imagen (opcional)',
+          style: TextStyle(
+            color: AppColors.violeta,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            border: Border.all(color: borderColor, width: 1.5),
+            borderRadius: BorderRadius.circular(12),
+            color: bgColor,
+          ),
+          child: Row(
+            children: [
+              if (_isUploadingImage)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.violeta,
+                  ),
+                )
+              else
+                Icon(
+                  hasImage
+                      ? Icons.image_outlined
+                      : Icons.add_photo_alternate_outlined,
+                  color: hasImage ? AppColors.violeta : Colors.grey,
+                  size: 20,
+                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _isUploadingImage
+                      ? 'Subiendo...'
+                      : _imageError != null
+                          ? 'Error al subir'
+                          : hasImage
+                              ? 'Imagen cargada'
+                              : 'Agregar imagen',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: _imageError != null
+                        ? Colors.redAccent
+                        : hasImage
+                            ? AppColors.violeta
+                            : Colors.grey,
+                    fontWeight: hasImage ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (hasImage && !_isUploadingImage)
+                IconButton(
+                  tooltip: 'Quitar',
+                  onPressed: _quitarImagenRecuerdo,
+                  icon: const Icon(Icons.close, size: 18),
+                  color: Colors.grey,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
+                  padding: EdgeInsets.zero,
+                )
+              else
+                TextButton(
+                  onPressed: _isUploadingImage ? null : _seleccionarImagenRecuerdo,
+                  child: Text(_imageError != null ? 'Reintentar' : 'Elegir'),
+                ),
+            ],
+          ),
+        ),
+        if (_imageError != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            _imageError!,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+          ),
+        ],
+      ],
     );
   }
 }
