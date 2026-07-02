@@ -12,8 +12,7 @@ class DiceScreen extends StatefulWidget {
   State<DiceScreen> createState() => _DiceScreenState();
 }
 
-class _DiceScreenState extends State<DiceScreen>
-    with TickerProviderStateMixin {
+class _DiceScreenState extends State<DiceScreen> with TickerProviderStateMixin {
   final _random = Random();
   DesireLevel? _filterLevel; // null = todos los niveles
 
@@ -33,12 +32,13 @@ class _DiceScreenState extends State<DiceScreen>
     _zona = _pick(kZonas);
     _modificador = _pick(kModificadores);
 
-    _rollController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..addListener(() {
-        setState(() => _rollTick++);
-      });
+    _rollController =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 900),
+        )..addListener(() {
+          setState(() => _rollTick++);
+        });
   }
 
   @override
@@ -87,7 +87,10 @@ class _DiceScreenState extends State<DiceScreen>
       appBar: AppBar(
         title: const Text(
           '🎲 Dado del Deseo',
-          style: TextStyle(color: AppColors.violeta, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: AppColors.violeta,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: AppColors.surface,
         iconTheme: const IconThemeData(color: AppColors.violeta),
@@ -109,7 +112,10 @@ class _DiceScreenState extends State<DiceScreen>
                 decoration: BoxDecoration(
                   color: level.bg,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: level.color.withOpacity(0.5), width: 1.5),
+                  border: Border.all(
+                    color: level.color.withOpacity(0.5),
+                    width: 1.5,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: level.color.withOpacity(0.25),
@@ -147,8 +153,10 @@ class _DiceScreenState extends State<DiceScreen>
                         ),
                         children: [
                           TextSpan(text: '${_displayAccion()} '),
-                          TextSpan(text: '${_displayZona()} ',
-                              style: TextStyle(color: level.color)),
+                          TextSpan(
+                            text: '${_displayZona()} ',
+                            style: TextStyle(color: level.color),
+                          ),
                           TextSpan(text: _displayModificador()),
                         ],
                       ),
@@ -172,7 +180,8 @@ class _DiceScreenState extends State<DiceScreen>
                       locked: _locked[0],
                       rollTick: _rollTick,
                       isRolling: _rollController.isAnimating,
-                      onLockToggle: () => setState(() => _locked[0] = !_locked[0]),
+                      onLockToggle: () =>
+                          setState(() => _locked[0] = !_locked[0]),
                       randomPreview: () => _pick(kAcciones).text,
                     ),
                   ),
@@ -186,7 +195,8 @@ class _DiceScreenState extends State<DiceScreen>
                       locked: _locked[1],
                       rollTick: _rollTick,
                       isRolling: _rollController.isAnimating,
-                      onLockToggle: () => setState(() => _locked[1] = !_locked[1]),
+                      onLockToggle: () =>
+                          setState(() => _locked[1] = !_locked[1]),
                       randomPreview: () => _pick(kZonas).text,
                     ),
                   ),
@@ -200,7 +210,8 @@ class _DiceScreenState extends State<DiceScreen>
                       locked: _locked[2],
                       rollTick: _rollTick,
                       isRolling: _rollController.isAnimating,
-                      onLockToggle: () => setState(() => _locked[2] = !_locked[2]),
+                      onLockToggle: () =>
+                          setState(() => _locked[2] = !_locked[2]),
                       randomPreview: () => _pick(kModificadores).text,
                     ),
                   ),
@@ -297,7 +308,10 @@ class _DiceScreenState extends State<DiceScreen>
         decoration: BoxDecoration(
           color: isSelected ? color.withOpacity(0.15) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? color : Colors.grey.shade300, width: 1.5),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.shade300,
+            width: 1.5,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -367,53 +381,59 @@ class _DiceTile extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(emoji, style: const TextStyle(fontSize: 16)),
-              GestureDetector(
-                onTap: onLockToggle,
-                child: Icon(
-                  locked ? Icons.lock_rounded : Icons.lock_open_rounded,
-                  size: 16,
-                  color: locked ? color : Colors.grey.shade400,
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 16)),
+                GestureDetector(
+                  onTap: onLockToggle,
+                  child: Icon(
+                    locked ? Icons.lock_rounded : Icons.lock_open_rounded,
+                    size: 16,
+                    color: locked ? color : Colors.grey.shade400,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade400,
-              letterSpacing: 0.6,
+              ],
             ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: Center(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 80),
-                child: Text(
-                  displayText,
-                  key: ValueKey('$displayText$rollTick'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: locked ? color : AppColors.violeta,
-                    height: 1.3,
+            const SizedBox(height: 4),
+            Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade400,
+                letterSpacing: 0.6,
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 70,
+              child: Center(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 80),
+                  child: Text(
+                    displayText,
+                    key: ValueKey('$displayText$rollTick'),
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: locked ? color : AppColors.violeta,
+                      height: 1.3,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
