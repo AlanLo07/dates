@@ -5,6 +5,9 @@ import '../../utils/animations.dart';
 import '../../utils/colors.dart';
 import 'kama_screen.dart';
 
+import 'dice_screen.dart';
+import 'wheel_screen.dart';
+
 class GamesMenuScreen extends StatelessWidget {
   const GamesMenuScreen({super.key});
 
@@ -16,7 +19,7 @@ class GamesMenuScreen extends StatelessWidget {
       gradientStart: Color(0xFFF48FB1),
       gradientEnd: Color(0xFFCE6D8B),
       shadowColor: Color(0xFFCE6D8B),
-      comingSoon: true,
+      comingSoon: false,
     ),
     _GameItem(
       emoji: '🎡',
@@ -25,7 +28,7 @@ class GamesMenuScreen extends StatelessWidget {
       gradientStart: Color(0xFFB0B6E8),
       gradientEnd: Color(0xFF796B9B),
       shadowColor: Color(0xFF796B9B),
-      comingSoon: true,
+      comingSoon: false,
     ),
     _GameItem(
       emoji: '🃏',
@@ -131,6 +134,12 @@ class GamesMenuScreen extends StatelessWidget {
     switch (game.title) {
       case 'Kamasutra':
         destination = const KamaScreen();
+        break;
+      case 'Dado del deseo':
+        destination = const DiceScreen();
+        break;
+      case 'Ruleta de retos':
+        destination = const WheelScreen();
         break;
       // Los otros se agregarán cuando estén listos
       default:
