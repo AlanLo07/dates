@@ -195,3 +195,132 @@ class CancionBoda {
     'link': link,
   };
 }
+
+// ── Proveedor / Opción (Flores, Hospedaje, etc.) ────────────────────────────
+enum EstadoProveedor { pendiente, confirmado, pagado }
+
+extension EstadoProveedorX on EstadoProveedor {
+  String get label {
+    switch (this) {
+      case EstadoProveedor.pendiente:
+        return 'Pendiente';
+      case EstadoProveedor.confirmado:
+        return 'Confirmado';
+      case EstadoProveedor.pagado:
+        return 'Pagado';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case EstadoProveedor.pendiente:
+        return const Color(0xFFFB8C00);
+      case EstadoProveedor.confirmado:
+        return const Color(0xFF1E88E5);
+      case EstadoProveedor.pagado:
+        return const Color(0xFF2E7D32);
+    }
+  }
+
+  static EstadoProveedor fromString(String v) {
+    switch (v) {
+      case 'confirmado':
+        return EstadoProveedor.confirmado;
+      case 'pagado':
+        return EstadoProveedor.pagado;
+      default:
+        return EstadoProveedor.pendiente;
+    }
+  }
+}
+
+class ProveedorBoda {
+  final String id;
+  String nombre;
+  String categoria;
+  String contacto;
+  String link;
+  double costo;
+  EstadoProveedor estado;
+  String notas;
+
+  ProveedorBoda({
+    required this.id,
+    required this.nombre,
+    required this.categoria,
+    this.contacto = '',
+    this.link = '',
+    this.costo = 0,
+    this.estado = EstadoProveedor.pendiente,
+    this.notas = '',
+  });
+
+  factory ProveedorBoda.fromJson(Map<String, dynamic> json) => ProveedorBoda(
+    id: json['id'] ?? '',
+    nombre: json['nombre'] ?? '',
+    categoria: json['categoria'] ?? '',
+    contacto: json['contacto'] ?? '',
+    link: json['link'] ?? '',
+    costo: (json['costo'] ?? 0).toDouble(),
+    estado: EstadoProveedorX.fromString(json['estado'] ?? 'pendiente'),
+    notas: json['notas'] ?? '',
+  );
+
+  Map<String, dynamic> toJson() => {
+    'type': 'proveedor_boda',
+    'id': id,
+    'nombre': nombre,
+    'categoria': categoria,
+    'contacto': contacto,
+    'link': link,
+    'costo': costo,
+    'estado': estado.name,
+    'notas': notas,
+  };
+}
+
+// ── Look (vestuario) ────────────────────────────────────────────────────────
+class LookBoda {
+  final String id;
+  String persona; // 'Ella' | 'Él'
+  String prenda;  // 'Vestido', 'Traje', 'Zapatos', 'Accesorios'...
+  String tienda;
+  String talla;
+  double precio;
+  bool comprado;
+  String notas;
+
+  LookBoda({
+    required this.id,
+    required this.persona,
+    required this.prenda,
+    this.tienda = '',
+    this.talla = '',
+    this.precio = 0,
+    this.comprado = false,
+    this.notas = '',
+  });
+
+  factory LookBoda.fromJson(Map<String, dynamic> json) => LookBoda(
+    id: json['id'] ?? '',
+    persona: json['persona'] ?? 'Ella',
+    prenda: json['prenda'] ?? '',
+    tienda: json['tienda'] ?? '',
+    talla: json['talla'] ?? '',
+    precio: (json['precio'] ?? 0).toDouble(),
+    comprado: json['comprado'] ?? false,
+    notas: json['notas'] ?? '',
+  );
+
+  Map<String, dynamic> toJson() => {
+    'type': 'look_boda',
+    'id': id,
+    'persona': persona,
+    'prenda': prenda,
+    'tienda': tienda,
+    'talla': talla,
+    'precio': precio,
+    'comprado': comprado,
+    'notas': notas,
+  };
+}
