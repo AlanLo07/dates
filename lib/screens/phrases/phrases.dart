@@ -1,6 +1,7 @@
 // lib/screens/hangman_screen.dart
-import 'package:flame/game.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/phrase.dart';
 import '../../services/phrases_service.dart';
@@ -40,8 +41,13 @@ class _PhrasesScreenState extends State<PhrasesScreen>
   // ── Animaciones ─────────────────────────────────────────────────────────────
   late AnimationController _shakeController;
   late AnimationController _winController;
+  late AnimationController _swingController;
   late Animation<double> _winScale;
   late PhraseType _type;
+  String? _lastGuessLetter;
+  bool? _lastGuessCorrect;
+  int _feedbackTick = 0;
+  double _manualSwayDeg = 0;
 
   @override
   void initState() {
@@ -56,6 +62,10 @@ class _PhrasesScreenState extends State<PhrasesScreen>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
+    _swingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat();
     _winScale = Tween<double>(begin: 0.6, end: 1.0).animate(
       CurvedAnimation(parent: _winController, curve: Curves.elasticOut),
     );
@@ -66,6 +76,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
   void dispose() {
     _shakeController.dispose();
     _winController.dispose();
+    _swingController.dispose();
     super.dispose();
   }
 
@@ -79,6 +90,10 @@ class _PhrasesScreenState extends State<PhrasesScreen>
       _guessed = {};
       _errors = 0;
       _revealed = false;
+      _lastGuessLetter = null;
+      _lastGuessCorrect = null;
+      _feedbackTick = 0;
+      _manualSwayDeg = 0;
       _isLoading = false;
     });
   }
@@ -99,9 +114,14 @@ class _PhrasesScreenState extends State<PhrasesScreen>
   void _guess(String letter) {
     if (_isGameOver || _guessed.contains(letter)) return;
 
+    final isCorrect = _normalizedText.contains(letter);
+
     setState(() {
       _guessed.add(letter);
-      if (!_normalizedText.contains(letter)) {
+      _lastGuessLetter = letter;
+      _lastGuessCorrect = isCorrect;
+      _feedbackTick++;
+      if (!isCorrect) {
         _errors++;
         _shakeController.forward(from: 0);
         // _hintGame.registerWrongGuess();
@@ -110,7 +130,35 @@ class _PhrasesScreenState extends State<PhrasesScreen>
       }
     });
 
+    if (isCorrect) {
+      HapticFeedback.selectionClick();
+    } else {
+      HapticFeedback.mediumImpact();
+    }
+
     if (_hasWon) _winController.forward(from: 0);
+
+    unawaited(
+      Future<void>.delayed(const Duration(milliseconds: 900), () {
+        if (!mounted) return;
+        if (_lastGuessLetter == letter) {
+          setState(() {
+            _lastGuessLetter = null;
+            _lastGuessCorrect = null;
+          });
+        }
+      }),
+    );
+  }
+
+  double get _hangSwayDeg {
+    final phase = _swingController.value * pi * 2;
+    final autoAmp = _hasLost ? 10.0 : (_errors * 1.2).clamp(0.0, 6.0);
+    final autoSway = sin(phase) * autoAmp;
+    if (_manualSwayDeg.abs() > 0.03) {
+      _manualSwayDeg *= 0.93;
+    }
+    return (autoSway + _manualSwayDeg).clamp(-20.0, 20.0);
   }
 
   // Texto normalizado: solo letras A-Z + espacios, sin tildes
@@ -212,17 +260,11 @@ class _PhrasesScreenState extends State<PhrasesScreen>
           ),
           const SizedBox(height: 12),
 
-          // Padding(
-          //   padding: const EdgeInsets.symmetric(horizontal: 16),
-          //   child: SizedBox(
-          //     height: 120,
-          //     child: ClipRRect(
-          //       borderRadius: BorderRadius.circular(18),
-          // child: GameWidget(game: _hintGame),
-          //     ),
-          //   ),
-          // ),
-          // const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildGuessFeedbackPill(),
+          ),
+          const SizedBox(height: 10),
 
           // ── Tipo de frase (chip) ────────────────────────────────────────────
           _buildTypeChip(),
@@ -286,7 +328,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
   // ── Figura del ahorcado ───────────────────────────────────────────────────────
   Widget _buildHangmanFigure() {
     return AnimatedBuilder(
-      animation: _shakeController,
+      animation: Listenable.merge([_shakeController, _swingController]),
       builder: (context, child) {
         final shake = _shakeController.value;
         final offset = shake < 0.25
@@ -323,24 +365,29 @@ class _PhrasesScreenState extends State<PhrasesScreen>
                   height: 160,
                   child: Stack(
                     children: [
-                      CustomPaint(
-                        size: const Size(120, 160),
-                        painter: _GallowsPainter(
-                          errors: _errors,
-                          maxErrors: _maxErrors,
-                        ),
-                      ),
-                      // Emoji encima de la cabeza (cuando hay >= 1 error)
-                      if (_errors >= 1)
-                        Positioned(
-                          // cx = 120 * 0.7 = 84 → centro, headTop+headR = 48
-                          left: 84 - 14, // cx - radio_emoji
-                          top: 30, // headTop
-                          child: Text(
-                            _phrase!.emoji,
-                            style: const TextStyle(fontSize: 28),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onHorizontalDragUpdate: _hasLost
+                            ? (details) {
+                                setState(() {
+                                  _manualSwayDeg += details.delta.dx * 0.28;
+                                  _manualSwayDeg = _manualSwayDeg.clamp(
+                                    -20.0,
+                                    20.0,
+                                  );
+                                });
+                              }
+                            : null,
+                        child: CustomPaint(
+                          size: const Size(120, 160),
+                          painter: _GallowsPainter(
+                            errors: _errors,
+                            maxErrors: _maxErrors,
+                            emoji: _phrase!.emoji,
+                            swayDeg: _hangSwayDeg,
                           ),
                         ),
+                      ),
                     ],
                   ),
                 ),
@@ -376,6 +423,17 @@ class _PhrasesScreenState extends State<PhrasesScreen>
                             fontSize: 12,
                           ),
                         ),
+                        if (_hasLost) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            'Arrastra el personaje para mover la cuerda',
+                            style: TextStyle(
+                              color: _violeta.withOpacity(0.75),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 12),
                         // Letras incorrectas
                         Wrap(
@@ -432,6 +490,10 @@ class _PhrasesScreenState extends State<PhrasesScreen>
           children: word.split('').map((letter) {
             final isGuessed = _guessed.contains(letter);
             final show = isGuessed || revealAll;
+            final highlightedNow =
+                _lastGuessCorrect == true &&
+                _lastGuessLetter == letter &&
+                isGuessed;
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 2),
               width: 22,
@@ -439,19 +501,24 @@ class _PhrasesScreenState extends State<PhrasesScreen>
                 border: Border(bottom: BorderSide(color: _violeta, width: 2)),
               ),
               child: Center(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: show
-                      ? Text(
-                          letter,
-                          key: ValueKey(letter),
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: isGuessed ? _violeta : _rojo,
-                          ),
-                        )
-                      : const SizedBox(height: 22),
+                child: AnimatedScale(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutBack,
+                  scale: highlightedNow ? 1.18 : 1.0,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: show
+                        ? Text(
+                            letter,
+                            key: ValueKey('${letter}_$show'),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isGuessed ? _violeta : _rojo,
+                            ),
+                          )
+                        : const SizedBox(height: 22),
+                  ),
                 ),
               ),
             );
@@ -628,11 +695,15 @@ class _PhrasesScreenState extends State<PhrasesScreen>
         final isGuessed = _guessed.contains(letter);
         final isCorrect = isGuessed && _phraseLetters.contains(letter);
         final isWrong = isGuessed && !_phraseLetters.contains(letter);
+        final isLatest = _lastGuessLetter == letter;
+        final latestCorrect = isLatest && _lastGuessCorrect == true;
+        final latestWrong = isLatest && _lastGuessCorrect == false;
 
         return TweenAnimationBuilder<double>(
-          duration: const Duration(milliseconds: 200),
-          tween: Tween<double>(begin: 0.94, end: 1),
-          curve: Curves.easeOutBack,
+          key: ValueKey('key_${letter}_$_feedbackTick'),
+          duration: const Duration(milliseconds: 260),
+          tween: Tween<double>(begin: isLatest ? 0.85 : 0.94, end: 1),
+          curve: isLatest ? Curves.elasticOut : Curves.easeOutBack,
           builder: (_, scale, child) =>
               Transform.scale(scale: scale, child: child),
           child: AnimatedContainer(
@@ -640,14 +711,22 @@ class _PhrasesScreenState extends State<PhrasesScreen>
             width: 40,
             height: 44,
             decoration: BoxDecoration(
-              color: isCorrect
+              color: latestCorrect
+                  ? _verde.withOpacity(0.42)
+                  : latestWrong
+                  ? _rojo.withOpacity(0.25)
+                  : isCorrect
                   ? _verde.withOpacity(0.3)
                   : isWrong
                   ? Colors.grey.shade200
                   : Colors.white,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isCorrect
+                color: latestCorrect
+                    ? _verde
+                    : latestWrong
+                    ? _rojo
+                    : isCorrect
                     ? _verde
                     : isWrong
                     ? Colors.grey.shade300
@@ -687,6 +766,60 @@ class _PhrasesScreenState extends State<PhrasesScreen>
     );
   }
 
+  Widget _buildGuessFeedbackPill() {
+    final letter = _lastGuessLetter;
+    final isCorrect = _lastGuessCorrect;
+
+    if (letter == null || isCorrect == null || _isGameOver) {
+      return const SizedBox(height: 36);
+    }
+
+    final Color color = isCorrect ? _verde : _rojo;
+    final IconData icon = isCorrect ? Icons.check_circle : Icons.cancel;
+    final String text = isCorrect
+        ? 'Bien: "$letter" esta en la frase'
+        : 'Ups: "$letter" no aparece';
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      transitionBuilder: (child, animation) {
+        final offset = Tween<Offset>(
+          begin: const Offset(0, -0.15),
+          end: Offset.zero,
+        ).animate(animation);
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(position: offset, child: child),
+        );
+      },
+      child: Container(
+        key: ValueKey('feedback_$letter_${isCorrect ? 1 : 0}_$_feedbackTick'),
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: color.withOpacity(0.6), width: 1.2),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 6),
+            Text(
+              text,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   String get _helperMessage {
     if (_hasWon) {
       return 'Excelente. Descubriste la frase. ¿Quieres otra ronda?';
@@ -706,11 +839,13 @@ class _GallowsPainter extends CustomPainter {
   final int errors;
   final int maxErrors;
   final String emoji;
+  final double swayDeg;
 
   _GallowsPainter({
     required this.errors,
     required this.maxErrors,
-    this.emoji = '😊',
+    required this.emoji,
+    this.swayDeg = 0,
   });
 
   @override
@@ -731,8 +866,6 @@ class _GallowsPainter extends CustomPainter {
     canvas.drawLine(Offset(w / 4, h - 5), Offset(w / 4, 10), paint);
     // Palo horizontal
     canvas.drawLine(Offset(w / 4, 10), Offset(w * 0.7, 10), paint);
-    // Cuerda
-    canvas.drawLine(Offset(w * 0.7, 10), Offset(w * 0.7, 30), paint);
 
     // ── Partes del cuerpo según errores ──────────────────────────────────────
     final bodyPaint = Paint()
@@ -741,56 +874,90 @@ class _GallowsPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
-    final cx = w * 0.7; // centro X
+    final cx = w * 0.7;
     const headR = 18.0;
-    const headTop = 30.0;
+    const ropeLength = 20.0;
+    final swayRad = swayDeg * (pi / 180);
+    final anchor = Offset(cx, 10);
+
+    canvas.save();
+    canvas.translate(anchor.dx, anchor.dy);
+    canvas.rotate(swayRad);
+
+    // Cuerda
+    canvas.drawLine(
+      const Offset(0, 0),
+      const Offset(0, ropeLength),
+      paint,
+    );
+
+    final headCenter = const Offset(0, ropeLength + headR);
 
     if (errors >= 1) {
       // Cabeza (círculo) — el emoji se dibuja aparte
-      canvas.drawCircle(Offset(cx, headTop + headR), headR, bodyPaint);
+      canvas.drawCircle(headCenter, headR, bodyPaint);
+
+      final textSpan = TextSpan(
+        text: emoji,
+        style: const TextStyle(fontSize: 24),
+      );
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      )..layout();
+      textPainter.paint(
+        canvas,
+        Offset(
+          headCenter.dx - textPainter.width / 2,
+          headCenter.dy - textPainter.height / 2,
+        ),
+      );
     }
     if (errors >= 2) {
       // Cuerpo
       canvas.drawLine(
-        Offset(cx, headTop + headR * 2),
-        Offset(cx, headTop + headR * 2 + 40),
+        Offset(0, ropeLength + headR * 2),
+        Offset(0, ropeLength + headR * 2 + 40),
         bodyPaint,
       );
     }
     if (errors >= 3) {
       // Brazo izquierdo
       canvas.drawLine(
-        Offset(cx, headTop + headR * 2 + 10),
-        Offset(cx - 22, headTop + headR * 2 + 30),
+        Offset(0, ropeLength + headR * 2 + 10),
+        Offset(-22, ropeLength + headR * 2 + 30),
         bodyPaint,
       );
     }
     if (errors >= 4) {
       // Brazo derecho
       canvas.drawLine(
-        Offset(cx, headTop + headR * 2 + 10),
-        Offset(cx + 22, headTop + headR * 2 + 30),
+        Offset(0, ropeLength + headR * 2 + 10),
+        Offset(22, ropeLength + headR * 2 + 30),
         bodyPaint,
       );
     }
     if (errors >= 5) {
       // Pierna izquierda
       canvas.drawLine(
-        Offset(cx, headTop + headR * 2 + 40),
-        Offset(cx - 20, h - 10),
+        Offset(0, ropeLength + headR * 2 + 40),
+        Offset(-20, h - 20),
         bodyPaint,
       );
     }
     if (errors >= 6) {
       // Pierna derecha
       canvas.drawLine(
-        Offset(cx, headTop + headR * 2 + 40),
-        Offset(cx + 20, h - 10),
+        Offset(0, ropeLength + headR * 2 + 40),
+        Offset(20, h - 20),
         bodyPaint,
       );
     }
+
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_GallowsPainter old) => old.errors != errors;
+  bool shouldRepaint(_GallowsPainter old) =>
+      old.errors != errors || old.swayDeg != swayDeg || old.emoji != emoji;
 }
