@@ -19,6 +19,8 @@ import 'wedding_menu.dart';
 import 'wedding_album.dart';
 import 'wedding_gifts.dart';
 import 'wedding_providers.dart';
+import '../../widgets/motion/ambient_orbs_background.dart';
+import '../../widgets/motion/motion_section_reveal.dart';
 
 // ── Fecha de la boda — ajusta según corresponda ──────────────────────────
 DateTime kWeddingDate = DateTime(2027, 2, 14);
@@ -157,24 +159,32 @@ class WeddingScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: WeddingCountdownHeader(
-              weddingDate: kWeddingDate,
-              accentColor: _rose,
+      body: AmbientOrbsBackground(
+        colors: const [Color(0xFFF8BBD0), Color(0xFFFCE4EC), Color(0xFFE8EAF6)],
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: MotionSectionReveal(
+                child: WeddingCountdownHeader(
+                  weddingDate: kWeddingDate,
+                  accentColor: _rose,
+                ),
+              ),
             ),
-          ),
 
           // ── Información rápida ────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Row(
+            SliverToBoxAdapter(
+              child: MotionSectionReveal(
+                delay: const Duration(milliseconds: 120),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       Column(
@@ -228,32 +238,38 @@ class WeddingScreen extends StatelessWidget {
                         ],
                       ),
                     ],
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
-          // ── Grid de opciones ────────────────────────────────────────────
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-            sliver: SliverGrid(
-              delegate: SliverChildBuilderDelegate(
-                (_, i) => WeddingOptionCard(
-                  option: _opciones[i],
-                  accentColor: _rose,
+            // ── Grid de opciones ────────────────────────────────────────────
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+              sliver: SliverGrid(
+                delegate: SliverChildBuilderDelegate(
+                  (_, i) => MotionSectionReveal(
+                    delay: Duration(milliseconds: 180 + (i * 45)),
+                    beginOffsetY: 0.08,
+                    child: WeddingOptionCard(
+                      option: _opciones[i],
+                      accentColor: _rose,
+                    ),
+                  ),
+                  childCount: _opciones.length,
                 ),
-                childCount: _opciones.length,
-              ),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.05,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.05,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../utils/animations.dart';
+import '../../../widgets/motion/motion_pressable.dart';
 import 'home_animated_entry_card.dart';
 
 class HomeMenuCard extends StatelessWidget {
@@ -36,8 +37,12 @@ class HomeMenuCard extends StatelessWidget {
       fadeDuration: fadeDuration,
       slideDuration: slideDuration,
       stagger: stagger,
-      child: GestureDetector(
-        onTap: () => Navigator.of(context).push(createRoute(destination)),
+      child: MotionPressable(
+        pressedScale: 0.98,
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => Navigator.of(context).push(
+          createRoute(destination, motion: AppRouteMotion.sharedAxisX),
+        ),
         child: Container(
           height: 100,
           decoration: BoxDecoration(

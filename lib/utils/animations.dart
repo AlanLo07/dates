@@ -1,34 +1,67 @@
 import 'package:flutter/material.dart';
 
-Route createRoute(Widget targetScreen) {
+class MotionDurations {
+  MotionDurations._();
+
+  static const Duration micro = Duration(milliseconds: 120);
+  static const Duration short = Duration(milliseconds: 220);
+  static const Duration medium = Duration(milliseconds: 360);
+  static const Duration long = Duration(milliseconds: 520);
+  static const Duration route = Duration(milliseconds: 540);
+}
+
+class MotionCurves {
+  MotionCurves._();
+
+  static const Curve entrance = Curves.easeOutCubic;
+  static const Curve emphasized = Curves.easeOutBack;
+  static const Curve exit = Curves.easeInCubic;
+  static const Curve spring = Curves.elasticOut;
+}
+
+enum AppRouteMotion { slide, fade, sharedAxisX }
+
+Route createRoute(
+  Widget targetScreen, {
+  AppRouteMotion motion = AppRouteMotion.slide,
+}) {
   return PageRouteBuilder(
-    // 1. Duración de la animación
-    transitionDuration: const Duration(milliseconds: 700),
-    // 2. La pantalla a la que navegamos
+    transitionDuration: MotionDurations.route,
+    reverseTransitionDuration: const Duration(milliseconds: 430),
     pageBuilder: (context, animation, secondaryAnimation) => targetScreen,
-
-    // 3. El constructor de la transición (ejemplo: Deslizamiento o Fade)
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      // --- Opción A: Deslizamiento (Slide Transition) ---
-      // Hace que la nueva pantalla se deslice desde la derecha (puedes cambiarlo)
-      const begin = Offset(
-        1.0,
-        0.0,
-      ); // Inicia fuera de la pantalla a la derecha
-      const end = Offset.zero; // Termina en la posición normal (cero)
-      const curve = Curves.easeOutCubic; // Define la aceleración
-
-      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-
-      return SlideTransition(position: animation.drive(tween), child: child);
-
-      // --- Opción B: Desvanecimiento (Fade Transition) ---
-      /*
-      return FadeTransition(
-        opacity: animation,
-        child: child,
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: MotionCurves.entrance,
+        reverseCurve: MotionCurves.exit,
       );
-      */
+
+      switch (motion) {
+        case AppRouteMotion.fade:
+          return FadeTransition(opacity: curved, child: child);
+        case AppRouteMotion.sharedAxisX:
+          final slide = Tween<Offset>(
+            begin: const Offset(0.08, 0),
+            end: Offset.zero,
+          ).chain(CurveTween(curve: MotionCurves.entrance));
+          final scale = Tween<double>(
+            begin: 0.96,
+            end: 1,
+          ).chain(CurveTween(curve: MotionCurves.entrance));
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: animation.drive(slide),
+              child: ScaleTransition(scale: animation.drive(scale), child: child),
+            ),
+          );
+        case AppRouteMotion.slide:
+          final slide = Tween<Offset>(
+            begin: const Offset(1.0, 0),
+            end: Offset.zero,
+          ).chain(CurveTween(curve: MotionCurves.entrance));
+          return SlideTransition(position: animation.drive(slide), child: child);
+      }
     },
   );
 }

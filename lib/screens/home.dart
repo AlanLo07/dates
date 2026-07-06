@@ -8,6 +8,7 @@ import '../models/song_of_week.dart';
 import '../services/events.dart';
 import '../services/phrases_service.dart';
 import '../utils/colors.dart';
+import '../widgets/motion/ambient_orbs_background.dart';
 import 'calendar/calendar.dart';
 import 'games/games_menu.dart';
 import 'home/widgets/home_counter_strip.dart';
@@ -202,9 +203,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.lavanda,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
+      body: AmbientOrbsBackground(
+        colors: const [Color(0xFFD8C9E7), Color(0xFFA9D1DF), Color(0xFFF8BBD0)],
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -318,7 +321,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

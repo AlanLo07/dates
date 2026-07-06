@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../utils/animations.dart';
+import '../../../widgets/motion/motion_pressable.dart';
 import '../models/wedding_option.dart';
 
 class WeddingOptionCard extends StatelessWidget {
@@ -15,10 +16,14 @@ class WeddingOptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MotionPressable(
+      pressedScale: 0.97,
+      borderRadius: BorderRadius.circular(18),
       onTap: () {
         if (option.screen != null) {
-          Navigator.of(context).push(createRoute(option.screen!));
+          Navigator.of(context).push(
+            createRoute(option.screen!, motion: AppRouteMotion.sharedAxisX),
+          );
         } else {
           ScaffoldMessenger.of(
             context,

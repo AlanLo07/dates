@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../utils/animations.dart';
 import '../../utils/colors.dart';
+import '../../widgets/motion/ambient_orbs_background.dart';
+import '../../widgets/motion/motion_pressable.dart';
 import 'kama_screen.dart';
 
 import 'dice_screen.dart';
@@ -57,9 +59,11 @@ class GamesMenuScreen extends StatelessWidget {
         iconTheme: const IconThemeData(color: AppColors.violeta),
         elevation: 1,
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-        children: [
+      body: AmbientOrbsBackground(
+        colors: const [Color(0xFFF48FB1), Color(0xFFB0B6E8), Color(0xFFF0A07A)],
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+          children: [
           // ── Intro ────────────────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(16),
@@ -124,7 +128,8 @@ class GamesMenuScreen extends StatelessWidget {
               ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -145,7 +150,9 @@ class GamesMenuScreen extends StatelessWidget {
       default:
         return;
     }
-    Navigator.of(context).push(createRoute(destination));
+    Navigator.of(
+      context,
+    ).push(createRoute(destination, motion: AppRouteMotion.sharedAxisX));
   }
 }
 
@@ -199,8 +206,10 @@ class _AnimatedGameCardState extends State<_AnimatedGameCard> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: GestureDetector(
+      child: MotionPressable(
         onTap: isEnabled ? widget.onTap : () => _showComingSoon(context),
+        pressedScale: 0.98,
+        borderRadius: BorderRadius.circular(20),
         child: Opacity(
           opacity: isEnabled ? 1.0 : 0.75,
           child: Container(

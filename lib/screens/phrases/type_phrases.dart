@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../utils/animations.dart';
 import '../../utils/colors.dart';
+import '../../widgets/motion/ambient_orbs_background.dart';
+import '../../widgets/motion/motion_pressable.dart';
 import '../../models/phrase.dart';
 import '../../services/phrases_service.dart';
 import 'phrases.dart';
@@ -133,50 +135,58 @@ class _TypePhrasesScreenState extends State<TypePhrasesScreen> {
       return _ErrorView(message: _error!, onRetry: _loadData);
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.95, // Un poco más alto para dar aire al texto
-      ),
-      itemCount: _categorias.length,
-      itemBuilder: (context, index) {
-        final cat = _categorias[index];
-        final count =
-            _items
-                ?.where(
-                  (i) => PhraseTypeX.fromPhraseType(i.type) == cat['tipo'],
-                )
-                .length ??
-            0;
+    return AmbientOrbsBackground(
+      colors: const [
+        Color(0xFFFFB74D),
+        Color(0xFFF06292),
+        Color(0xFF7986CB),
+      ],
+      child: GridView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.95,
+        ),
+        itemCount: _categorias.length,
+        itemBuilder: (context, index) {
+          final cat = _categorias[index];
+          final count =
+              _items
+                  ?.where(
+                    (i) => PhraseTypeX.fromPhraseType(i.type) == cat['tipo'],
+                  )
+                  .length ??
+              0;
 
-        return CategoryCard(
-          nombre: cat['nombre'],
-          emoji: cat['emoji'],
-          color: cat['color'],
-          count: count,
-          onTap: () => Navigator.push(
-            context,
-            createRoute(
-              PhrasesScreen(
-                type: PhraseTypeX.fromString(cat['tipo'] as String),
+          return CategoryCard(
+            nombre: cat['nombre'],
+            emoji: cat['emoji'],
+            color: cat['color'],
+            count: count,
+            onTap: () => Navigator.push(
+              context,
+              createRoute(
+                PhrasesScreen(
+                  type: PhraseTypeX.fromString(cat['tipo'] as String),
+                ),
+                motion: AppRouteMotion.sharedAxisX,
               ),
             ),
-          ),
-        )
-            .animate()
-            .fadeIn(
-              delay: _kCardStagger * index,
-              duration: _kCardFade,
-            )
-            .slideY(
-              begin: 0.10,
-              delay: _kCardStagger * index,
-              duration: _kCardSlide,
-            );
-      },
+          )
+              .animate()
+              .fadeIn(
+                delay: _kCardStagger * index,
+                duration: _kCardFade,
+              )
+              .slideY(
+                begin: 0.10,
+                delay: _kCardStagger * index,
+                duration: _kCardSlide,
+              );
+        },
+      ),
     );
   }
 }
@@ -201,8 +211,10 @@ class CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MotionPressable(
       onTap: onTap,
+      pressedScale: 0.96,
+      borderRadius: BorderRadius.circular(24),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(

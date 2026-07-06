@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
+import '../../../utils/animations.dart';
+import '../../../widgets/motion/motion_pressable.dart';
 
 class FriendlyActionButton extends StatefulWidget {
   final VoidCallback onPressed;
@@ -23,26 +25,21 @@ class FriendlyActionButton extends StatefulWidget {
 
 class _FriendlyActionButtonState extends State<FriendlyActionButton> {
   bool _isPressed = false;
-  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      onTap: () {
-        HapticFeedback.lightImpact();
-        widget.onPressed();
-      },
+    return MotionPressable(
+      onTap: widget.onPressed,
+      pressedScale: 0.96,
+      borderRadius: BorderRadius.circular(30),
       child: AnimatedScale(
-        duration: const Duration(milliseconds: 120),
-        scale: _isPressed ? 0.96 : 1.0,
-        child: MouseRegion(
-          onEnter: (_) => setState(() => _isHovered = true),
-          onExit: (_) => setState(() => _isHovered = false),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
+        duration: MotionDurations.micro,
+        scale: _isPressed ? 0.98 : 1,
+        child: GestureDetector(
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapCancel: () => setState(() => _isPressed = false),
+          onTapUp: (_) => setState(() => _isPressed = false),
+          child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
@@ -56,23 +53,6 @@ class _FriendlyActionButtonState extends State<FriendlyActionButton> {
                 ],
               ),
               borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: widget.backgroundColor.withOpacity(
-                    _isPressed
-                        ? 0.20
-                        : _isHovered
-                        ? 0.42
-                        : 0.35,
-                  ),
-                  blurRadius: _isPressed
-                      ? 4
-                      : _isHovered
-                      ? 14
-                      : 10,
-                  offset: Offset(0, _isPressed ? 2 : 5),
-                ),
-              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
