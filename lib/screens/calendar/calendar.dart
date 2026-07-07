@@ -8,7 +8,9 @@
 // • Colores centralizados en AppColors.
 //
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:confetti/confetti.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../utils/colors.dart';
@@ -107,11 +109,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
   String? _error;
 
   final EventService _service = EventService();
+  late final ConfettiController _calendarConfettiController;
+  int _counterPulseTick = 0;
 
   @override
   void initState() {
     super.initState();
+    _calendarConfettiController = ConfettiController(
+      duration: const Duration(milliseconds: 1200),
+    );
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _calendarConfettiController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -478,7 +491,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => _AgendarDesdeCalendarioSheet(
         fechaPreseleccionada: day,
-        onAgendado: (e) => setState(() => _eventos.add(e)),
+        onAgendado: (e) {
+          setState(() {
+            _eventos.add(e);
+            _counterPulseTick++;
+          });
+          HapticFeedback.mediumImpact();
+          _calendarConfettiController.play();
+        },
         onAgendadoCarta: (c) => setState(() => _cartas.add(c)),
         service: _service,
         formatearFecha: _toApiDateKey,
@@ -531,50 +551,60 @@ class _CalendarScreenState extends State<CalendarScreen> {
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.violeta),
-            )
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline,
-                          color: Colors.red, size: 48),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Error al cargar datos',
-                        style: TextStyle(color: Colors.grey.shade700),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: _loadData,
-                        child: const Text('Reintentar'),
-                      ),
-                    ],
-                  ),
+      body: Stack(
+        children: [
+          _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.violeta),
                 )
-              : Column(
-                  children: [
-                    const SizedBox(height: 12),
-                    _buildFilterBar()
-                        .animate()
-                        .fadeIn(duration: _kEnterDuration)
-                        .slideY(begin: -0.04, duration: _kSlideDuration),
-                    const SizedBox(height: 8),
-                    if (_eventos.isNotEmpty)
-                      ProximaCitaCounter(eventos: _eventos)
-                          .animate()
-                          .fadeIn(delay: 90.ms, duration: _kEnterDuration)
-                          .slideY(
-                            begin: 0.05,
-                            delay: 90.ms,
-                            duration: _kSlideDuration,
+              : _error != null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline,
+                              color: Colors.red, size: 48),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Error al cargar datos',
+                            style: TextStyle(color: Colors.grey.shade700),
                           ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: TableCalendar(
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: _loadData,
+                            child: const Text('Reintentar'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        const SizedBox(height: 12),
+                        _buildFilterBar()
+                            .animate()
+                            .fadeIn(duration: _kEnterDuration)
+                            .slideY(begin: -0.04, duration: _kSlideDuration),
+                        const SizedBox(height: 8),
+                        if (_eventos.isNotEmpty)
+                          TweenAnimationBuilder<double>(
+                            key: ValueKey('counter_pulse_$_counterPulseTick'),
+                            duration: const Duration(milliseconds: 420),
+                            tween: Tween<double>(begin: 0.92, end: 1),
+                            curve: Curves.elasticOut,
+                            builder: (_, scale, child) =>
+                                Transform.scale(scale: scale, child: child),
+                            child: ProximaCitaCounter(eventos: _eventos)
+                                .animate()
+                                .fadeIn(delay: 90.ms, duration: _kEnterDuration)
+                                .slideY(
+                                  begin: 0.05,
+                                  delay: 90.ms,
+                                  duration: _kSlideDuration,
+                                ),
+                          ),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: TableCalendar(
                         firstDay: _date(DateTime.now().year - 1, 1, 1),
                         lastDay: _date(DateTime.now().year + 1, 12, 31),
                         focusedDay: _focusedDay,
@@ -721,40 +751,64 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         },
                         selectedDayPredicate: (day) =>
                             isSameDay(day, _focusedDay),
-                      )
-                          .animate()
-                          .fadeIn(delay: 140.ms, duration: _kEnterDuration)
-                          .slideY(
-                            begin: 0.08,
-                            delay: 140.ms,
-                            duration: _kSlideDuration,
-                          ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _mostrarFormularioNuevoRecuerdo,
-                          icon: const Icon(Icons.movie_creation_outlined),
-                          label: const Text('Crear recuerdo'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.violeta,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          )
+                              .animate()
+                              .fadeIn(
+                                delay: 140.ms,
+                                duration: _kEnterDuration,
+                              )
+                              .slideY(
+                                begin: 0.08,
+                                delay: 140.ms,
+                                duration: _kSlideDuration,
+                              ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _mostrarFormularioNuevoRecuerdo,
+                              icon: const Icon(Icons.movie_creation_outlined),
+                              label: const Text('Crear recuerdo'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.violeta,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                textStyle: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: IgnorePointer(
+              child: ConfettiWidget(
+                confettiController: _calendarConfettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                emissionFrequency: 0.05,
+                numberOfParticles: 22,
+                gravity: 0.28,
+                colors: const [
+                  Color(0xFFA9D1DF),
+                  Color(0xFFB0B6E8),
+                  Color(0xFF81C784),
+                  Color(0xFFE57373),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

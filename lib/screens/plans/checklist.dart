@@ -1,5 +1,9 @@
 // lib/screens/plans/checklist.dart
+import 'dart:async';
+
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../services/cita_service.dart';
 import '../../models/cita.dart';
 import 'result.dart';
@@ -23,12 +27,25 @@ class AdventureListScreen extends StatefulWidget {
 class _AdventureListScreenState extends State<AdventureListScreen> {
   late Cita citaSelected;
   late List<Cita> listaLugares;
+  late final ConfettiController _confettiController;
+
+  String? _achievementText;
+  int _achievementTick = 0;
 
   @override
   void initState() {
     super.initState();
     citaSelected = widget.cita;
     listaLugares = widget.citas;
+    _confettiController = ConfettiController(
+      duration: const Duration(milliseconds: 1200),
+    );
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
   }
 
   // ── Helpers de progreso ───────────────────────────────────────────────────
@@ -39,6 +56,56 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
   int get _visitados => _lugares.where((l) => l.isVisited).length;
   int get _total => _lugares.length;
   double get _progreso => _total == 0 ? 0.0 : _visitados / _total;
+
+  void _onVisitadoChanged(Cita lugar, bool value) {
+    final beforeVisited = _visitados;
+    final beforeProgress = _progreso;
+    final wasComplete = _total > 0 && beforeVisited == _total;
+
+    setState(() => lugar.isVisited = value);
+    saveLugares(lugar);
+
+    final nowVisited = _visitados;
+    final nowProgress = _progreso;
+    final isComplete = _total > 0 && nowVisited == _total;
+
+    if (value) {
+      HapticFeedback.lightImpact();
+    }
+
+    if (value && !wasComplete && isComplete) {
+      _triggerAchievement('¡Checklist completado! 🎉');
+      _confettiController.play();
+      return;
+    }
+
+    if (value && nowProgress > beforeProgress) {
+      final milestones = <double>[0.25, 0.5, 0.75];
+      for (final m in milestones) {
+        if (beforeProgress < m && nowProgress >= m) {
+          _triggerAchievement('¡Llevan ${(m * 100).toInt()}% completado!');
+          _confettiController.play();
+          break;
+        }
+      }
+    }
+  }
+
+  void _triggerAchievement(String text) {
+    setState(() {
+      _achievementText = text;
+      _achievementTick++;
+    });
+
+    unawaited(
+      Future<void>.delayed(const Duration(milliseconds: 1600), () {
+        if (!mounted) return;
+        if (_achievementText == text) {
+          setState(() => _achievementText = null);
+        }
+      }),
+    );
+  }
 
   // ── Rating stars ──────────────────────────────────────────────────────────
   Widget _buildRatingStars(Cita lugar) {
@@ -115,45 +182,111 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
         icon: const Icon(Icons.map_rounded),
         label: Text('Mapa ($visitados)'),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // ── Barra de progreso ─────────────────────────────────────────────
-          _ProgressHeader(
-            visitados: visitados,
-            total: total,
-            progreso: progreso,
-            emoji: progresoEmoji,
-            mensaje: progresoMensaje,
-          ),
+          Column(
+            children: [
+              // ── Barra de progreso ───────────────────────────────────────────
+              _ProgressHeader(
+                visitados: visitados,
+                total: total,
+                progreso: progreso,
+                emoji: progresoEmoji,
+                mensaje: progresoMensaje,
+              ),
+              _buildAchievementBanner(),
 
-          // ── Lista de lugares ──────────────────────────────────────────────
-          Expanded(
-            child: total == 0
-                ? _buildEmpty()
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                    itemCount: lugares.length,
-                    itemBuilder: (context, index) {
-                      final lugar = lugares[index];
-                      return _LugarCard(
-                        lugar: lugar,
-                        onVisitadoChanged: (value) {
-                          setState(() => lugar.isVisited = value);
-                          saveLugares(lugar);
+              // ── Lista de lugares ────────────────────────────────────────────
+              Expanded(
+                child: total == 0
+                    ? _buildEmpty()
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                        itemCount: lugares.length,
+                        itemBuilder: (context, index) {
+                          final lugar = lugares[index];
+                          return _LugarCard(
+                            lugar: lugar,
+                            onVisitadoChanged: (value) =>
+                                _onVisitadoChanged(lugar, value),
+                            onRatingChanged: (value) {
+                              setState(() => lugar.rating = value);
+                              saveLugares(lugar);
+                            },
+                            onTap: () => Navigator.of(
+                              context,
+                            ).push(createRoute(ResultScreen(cita: lugar))),
+                          );
                         },
-                        onRatingChanged: (value) {
-                          setState(() => lugar.rating = value);
-                          saveLugares(lugar);
-                        },
-                        onTap: () => Navigator.of(
-                          context,
-                        ).push(createRoute(ResultScreen(cita: lugar))),
-                      );
-                    },
-                  ),
+                      ),
+              ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: IgnorePointer(
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                emissionFrequency: 0.05,
+                numberOfParticles: 24,
+                gravity: 0.25,
+                colors: const [
+                  Color(0xFFB0B6E8),
+                  Color(0xFFA9D1DF),
+                  Color(0xFFE57373),
+                  Color(0xFF81C784),
+                ],
+              ),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAchievementBanner() {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 260),
+      transitionBuilder: (child, animation) {
+        final offset = Tween<Offset>(
+          begin: const Offset(0, -0.2),
+          end: Offset.zero,
+        ).animate(animation);
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(position: offset, child: child),
+        );
+      },
+      child: _achievementText == null
+          ? const SizedBox.shrink()
+          : Padding(
+              key: ValueKey('achievement_$_achievementTick'),
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF4CAF50).withOpacity(0.6),
+                  ),
+                ),
+                child: Text(
+                  _achievementText!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF2E7D32),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
     );
   }
 
