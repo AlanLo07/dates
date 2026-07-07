@@ -23,6 +23,8 @@ import 'phrases/type_phrases.dart';
 import 'plans/input.dart';
 import 'wedding/wedding.dart';
 
+import 'home/widgets/home_mascot_bubble.dart';
+
 const String _heroImageUrl =
     'https://planes-crud-stack-images-052869941322.s3.us-east-2.amazonaws.com/assets/beso.jpeg';
 
@@ -353,6 +355,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               .difference(DateTime.now())
                               .inDays,
                         ),
+                      const Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: HomeMascotBubble(),
+                      ),
                     ],
                   ),
                 ),
