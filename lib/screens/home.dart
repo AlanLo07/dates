@@ -91,7 +91,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _setRandomSong({bool notify = true}) async {
     try {
-      final phrases = await PhrasesService().getPhrasesByType(PhraseType.cancion);
+      final phrases = await PhrasesService().getPhrasesByType(
+        PhraseType.cancion,
+      );
       if (phrases.isEmpty) {
         return;
       }
@@ -130,9 +132,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -156,7 +158,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _saveSongManually(String title, String artista, String link) async {
+  Future<void> _saveSongManually(
+    String title,
+    String artista,
+    String link,
+  ) async {
     try {
       final newSong = SongOfWeek(
         id: _songOfWeek?.id ?? '',
@@ -176,9 +182,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
       }
     }
   }
@@ -208,119 +214,148 @@ class _HomeScreenState extends State<HomeScreen> {
         child: SafeArea(
           child: SingleChildScrollView(
             child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const HomeHeroHeader(imageUrl: _heroImageUrl),
-              HomeCounterStrip(stream: _counterStream, initial: _together)
-                  .animate()
-                  .fadeIn(duration: _kFadeDuration)
-                  .slideY(begin: 0.06, duration: _kSlideDuration),
-              HomeSongOfTheWeekStrip(
-                song: _songOfWeek,
-                isLoading: _songLoading,
-                onTap: _launchSong,
-                onEdit: _mostrarEditorCancion,
-              )
-                  .animate()
-                  .fadeIn(delay: 100.ms, duration: _kFadeDuration)
-                  .slideY(begin: 0.08, delay: 100.ms, duration: _kSlideDuration),
-              const SizedBox(height: 12),
-              const HomeSectionHeader()
-                  .animate()
-                  .fadeIn(delay: 160.ms, duration: _kFadeDuration)
-                  .slideX(begin: -0.05, delay: 160.ms, duration: _kSlideDuration),
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    HomeMenuCard(
-                      index: 0,
-                      emoji: '✨',
-                      icon: Icons.favorite_rounded,
-                      title: 'Generar Cita',
-                      subtitle: '¿Qué hacemos hoy? Que la suerte decida',
-                      destination: const InputScreen(),
-                      gradientColors: const [Color(0xFFB0B6E8), Color(0xFF796B9B)],
-                      fadeDuration: _kFadeDuration,
-                      slideDuration: _kSlideDuration,
-                      stagger: _kListStagger,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const HomeHeroHeader(imageUrl: _heroImageUrl),
+                HomeCounterStrip(stream: _counterStream, initial: _together)
+                    .animate()
+                    .fadeIn(duration: _kFadeDuration)
+                    .slideY(begin: 0.06, duration: _kSlideDuration),
+                HomeSongOfTheWeekStrip(
+                      song: _songOfWeek,
+                      isLoading: _songLoading,
+                      onTap: _launchSong,
+                      onEdit: _mostrarEditorCancion,
+                    )
+                    .animate()
+                    .fadeIn(delay: 100.ms, duration: _kFadeDuration)
+                    .slideY(
+                      begin: 0.08,
+                      delay: 100.ms,
+                      duration: _kSlideDuration,
                     ),
-                    const SizedBox(height: 14),
-                    HomeMenuCard(
-                      index: 1,
-                      emoji: '📅',
-                      icon: Icons.calendar_month_rounded,
-                      title: 'Fechas Importantes',
-                      subtitle: 'Nuestros momentos más especiales',
-                      destination: const CalendarScreen(),
-                      gradientColors: const [Color(0xFFA9D1DF), Color(0xFF6BAED6)],
-                      fadeDuration: _kFadeDuration,
-                      slideDuration: _kSlideDuration,
-                      stagger: _kListStagger,
+                const SizedBox(height: 12),
+                const HomeSectionHeader()
+                    .animate()
+                    .fadeIn(delay: 160.ms, duration: _kFadeDuration)
+                    .slideX(
+                      begin: -0.05,
+                      delay: 160.ms,
+                      duration: _kSlideDuration,
                     ),
-                    const SizedBox(height: 14),
-                    HomeMenuCard(
-                      index: 2,
-                      emoji: '💬',
-                      icon: Icons.auto_stories_rounded,
-                      title: "De mí pa' ti",
-                      subtitle: 'Adivina la frase que te dedico',
-                      destination: const TypePhrasesScreen(),
-                      gradientColors: const [Color(0xFFD8C9E7), Color(0xFF9C8DC4)],
-                      fadeDuration: _kFadeDuration,
-                      slideDuration: _kSlideDuration,
-                      stagger: _kListStagger,
-                    ),
-                    const SizedBox(height: 14),
-                    HomeMenuCard(
-                      index: 3,
-                      emoji: '🗺️',
-                      icon: Icons.explore_rounded,
-                      title: 'Nuestras Aventuras',
-                      subtitle: 'Checklist de todos los lugares que fuimos',
-                      destination: ExperienceMenuScreen(),
-                      gradientColors: const [Color(0xFFFFCDD2), Color(0xFFE57373)],
-                      fadeDuration: _kFadeDuration,
-                      slideDuration: _kSlideDuration,
-                      stagger: _kListStagger,
-                    ),
-                    const SizedBox(height: 14),
-                    HomeMenuCard(
-                      index: 4,
-                      emoji: '🔒',
-                      icon: Icons.favorite_border_rounded,
-                      title: 'Juegos para dos',
-                      subtitle: 'Dado, ruleta y Kamasutra',
-                      destination: const GamesMenuScreen(),
-                      gradientColors: const [Color(0xFFF48FB1), Color(0xFFAD1457)],
-                      fadeDuration: _kFadeDuration,
-                      slideDuration: _kSlideDuration,
-                      stagger: _kListStagger,
-                    ),
-                    const SizedBox(height: 14),
-                    if (DateTime.now().isAfter(_weddingUnlockDate))
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       HomeMenuCard(
-                        index: 5,
-                        emoji: '💍',
-                        icon: Icons.favorite,
-                        title: 'Nuestra Boda',
-                        subtitle: 'Todo en un solo lugar',
-                        destination: const WeddingScreen(),
-                        gradientColors: const [Color(0xFFF8BBD0), Color(0xFFE91E63)],
+                        index: 0,
+                        emoji: '✨',
+                        icon: Icons.favorite_rounded,
+                        title: 'Generar Cita',
+                        subtitle: '¿Qué hacemos hoy? Que la suerte decida',
+                        destination: const InputScreen(),
+                        gradientColors: const [
+                          Color(0xFFB0B6E8),
+                          Color(0xFF796B9B),
+                        ],
                         fadeDuration: _kFadeDuration,
                         slideDuration: _kSlideDuration,
                         stagger: _kListStagger,
-                      )
-                    else
-                      HomeLockedWeddingCard(
-                        daysLeft: _weddingUnlockDate.difference(DateTime.now()).inDays,
                       ),
-                  ],
+                      const SizedBox(height: 14),
+                      HomeMenuCard(
+                        index: 1,
+                        emoji: '📅',
+                        icon: Icons.calendar_month_rounded,
+                        title: 'Fechas Importantes',
+                        subtitle: 'Nuestros momentos más especiales',
+                        destination: const CalendarScreen(),
+                        gradientColors: const [
+                          Color(0xFFA9D1DF),
+                          Color(0xFF6BAED6),
+                        ],
+                        fadeDuration: _kFadeDuration,
+                        slideDuration: _kSlideDuration,
+                        stagger: _kListStagger,
+                      ),
+                      const SizedBox(height: 14),
+                      HomeMenuCard(
+                        index: 2,
+                        emoji: '💬',
+                        icon: Icons.auto_stories_rounded,
+                        title: "De mí pa' ti",
+                        subtitle: 'Adivina la frase que te dedico',
+                        destination: const TypePhrasesScreen(),
+                        gradientColors: const [
+                          Color(0xFFD8C9E7),
+                          Color(0xFF9C8DC4),
+                        ],
+                        fadeDuration: _kFadeDuration,
+                        slideDuration: _kSlideDuration,
+                        stagger: _kListStagger,
+                      ),
+                      const SizedBox(height: 14),
+                      HomeMenuCard(
+                        index: 3,
+                        emoji: '🗺️',
+                        icon: Icons.explore_rounded,
+                        title: 'Nuestras Aventuras',
+                        subtitle: 'Checklist de todos los lugares que fuimos',
+                        destination: ExperienceMenuScreen(),
+                        gradientColors: const [
+                          Color(0xFFFFCDD2),
+                          Color(0xFFE57373),
+                        ],
+                        fadeDuration: _kFadeDuration,
+                        slideDuration: _kSlideDuration,
+                        stagger: _kListStagger,
+                      ),
+                      const SizedBox(height: 14),
+                      HomeMenuCard(
+                        index: 4,
+                        emoji: '🔒',
+                        icon: Icons.favorite_border_rounded,
+                        title: 'Juegos para dos',
+                        subtitle: 'Dado, ruleta y Kamasutra',
+                        destination: const GamesMenuScreen(),
+                        gradientColors: const [
+                          Color(0xFFF48FB1),
+                          Color(0xFFAD1457),
+                        ],
+                        fadeDuration: _kFadeDuration,
+                        slideDuration: _kSlideDuration,
+                        stagger: _kListStagger,
+                      ),
+                      const SizedBox(height: 14),
+                      // if (DateTime.now().isAfter(_weddingUnlockDate))
+                      if (true)
+                        HomeMenuCard(
+                          index: 5,
+                          emoji: '💍',
+                          icon: Icons.favorite,
+                          title: 'Nuestra Boda',
+                          subtitle: 'Todo en un solo lugar',
+                          destination: const WeddingScreen(),
+                          gradientColors: const [
+                            Color(0xFFF8BBD0),
+                            Color(0xFFE91E63),
+                          ],
+                          fadeDuration: _kFadeDuration,
+                          slideDuration: _kSlideDuration,
+                          stagger: _kListStagger,
+                        )
+                      else
+                        HomeLockedWeddingCard(
+                          daysLeft: _weddingUnlockDate
+                              .difference(DateTime.now())
+                              .inDays,
+                        ),
+                    ],
+                  ),
                 ),
-              ),
               ],
             ),
           ),

@@ -1,6 +1,6 @@
 // lib/screens/wedding/wedding_budget.dart
 import 'package:flutter/material.dart';
-import 'models/boda.dart';
+import '../../models/boda.dart';
 
 const Color _rose = Color(0xFFE91E63);
 
@@ -12,16 +12,47 @@ class WeddingBudgetScreen extends StatefulWidget {
 
 class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
   final List<GastoBoda> _gastos = [
-    GastoBoda(id: '1', concepto: 'Venue', categoria: 'Venue', estimado: 45000, pagado: 20000),
-    GastoBoda(id: '2', concepto: 'Fotógrafo', categoria: 'Fotos', estimado: 15000, pagado: 15000),
-    GastoBoda(id: '3', concepto: 'Catering', categoria: 'Catering', estimado: 60000, pagado: 0),
-    GastoBoda(id: '4', concepto: 'Vestido de novia', categoria: 'Look', estimado: 18000, pagado: 5000),
-    GastoBoda(id: '5', concepto: 'DJ', categoria: 'Música', estimado: 8000, pagado: 4000),
+    GastoBoda(
+      id: '1',
+      concepto: 'Venue',
+      categoria: 'Venue',
+      estimado: 45000,
+      pagado: 20000,
+    ),
+    GastoBoda(
+      id: '2',
+      concepto: 'Fotógrafo',
+      categoria: 'Fotos',
+      estimado: 15000,
+      pagado: 15000,
+    ),
+    GastoBoda(
+      id: '3',
+      concepto: 'Catering',
+      categoria: 'Catering',
+      estimado: 60000,
+      pagado: 0,
+    ),
+    GastoBoda(
+      id: '4',
+      concepto: 'Vestido de novia',
+      categoria: 'Look',
+      estimado: 18000,
+      pagado: 5000,
+    ),
+    GastoBoda(
+      id: '5',
+      concepto: 'DJ',
+      categoria: 'Música',
+      estimado: 8000,
+      pagado: 4000,
+    ),
   ];
 
   double get _totalEstimado => _gastos.fold(0, (s, g) => s + g.estimado);
   double get _totalPagado => _gastos.fold(0, (s, g) => s + g.pagado);
-  double get _progreso => _totalEstimado == 0 ? 0 : (_totalPagado / _totalEstimado).clamp(0, 1);
+  double get _progreso =>
+      _totalEstimado == 0 ? 0 : (_totalPagado / _totalEstimado).clamp(0, 1);
 
   Map<String, List<GastoBoda>> get _grouped {
     final m = <String, List<GastoBoda>>{};
@@ -57,10 +88,14 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
                 : ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: _grouped.entries.map((entry) {
-                      final subtotalEstimado =
-                          entry.value.fold<double>(0, (s, g) => s + g.estimado);
-                      final subtotalPagado =
-                          entry.value.fold<double>(0, (s, g) => s + g.pagado);
+                      final subtotalEstimado = entry.value.fold<double>(
+                        0,
+                        (s, g) => s + g.estimado,
+                      );
+                      final subtotalPagado = entry.value.fold<double>(
+                        0,
+                        (s, g) => s + g.pagado,
+                      );
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -120,7 +155,11 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _summaryStat('Estimado', _fmt(_totalEstimado), Colors.grey.shade700),
+              _summaryStat(
+                'Estimado',
+                _fmt(_totalEstimado),
+                Colors.grey.shade700,
+              ),
               _summaryStat('Pagado', _fmt(_totalPagado), _rose),
               _summaryStat(
                 'Restante',
@@ -153,11 +192,18 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+        ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
       ],
     );
@@ -185,7 +231,9 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
-              pagadoCompleto ? Icons.check_circle_outline : Icons.hourglass_bottom_rounded,
+              pagadoCompleto
+                  ? Icons.check_circle_outline
+                  : Icons.hourglass_bottom_rounded,
               color: pagadoCompleto ? const Color(0xFF2E7D32) : _rose,
               size: 20,
             ),
@@ -195,7 +243,10 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(g.concepto, style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  g.concepto,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   pagadoCompleto
@@ -208,7 +259,11 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
           ),
           GestureDetector(
             onTap: () => _mostrarEditarPago(g),
-            child: const Icon(Icons.edit_outlined, size: 18, color: Colors.grey),
+            child: const Icon(
+              Icons.edit_outlined,
+              size: 18,
+              color: Colors.grey,
+            ),
           ),
         ],
       ),
@@ -222,7 +277,10 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
         children: [
           const Text('💰', style: TextStyle(fontSize: 48)),
           const SizedBox(height: 12),
-          Text('Agrega el primer gasto', style: TextStyle(color: Colors.grey.shade500)),
+          Text(
+            'Agrega el primer gasto',
+            style: TextStyle(color: Colors.grey.shade500),
+          ),
         ],
       ),
     );
@@ -235,7 +293,12 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          24 + MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: const BoxDecoration(
@@ -246,16 +309,28 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(g.concepto, style: const TextStyle(fontWeight: FontWeight.bold, color: _rose, fontSize: 16)),
+              Text(
+                g.concepto,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: _rose,
+                  fontSize: 16,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text('Estimado: ${_fmt(g.estimado)}', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+              Text(
+                'Estimado: ${_fmt(g.estimado)}',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+              ),
               const SizedBox(height: 16),
               TextField(
                 controller: ctrl,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Monto pagado',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -263,7 +338,9 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _rose,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: () {
                   final val = double.tryParse(ctrl.text) ?? g.pagado;
@@ -288,7 +365,12 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          24 + MediaQuery.of(context).viewInsets.bottom,
+        ),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -296,22 +378,45 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Nuevo gasto', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _rose)),
+            const Text(
+              'Nuevo gasto',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: _rose,
+              ),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: conceptoCtrl,
-              decoration: InputDecoration(labelText: 'Concepto', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              decoration: InputDecoration(
+                labelText: 'Concepto',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: categoriaCtrl,
-              decoration: InputDecoration(labelText: 'Categoría', hintText: 'Venue, Catering...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              decoration: InputDecoration(
+                labelText: 'Categoría',
+                hintText: 'Venue, Catering...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: estimadoCtrl,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Monto estimado', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              decoration: InputDecoration(
+                labelText: 'Monto estimado',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -320,17 +425,23 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _rose,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: () {
                   if (conceptoCtrl.text.trim().isEmpty) return;
                   setState(() {
-                    _gastos.add(GastoBoda(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      concepto: conceptoCtrl.text.trim(),
-                      categoria: categoriaCtrl.text.trim().isEmpty ? 'General' : categoriaCtrl.text.trim(),
-                      estimado: double.tryParse(estimadoCtrl.text) ?? 0,
-                    ));
+                    _gastos.add(
+                      GastoBoda(
+                        id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        concepto: conceptoCtrl.text.trim(),
+                        categoria: categoriaCtrl.text.trim().isEmpty
+                            ? 'General'
+                            : categoriaCtrl.text.trim(),
+                        estimado: double.tryParse(estimadoCtrl.text) ?? 0,
+                      ),
+                    );
                   });
                   Navigator.pop(context);
                 },

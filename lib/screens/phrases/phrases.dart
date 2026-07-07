@@ -793,7 +793,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
         );
       },
       child: Container(
-        key: ValueKey('feedback_$letter_${isCorrect ? 1 : 0}_$_feedbackTick'),
+        key: ValueKey('feedback_${letter}_${isCorrect ? 1 : 0}_$_feedbackTick'),
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
@@ -885,11 +885,7 @@ class _GallowsPainter extends CustomPainter {
     canvas.rotate(swayRad);
 
     // Cuerda
-    canvas.drawLine(
-      const Offset(0, 0),
-      const Offset(0, ropeLength),
-      paint,
-    );
+    canvas.drawLine(const Offset(0, 0), const Offset(0, ropeLength), paint);
 
     final headCenter = const Offset(0, ropeLength + headR);
 

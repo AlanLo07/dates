@@ -1,7 +1,7 @@
 // lib/screens/wedding/wedding_playlist.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'models/boda.dart';
+import '../../models/boda.dart';
 
 const Color _rose = Color(0xFFE91E63);
 const List<String> _momentos = ['Entrada', 'Primer baile', 'Vals', 'Fiesta'];
@@ -14,10 +14,30 @@ class WeddingPlaylistScreen extends StatefulWidget {
 
 class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
   final List<CancionBoda> _canciones = [
-    CancionBoda(id: '1', titulo: 'Perfect', artista: 'Ed Sheeran', momento: 'Entrada'),
-    CancionBoda(id: '2', titulo: "Can't Help Falling in Love", artista: 'Elvis Presley', momento: 'Primer baile'),
-    CancionBoda(id: '3', titulo: 'La Bikina', artista: 'Los Panchos', momento: 'Vals'),
-    CancionBoda(id: '4', titulo: 'Uptown Funk', artista: 'Bruno Mars', momento: 'Fiesta'),
+    CancionBoda(
+      id: '1',
+      titulo: 'Perfect',
+      artista: 'Ed Sheeran',
+      momento: 'Entrada',
+    ),
+    CancionBoda(
+      id: '2',
+      titulo: "Can't Help Falling in Love",
+      artista: 'Elvis Presley',
+      momento: 'Primer baile',
+    ),
+    CancionBoda(
+      id: '3',
+      titulo: 'La Bikina',
+      artista: 'Los Panchos',
+      momento: 'Vals',
+    ),
+    CancionBoda(
+      id: '4',
+      titulo: 'Uptown Funk',
+      artista: 'Bruno Mars',
+      momento: 'Fiesta',
+    ),
   ];
 
   Future<void> _abrirSpotify(String link) async {
@@ -65,7 +85,9 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
           ? _buildEmpty()
           : ListView(
               padding: const EdgeInsets.all(16),
-              children: _grouped.entries.where((e) => e.value.isNotEmpty).map((entry) {
+              children: _grouped.entries.where((e) => e.value.isNotEmpty).map((
+                entry,
+              ) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -73,11 +95,19 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Row(
                         children: [
-                          Icon(_iconoMomento(entry.key), size: 16, color: _rose),
+                          Icon(
+                            _iconoMomento(entry.key),
+                            size: 16,
+                            color: _rose,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             entry.key,
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: _rose, fontSize: 13),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _rose,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
@@ -130,9 +160,17 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(c.titulo, style: const TextStyle(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  c.titulo,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 if (c.artista.isNotEmpty)
-                  Text(c.artista, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                  Text(
+                    c.artista,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  ),
               ],
             ),
           ),
@@ -145,7 +183,11 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
                   color: const Color(0xFF1DB954).withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.play_arrow_rounded, color: Color(0xFF1DB954), size: 20),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: Color(0xFF1DB954),
+                  size: 20,
+                ),
               ),
             ),
         ],
@@ -160,7 +202,10 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
         children: [
           const Text('🎵', style: TextStyle(fontSize: 48)),
           const SizedBox(height: 12),
-          Text('Agrega su primera canción', style: TextStyle(color: Colors.grey.shade500)),
+          Text(
+            'Agrega su primera canción',
+            style: TextStyle(color: Colors.grey.shade500),
+          ),
         ],
       ),
     );
@@ -178,7 +223,12 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setLocal) => Container(
-          padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            24 + MediaQuery.of(ctx).viewInsets.bottom,
+          ),
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -186,27 +236,56 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Nueva canción', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _rose)),
+              const Text(
+                'Nueva canción',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: _rose,
+                ),
+              ),
               const SizedBox(height: 16),
               TextField(
                 controller: tituloCtrl,
-                decoration: InputDecoration(labelText: 'Título', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                decoration: InputDecoration(
+                  labelText: 'Título',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: artistaCtrl,
-                decoration: InputDecoration(labelText: 'Artista', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                decoration: InputDecoration(
+                  labelText: 'Artista',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: linkCtrl,
                 keyboardType: TextInputType.url,
-                decoration: InputDecoration(labelText: 'Link de Spotify (opcional)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                decoration: InputDecoration(
+                  labelText: 'Link de Spotify (opcional)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Momento', style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
+                child: Text(
+                  'Momento',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -216,7 +295,10 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
                   return GestureDetector(
                     onTap: () => setLocal(() => momento = m),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: selected ? _rose : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(20),
@@ -240,18 +322,22 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _rose,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () {
                     if (tituloCtrl.text.trim().isEmpty) return;
                     setState(() {
-                      _canciones.add(CancionBoda(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        titulo: tituloCtrl.text.trim(),
-                        artista: artistaCtrl.text.trim(),
-                        momento: momento,
-                        link: linkCtrl.text.trim(),
-                      ));
+                      _canciones.add(
+                        CancionBoda(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          titulo: tituloCtrl.text.trim(),
+                          artista: artistaCtrl.text.trim(),
+                          momento: momento,
+                          link: linkCtrl.text.trim(),
+                        ),
+                      );
                     });
                     Navigator.pop(context);
                   },

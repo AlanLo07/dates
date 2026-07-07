@@ -62,7 +62,7 @@ class _WeddingGiftsScreenState extends State<WeddingGiftsScreen> {
     ];
   }
 
-  List<Regalo> get _regalosFiltra​dos {
+  List<Regalo> get _regalosFilterados {
     if (_filtro == 'Adquiridos') {
       return _regalos.where((r) => r.adquirido).toList();
     }
@@ -73,11 +73,11 @@ class _WeddingGiftsScreenState extends State<WeddingGiftsScreen> {
   }
 
   double get _presupuestoTotal => _regalos.fold(0, (s, r) => s + r.precio);
-  double get _presupuestoCubierto => _regalos
-      .where((r) => r.adquirido)
-      .fold(0, (s, r) => s + r.precio);
-  double get _porcentajeCubierto =>
-      _presupuestoTotal == 0 ? 0 : (_presupuestoCubierto / _presupuestoTotal).clamp(0, 1);
+  double get _presupuestoCubierto =>
+      _regalos.where((r) => r.adquirido).fold(0, (s, r) => s + r.precio);
+  double get _porcentajeCubierto => _presupuestoTotal == 0
+      ? 0
+      : (_presupuestoCubierto / _presupuestoTotal).clamp(0, 1);
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +101,9 @@ class _WeddingGiftsScreenState extends State<WeddingGiftsScreen> {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -121,7 +123,10 @@ class _WeddingGiftsScreenState extends State<WeddingGiftsScreen> {
                               ),
                               const Text(
                                 'Presupuesto total',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ],
                           ),
@@ -137,7 +142,10 @@ class _WeddingGiftsScreenState extends State<WeddingGiftsScreen> {
                               ),
                               const Text(
                                 'Cubierto',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ],
                           ),
@@ -153,7 +161,10 @@ class _WeddingGiftsScreenState extends State<WeddingGiftsScreen> {
                               ),
                               const Text(
                                 'Progreso',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ],
                           ),
@@ -196,8 +207,8 @@ class _WeddingGiftsScreenState extends State<WeddingGiftsScreen> {
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
-                (_, i) => _buildRegaloCard(_regalosFiltra​dos[i]),
-                childCount: _regalosFiltra​dos.length,
+                (_, i) => _buildRegaloCard(_regalosFilterados[i]),
+                childCount: _regalosFilterados.length,
               ),
             ),
           ),
@@ -252,10 +263,7 @@ class _WeddingGiftsScreenState extends State<WeddingGiftsScreen> {
             const SizedBox(height: 4),
             Text(
               '\$${regalo.precio.toStringAsFixed(0)}',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: _rose,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, color: _rose),
             ),
             if (regalo.adquirido && regalo.compradorNombre != null)
               Text(
@@ -272,7 +280,9 @@ class _WeddingGiftsScreenState extends State<WeddingGiftsScreen> {
           itemBuilder: (_) => [
             PopupMenuItem(
               onTap: () => _marcarAdquirido(regalo),
-              child: Text(regalo.adquirido ? '✓ Desmarcar' : '☐ Marcar adquirido'),
+              child: Text(
+                regalo.adquirido ? '✓ Desmarcar' : '☐ Marcar adquirido',
+              ),
             ),
             const PopupMenuItem(child: Text('✏️ Editar')),
             const PopupMenuItem(
@@ -312,18 +322,25 @@ class _WeddingGiftsScreenState extends State<WeddingGiftsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(decoration: InputDecoration(hintText: 'Nombre del regalo')),
+              TextField(
+                decoration: InputDecoration(hintText: 'Nombre del regalo'),
+              ),
               SizedBox(height: 12),
               TextField(decoration: InputDecoration(hintText: 'Descripción')),
               SizedBox(height: 12),
               TextField(decoration: InputDecoration(hintText: 'Precio')),
               SizedBox(height: 12),
-              TextField(decoration: InputDecoration(hintText: 'Enlace (opcional)')),
+              TextField(
+                decoration: InputDecoration(hintText: 'Enlace (opcional)'),
+              ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Agregar'),

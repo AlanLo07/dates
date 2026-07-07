@@ -12,7 +12,7 @@ import 'wedding_itinerary.dart';
 import 'wedding_budget.dart';
 import 'wedding_playlist.dart';
 import 'wedding_invitation.dart';
-import 'wedding_flowers.dart';
+import 'weedding_flowers.dart';
 import 'wedding_lodging.dart';
 import 'wedding_look.dart';
 import 'wedding_menu.dart';
@@ -142,19 +142,11 @@ class WeddingScreen extends StatelessWidget {
           PopupMenuButton(
             color: Colors.white,
             itemBuilder: (_) => [
-              const PopupMenuItem(
-                child: Text('📥 Exportar Checklist (CSV)'),
-              ),
-              const PopupMenuItem(
-                child: Text('📥 Exportar Presupuesto (CSV)'),
-              ),
-              const PopupMenuItem(
-                child: Text('📥 Exportar Proveedores (CSV)'),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                child: Text('⚙️ Configuración'),
-              ),
+              // const PopupMenuItem(child: Text('📥 Exportar Checklist (CSV)')),
+              // const PopupMenuItem(child: Text('📥 Exportar Presupuesto (CSV)')),
+              // const PopupMenuItem(child: Text('📥 Exportar Proveedores (CSV)')),
+              // const PopupMenuDivider(),
+              // const PopupMenuItem(child: Text('⚙️ Configuración')),
             ],
           ),
         ],
@@ -172,7 +164,7 @@ class WeddingScreen extends StatelessWidget {
               ),
             ),
 
-          // ── Información rápida ────────────────────────────────────────
+            // ── Información rápida ────────────────────────────────────────
             SliverToBoxAdapter(
               child: MotionSectionReveal(
                 delay: const Duration(milliseconds: 120),
@@ -185,59 +177,68 @@ class WeddingScreen extends StatelessWidget {
                     child: const Padding(
                       padding: EdgeInsets.all(12),
                       child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Text(
-                            '13',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: _rose,
-                            ),
+                          Column(
+                            children: [
+                              Text(
+                                '13',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: _rose,
+                                ),
+                              ),
+                              Text(
+                                'Secciones',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            'Secciones',
-                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                          VerticalDivider(),
+                          Column(
+                            children: [
+                              Text(
+                                '∞',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: _rose,
+                                ),
+                              ),
+                              Text(
+                                'Detalles',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                          VerticalDivider(),
+                          Column(
+                            children: [
+                              Text(
+                                '✓',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                ),
+                              ),
+                              Text(
+                                'Listo',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
-                      ),
-                      VerticalDivider(),
-                      Column(
-                        children: [
-                          Text(
-                            '∞',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: _rose,
-                            ),
-                          ),
-                          Text(
-                            'Detalles',
-                            style: TextStyle(fontSize: 11, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                      VerticalDivider(),
-                      Column(
-                        children: [
-                          Text(
-                            '✓',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                          Text(
-                            'Listo',
-                            style: TextStyle(fontSize: 11, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ],
                       ),
                     ),
                   ),

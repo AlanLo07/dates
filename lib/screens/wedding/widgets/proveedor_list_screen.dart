@@ -1,7 +1,7 @@
 // lib/screens/wedding/widgets/proveedor_list_screen.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../models/boda.dart';
+import '../../../models/boda.dart';
 
 const Color _rose = Color(0xFFE91E63);
 
@@ -65,7 +65,10 @@ class _ProveedorListScreenState extends State<ProveedorListScreen> {
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: _rose),
         actions: [
-          IconButton(icon: const Icon(Icons.add, color: _rose), onPressed: () => _mostrarAgregar(context)),
+          IconButton(
+            icon: const Icon(Icons.add, color: _rose),
+            onPressed: () => _mostrarAgregar(context),
+          ),
         ],
       ),
       body: _items.isEmpty
@@ -80,7 +83,11 @@ class _ProveedorListScreenState extends State<ProveedorListScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Text(
                         entry.key,
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: _rose, fontSize: 13),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _rose,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                     ...entry.value.map((it) => _buildCard(it)),
@@ -99,7 +106,10 @@ class _ProveedorListScreenState extends State<ProveedorListScreen> {
         children: [
           Text(widget.emojiHeader, style: const TextStyle(fontSize: 48)),
           const SizedBox(height: 12),
-          Text('Agrega la primera opción', style: TextStyle(color: Colors.grey.shade500)),
+          Text(
+            'Agrega la primera opción',
+            style: TextStyle(color: Colors.grey.shade500),
+          ),
         ],
       ),
     );
@@ -109,26 +119,42 @@ class _ProveedorListScreenState extends State<ProveedorListScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Expanded(
-                child: Text(it.nombre, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                child: Text(
+                  it.nombre,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
               ),
               GestureDetector(
                 onTap: () => _cambiarEstado(it),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: it.estado.color.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     it.estado.label,
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: it.estado.color),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: it.estado.color,
+                    ),
                   ),
                 ),
               ),
@@ -141,15 +167,32 @@ class _ProveedorListScreenState extends State<ProveedorListScreen> {
               runSpacing: 4,
               children: [
                 if (it.contacto.isNotEmpty)
-                  Text('${widget.contactoLabel}: ${it.contacto}', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                  Text(
+                    '${widget.contactoLabel}: ${it.contacto}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  ),
                 if (it.costo > 0)
-                  Text(_fmt(it.costo), style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                  Text(
+                    _fmt(it.costo),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
               ],
             ),
           ],
           if (it.notas.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(it.notas, style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
+            Text(
+              it.notas,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade500,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           ],
           if (it.link.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -160,7 +203,14 @@ class _ProveedorListScreenState extends State<ProveedorListScreen> {
                 children: [
                   const Icon(Icons.open_in_new_rounded, size: 14, color: _rose),
                   const SizedBox(width: 4),
-                  const Text('Ver más', style: TextStyle(fontSize: 12, color: _rose, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Ver más',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _rose,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -172,7 +222,8 @@ class _ProveedorListScreenState extends State<ProveedorListScreen> {
 
   void _cambiarEstado(ProveedorBoda it) {
     setState(() {
-      final next = EstadoProveedor.values[(it.estado.index + 1) % EstadoProveedor.values.length];
+      final next = EstadoProveedor
+          .values[(it.estado.index + 1) % EstadoProveedor.values.length];
       it.estado = next;
     });
   }
@@ -191,7 +242,12 @@ class _ProveedorListScreenState extends State<ProveedorListScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setLocal) => Container(
-          padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            24 + MediaQuery.of(ctx).viewInsets.bottom,
+          ),
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -201,11 +257,23 @@ class _ProveedorListScreenState extends State<ProveedorListScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Nueva opción', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _rose)),
+                Text(
+                  'Nueva opción',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: _rose,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: nombreCtrl,
-                  decoration: InputDecoration(labelText: 'Nombre', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                  decoration: InputDecoration(
+                    labelText: 'Nombre',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -216,14 +284,23 @@ class _ProveedorListScreenState extends State<ProveedorListScreen> {
                     return GestureDetector(
                       onTap: () => setLocal(() => categoria = c),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: selected ? _rose : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           c,
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? Colors.white : Colors.grey.shade700),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: selected
+                                ? Colors.white
+                                : Colors.grey.shade700,
+                          ),
                         ),
                       ),
                     );
@@ -232,25 +309,45 @@ class _ProveedorListScreenState extends State<ProveedorListScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: contactoCtrl,
-                  decoration: InputDecoration(labelText: widget.contactoLabel, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                  decoration: InputDecoration(
+                    labelText: widget.contactoLabel,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: costoCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Costo (opcional)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                  decoration: InputDecoration(
+                    labelText: 'Costo (opcional)',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: linkCtrl,
                   keyboardType: TextInputType.url,
-                  decoration: InputDecoration(labelText: 'Link (opcional)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                  decoration: InputDecoration(
+                    labelText: 'Link (opcional)',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: notasCtrl,
                   maxLines: 2,
-                  decoration: InputDecoration(labelText: 'Notas (opcional)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                  decoration: InputDecoration(
+                    labelText: 'Notas (opcional)',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
@@ -258,20 +355,24 @@ class _ProveedorListScreenState extends State<ProveedorListScreen> {
                     backgroundColor: _rose,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () {
                     if (nombreCtrl.text.trim().isEmpty) return;
                     setState(() {
-                      _items.add(ProveedorBoda(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        nombre: nombreCtrl.text.trim(),
-                        categoria: categoria,
-                        contacto: contactoCtrl.text.trim(),
-                        link: linkCtrl.text.trim(),
-                        costo: double.tryParse(costoCtrl.text) ?? 0,
-                        notas: notasCtrl.text.trim(),
-                      ));
+                      _items.add(
+                        ProveedorBoda(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          nombre: nombreCtrl.text.trim(),
+                          categoria: categoria,
+                          contacto: contactoCtrl.text.trim(),
+                          link: linkCtrl.text.trim(),
+                          costo: double.tryParse(costoCtrl.text) ?? 0,
+                          notas: notasCtrl.text.trim(),
+                        ),
+                      );
                     });
                     Navigator.pop(context);
                   },

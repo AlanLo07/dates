@@ -1,4 +1,5 @@
 // lib/models/boda.dart
+import 'package:flutter/material.dart';
 
 // ── Invitado ───────────────────────────────────────────────────────────────
 enum RsvpStatus { confirmado, pendiente, noVa }
@@ -283,7 +284,7 @@ class ProveedorBoda {
 class LookBoda {
   final String id;
   String persona; // 'Ella' | 'Él'
-  String prenda;  // 'Vestido', 'Traje', 'Zapatos', 'Accesorios'...
+  String prenda; // 'Vestido', 'Traje', 'Zapatos', 'Accesorios'...
   String tienda;
   String talla;
   double precio;
