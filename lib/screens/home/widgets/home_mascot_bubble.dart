@@ -20,10 +20,10 @@ class HomeMascotBubble extends StatefulWidget {
 class _HomeMascotBubbleState extends State<HomeMascotBubble>
     with SingleTickerProviderStateMixin {
   static const List<String> _images = [
-    'Alan1.jpeg',
-    'Alan2.jpeg',
-    'Nati1.jpeg',
-    'Nati2.jpeg',
+    'assets/Alan1.jpeg',
+    'assets/Alan2.jpeg',
+    'assets/Nati1.jpeg',
+    'assets/Nati2.jpeg',
   ];
 
   final Random _random = Random();
