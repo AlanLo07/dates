@@ -48,6 +48,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   SongOfWeek? _songOfWeek;
   bool _songLoading = true;
+  bool _weeklyLoading = true;
+  Map<PhraseType, LovePhrase> _weeklyPhrases = {};
 
   final EventService _eventService = EventService();
 
@@ -60,6 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
       (_) => _calcDuration(),
     );
     _loadSong();
+    _loadWeeklyPhrases();
   }
 
   Duration _calcDuration() {
@@ -89,6 +92,74 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() => _songLoading = false);
       }
     }
+  }
+
+  Future<void> _loadWeeklyPhrases() async {
+    setState(() => _weeklyLoading = true);
+    try {
+      final all = await PhrasesService().getPhrases();
+      final byType = <PhraseType, LovePhrase>{};
+      for (final type in PhraseType.values) {
+        final options = all.where((p) => p.type == type).toList();
+        if (options.isEmpty) {
+          continue;
+        }
+        byType[type] = _pickWeeklyPhrase(options, type);
+      }
+      if (mounted) {
+        setState(() {
+          _weeklyPhrases = byType;
+          _weeklyLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _weeklyLoading = false);
+      }
+    }
+  }
+
+  LovePhrase _pickWeeklyPhrase(List<LovePhrase> options, PhraseType type) {
+    final seedText = '${SongOfWeek.currentWeekKey()}-${type.name}';
+    final seed = seedText.codeUnits.fold<int>(0, (acc, c) => acc + c);
+    return options[seed % options.length];
+  }
+
+  List<WeeklyHighlightItem> _buildWeeklyItems() {
+    final items = <WeeklyHighlightItem>[];
+
+    final cancionFromPhrases = _weeklyPhrases[PhraseType.cancion];
+    final songTitle = _songOfWeek?.title ?? cancionFromPhrases?.title ?? 'Sin canción';
+    final songSubtitle =
+        _songOfWeek?.artista ?? cancionFromPhrases?.credits ?? 'Toca ✏️ para elegir';
+    final songUrl = _songOfWeek?.link ?? cancionFromPhrases?.link ?? '';
+
+    items.add(
+      WeeklyHighlightItem(
+        type: PhraseType.cancion,
+        title: songTitle,
+        subtitle: songSubtitle,
+        url: songUrl,
+        canEdit: true,
+      ),
+    );
+
+    for (final type in PhraseType.values.where((t) => t != PhraseType.cancion)) {
+      final phrase = _weeklyPhrases[type];
+      if (phrase == null) {
+        continue;
+      }
+      items.add(
+        WeeklyHighlightItem(
+          type: type,
+          title: phrase.title.isNotEmpty ? phrase.title : phrase.text,
+          subtitle: phrase.credits.isNotEmpty ? phrase.credits : phrase.text,
+          url: phrase.link,
+        ),
+      );
+    }
+
+    return items;
   }
 
   Future<void> _setRandomSong({bool notify = true}) async {
@@ -191,8 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _launchSong() async {
-    final url = _songOfWeek?.link ?? '';
+  Future<void> _launchUrl(String url) async {
     if (url.isEmpty) {
       return;
     }
@@ -230,11 +300,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         .animate()
                         .fadeIn(duration: _kFadeDuration)
                         .slideY(begin: 0.06, duration: _kSlideDuration),
-                    HomeSongOfTheWeekStrip(
-                          song: _songOfWeek,
-                          isLoading: _songLoading,
-                          onTap: _launchSong,
-                          onEdit: _mostrarEditorCancion,
+                      HomeWeeklyHighlightsStrip(
+                        items: _buildWeeklyItems(),
+                        isLoading: _songLoading || _weeklyLoading,
+                        onTapItem: (item) => _launchUrl(item.url),
+                        onSongEdit: _mostrarEditorCancion,
                         )
                         .animate()
                         .fadeIn(delay: 100.ms, duration: _kFadeDuration)
