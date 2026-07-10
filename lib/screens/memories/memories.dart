@@ -471,6 +471,26 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
 
     setState(() => _isLoading = true);
 
+    int prioridadNueva = 9999;
+    try {
+      final existentes = await ApiService().getCitas(forceRefresh: true);
+      final noVisitadasMismaCategoria = existentes.where(
+        (c) => c.typeLocation == _typeLocation && !c.isVisited,
+      );
+
+      int maxPrioridad = 0;
+      for (final c in noVisitadasMismaCategoria) {
+        if (c.prioridad > maxPrioridad) {
+          maxPrioridad = c.prioridad;
+        }
+      }
+      prioridadNueva = maxPrioridad + 1;
+    } catch (_) {
+      // Si falla la consulta previa, se mantiene prioridad alta para que quede
+      // al final por defecto sin bloquear la creación de la cita.
+      prioridadNueva = 9999;
+    }
+
     final nuevaCita = Cita(
       nombre: nombre,
       descripcion: descripcion,
@@ -482,6 +502,7 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
       typeLocation: _typeLocation,
       isVisited: false,
       rating: 0.0,
+      prioridad: prioridadNueva,
     );
 
     try {

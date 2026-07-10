@@ -53,9 +53,66 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
       .where((l) => l.typeLocation == citaSelected.typeLocation)
       .toList();
 
+  int _compareByPrioridad(Cita a, Cita b) {
+    final pa = a.prioridad <= 0 ? 999999 : a.prioridad;
+    final pb = b.prioridad <= 0 ? 999999 : b.prioridad;
+    final byPriority = pa.compareTo(pb);
+    if (byPriority != 0) return byPriority;
+    return a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase());
+  }
+
+  List<Cita> _sortedGroupByPrioridad(bool isVisited) {
+    final group = _lugares.where((l) => l.isVisited == isVisited).toList();
+    group.sort(_compareByPrioridad);
+    return group;
+  }
+
+  List<Cita> get _lugaresOrdenados {
+    return [
+      ..._sortedGroupByPrioridad(false),
+      ..._sortedGroupByPrioridad(true),
+    ];
+  }
+
   int get _visitados => _lugares.where((l) => l.isVisited).length;
   int get _total => _lugares.length;
   double get _progreso => _total == 0 ? 0.0 : _visitados / _total;
+
+  List<Cita> _normalizeGroupPrioridad(List<Cita> group) {
+    final ordered = [...group]..sort(_compareByPrioridad);
+    for (int i = 0; i < ordered.length; i++) {
+      ordered[i].prioridad = i + 1;
+    }
+    return ordered;
+  }
+
+  Future<void> _reindexAndPersistCategoryGroups() async {
+    final unvisited = _normalizeGroupPrioridad(_sortedGroupByPrioridad(false));
+    final visited = _normalizeGroupPrioridad(_sortedGroupByPrioridad(true));
+    await saveLugares([...unvisited, ...visited]);
+  }
+
+  Future<void> _movePriority(Cita lugar, int delta) async {
+    final group = _sortedGroupByPrioridad(lugar.isVisited);
+    if (group.length < 2) return;
+
+    final normalized = _normalizeGroupPrioridad(group);
+    final fromIndex = normalized.indexOf(lugar);
+    if (fromIndex < 0) return;
+
+    final toIndex = (fromIndex + delta).clamp(0, normalized.length - 1);
+    if (toIndex == fromIndex) return;
+
+    final item = normalized.removeAt(fromIndex);
+    normalized.insert(toIndex, item);
+
+    for (int i = 0; i < normalized.length; i++) {
+      normalized[i].prioridad = i + 1;
+    }
+
+    setState(() {});
+    await saveLugares(normalized);
+  }
 
   void _onVisitadoChanged(Cita lugar, bool value) {
     final beforeVisited = _visitados;
@@ -63,7 +120,7 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
     final wasComplete = _total > 0 && beforeVisited == _total;
 
     setState(() => lugar.isVisited = value);
-    saveLugares(lugar);
+  unawaited(_reindexAndPersistCategoryGroups());
 
     final nowVisited = _visitados;
     final nowProgress = _progreso;
@@ -115,7 +172,7 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
         return GestureDetector(
           onTap: () {
             setState(() => lugar.rating = index + 1.0);
-            saveLugares(lugar);
+            unawaited(saveLugares([lugar]));
           },
           child: Icon(
             index < lugar.rating
@@ -131,7 +188,7 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final lugares = _lugares;
+    final lugares = _lugaresOrdenados;
     final visitados = _visitados;
     final total = _total;
     final progreso = _progreso;
@@ -211,8 +268,12 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
                                 _onVisitadoChanged(lugar, value),
                             onRatingChanged: (value) {
                               setState(() => lugar.rating = value);
-                              saveLugares(lugar);
+                              unawaited(saveLugares([lugar]));
                             },
+                            onMovePriorityUp: () =>
+                                unawaited(_movePriority(lugar, -1)),
+                            onMovePriorityDown: () =>
+                                unawaited(_movePriority(lugar, 1)),
                             onTap: () => Navigator.of(
                               context,
                             ).push(createRoute(ResultScreen(cita: lugar))),
@@ -315,8 +376,8 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
     );
   }
 
-  Future<void> saveLugares(lugar) async {
-    List<Cita> lista = [lugar];
+  Future<void> saveLugares(List<Cita> lista) async {
+    if (lista.isEmpty) return;
     try {
       await ApiService().syncLugares(lista);
     } catch (e) {
@@ -474,12 +535,16 @@ class _LugarCard extends StatelessWidget {
   final Cita lugar;
   final ValueChanged<bool> onVisitadoChanged;
   final ValueChanged<double> onRatingChanged;
+  final VoidCallback onMovePriorityUp;
+  final VoidCallback onMovePriorityDown;
   final VoidCallback onTap;
 
   const _LugarCard({
     required this.lugar,
     required this.onVisitadoChanged,
     required this.onRatingChanged,
+    required this.onMovePriorityUp,
+    required this.onMovePriorityDown,
     required this.onTap,
   });
 
@@ -561,6 +626,45 @@ class _LugarCard extends StatelessWidget {
               color: Colors.grey.shade400,
             ),
             onTap: onTap,
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.violeta.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Prioridad ${lugar.prioridad <= 0 ? '-' : lugar.prioridad}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.violeta,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Subir prioridad',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onMovePriorityUp,
+                  icon: const Icon(Icons.arrow_upward_rounded, size: 18),
+                ),
+                IconButton(
+                  tooltip: 'Bajar prioridad',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onMovePriorityDown,
+                  icon: const Icon(Icons.arrow_downward_rounded, size: 18),
+                ),
+              ],
+            ),
           ),
 
           // ── Rating (solo visible si fue visitado) ──────────────────────

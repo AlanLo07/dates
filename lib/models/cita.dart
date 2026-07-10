@@ -11,6 +11,7 @@ class Cita {
   final String typeLocation;
   bool isVisited;
   double rating;
+  int prioridad;
 
   Cita({
     required this.nombre,
@@ -23,10 +24,14 @@ class Cita {
     this.typeLocation = '',
     this.isVisited = false,
     this.rating = 0.0,
+    this.prioridad = 9999,
   });
 
   // Método para convertir JSON a objeto Cita
   factory Cita.fromJson(Map<String, dynamic> json) {
+    final dynamic rawRating = json['rating'];
+    final dynamic rawPrioridad = json['prioridad'];
+
     return Cita(
       nombre: json['nombre'],
       descripcion: json['descripcion'],
@@ -34,10 +39,15 @@ class Cita {
       presupuesto: json['presupuesto'],
       tiempo: json['tiempo'],
       link: json['link'],
-      imagenUrl: json['imagenUrl'],
-      typeLocation: json['typeLocation'],
-      isVisited: json["isVisited"],
-      rating: json["rating"],
+      imagenUrl: (json['imagenUrl'] ?? '').toString(),
+      typeLocation: (json['typeLocation'] ?? '').toString(),
+      isVisited: json['isVisited'] == true,
+      rating: rawRating is num
+          ? rawRating.toDouble()
+          : double.tryParse(rawRating?.toString() ?? '') ?? 0.0,
+      prioridad: rawPrioridad is int
+          ? rawPrioridad
+          : int.tryParse(rawPrioridad?.toString() ?? '') ?? 9999,
     );
   }
 
@@ -53,6 +63,7 @@ class Cita {
       'typeLocation': typeLocation,
       'isVisited': isVisited,
       'rating': rating,
+      'prioridad': prioridad,
     };
   }
 }
