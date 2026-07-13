@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../../models/cita.dart';
 import 'result.dart';
 import '../../utils/animations.dart';
+import '../../utils/cita_search.dart';
 import '../../utils/colors.dart';
 import '../../services/cita_service.dart';
 
@@ -32,6 +33,8 @@ class InputScreen extends StatefulWidget {
 class _InputScreenState extends State<InputScreen> {
   bool _isLoading = false;
   bool _isRouletteMode = false;
+  final TextEditingController _rouletteSearchController =
+      TextEditingController();
 
   // Filtros
   String? _selectedCategory;
@@ -69,6 +72,26 @@ class _InputScreenState extends State<InputScreen> {
   List<Cita> _allCitas = []; // citas cargadas de la API
   List<Cita> _filteredCitas = []; // citas filtradas para mostrar
   List<Cita> _ruletaItems = []; // items seleccionados para la ruleta
+  String _rouletteSearchQuery = '';
+    String? _selectedTypeLocation;
+
+    CitaQuickFilters get _rouletteQuickFilters => CitaQuickFilters(
+      categoria:
+        _selectedCategory == null || _selectedCategory == 'Cualquiera'
+          ? null
+          : _selectedCategory,
+      presupuesto:
+        _selectedBudget == null || _selectedBudget == 'Cualquiera'
+          ? null
+          : _selectedBudget,
+      typeLocation: _selectedTypeLocation,
+      );
+
+  @override
+  void dispose() {
+    _rouletteSearchController.dispose();
+    super.dispose();
+  }
 
   Future<void> _loadCitasParaRuleta() async {
     if (_allCitas.isNotEmpty) {
@@ -91,17 +114,21 @@ class _InputScreenState extends State<InputScreen> {
 
   void _applyFiltersToRuleta() {
     final filtered = _allCitas.where((cita) {
-      bool cumpleCategoria =
-          (_selectedCategory == 'Cualquiera' || _selectedCategory == null) ||
-          cita.categoria == _selectedCategory;
-      bool cumplePresupuesto =
-          (_selectedBudget == 'Cualquiera' || _selectedBudget == null) ||
-          cita.presupuesto == _selectedBudget;
       bool cumpleTiempo = cita.tiempo <= _selectedTimeHours;
-      return cumpleCategoria && cumplePresupuesto && cumpleTiempo;
-    }).toList();
+      bool cumpleBusqueda = matchesCitaFilters(
+        cita,
+        query: _rouletteSearchQuery,
+        filters: _rouletteQuickFilters,
+      );
+      return cumpleTiempo && cumpleBusqueda;
+    });
 
-    setState(() => _filteredCitas = filtered);
+    setState(
+      () => _filteredCitas = sortCitasBySearchRelevance(
+        filtered,
+        _rouletteSearchQuery,
+      ),
+    );
   }
 
   void _addToRuleta(Cita cita) {
@@ -429,6 +456,30 @@ class _InputScreenState extends State<InputScreen> {
                 _buildSectionLabel('Tiempo máximo'),
                 const SizedBox(height: 8),
                 _buildTimeSlider(onChanged: (_) => _applyFiltersToRuleta()),
+                const SizedBox(height: 16),
+                CitaSearchField(
+                  controller: _rouletteSearchController,
+                  hintText: 'Busca por nombre, categoría, presupuesto o lugar',
+                  onChanged: (value) {
+                    setState(() => _rouletteSearchQuery = value);
+                    _applyFiltersToRuleta();
+                  },
+                ),
+                const SizedBox(height: 12),
+                CitaQuickFilterChips(
+                  citas: _allCitas,
+                  filters: _rouletteQuickFilters,
+                  query: _rouletteSearchQuery,
+                  extraPredicate: (cita) => cita.tiempo <= _selectedTimeHours,
+                  onChanged: (filters) {
+                    setState(() {
+                      _selectedCategory = filters.categoria ?? 'Cualquiera';
+                      _selectedBudget = filters.presupuesto ?? 'Cualquiera';
+                      _selectedTypeLocation = filters.typeLocation;
+                    });
+                    _applyFiltersToRuleta();
+                  },
+                ),
                 const SizedBox(height: 20),
 
                 // Items seleccionados para la ruleta
@@ -461,39 +512,51 @@ class _InputScreenState extends State<InputScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                if (_isLoading)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: CircularProgressIndicator(
-                        color: AppColors.violeta,
-                      ),
-                    ),
-                  )
-                else if (_filteredCitas.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Text(
-                        'Cambia los filtros para ver citas 🔍',
-                        style: TextStyle(color: Colors.grey.shade500),
-                      ),
-                    ),
-                  )
-                else
-                  ..._filteredCitas.map((cita) {
-                    final inRuleta = _ruletaItems.any(
-                      (c) => c.nombre == cita.nombre,
-                    );
-                    return _CitaSelectableCard(
-                      cita: cita,
-                      isSelected: inRuleta,
-                      ruletaFull: _ruletaItems.length >= 10,
-                      onTap: () => inRuleta
-                          ? _removeFromRuleta(cita)
-                          : _addToRuleta(cita),
-                    );
-                  }),
+                CitaResultsSwitcher(
+                  transitionKey: [
+                    _rouletteSearchQuery,
+                    _selectedCategory ?? '',
+                    _selectedBudget ?? '',
+                    _selectedTypeLocation ?? '',
+                    _selectedTimeHours.round(),
+                    ..._filteredCitas.map((cita) => cita.nombre),
+                  ].join('|'),
+                  child: _isLoading
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: CircularProgressIndicator(
+                              color: AppColors.violeta,
+                            ),
+                          ),
+                        )
+                      : _filteredCitas.isEmpty
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Text(
+                                  'Cambia los filtros para ver citas 🔍',
+                                  style: TextStyle(color: Colors.grey.shade500),
+                                ),
+                              ),
+                            )
+                          : Column(
+                              children: _filteredCitas.map((cita) {
+                                final inRuleta = _ruletaItems.any(
+                                  (c) => c.nombre == cita.nombre,
+                                );
+                                return _CitaSelectableCard(
+                                  cita: cita,
+                                  searchQuery: _rouletteSearchQuery,
+                                  isSelected: inRuleta,
+                                  ruletaFull: _ruletaItems.length >= 10,
+                                  onTap: () => inRuleta
+                                      ? _removeFromRuleta(cita)
+                                      : _addToRuleta(cita),
+                                );
+                              }).toList(),
+                            ),
+                ),
 
                 const SizedBox(height: 80),
               ],
@@ -719,12 +782,14 @@ class _RuletaSelectedItem extends StatelessWidget {
 // ── Card seleccionable de cita ─────────────────────────────────────────────
 class _CitaSelectableCard extends StatelessWidget {
   final Cita cita;
+  final String searchQuery;
   final bool isSelected;
   final bool ruletaFull;
   final VoidCallback onTap;
 
   const _CitaSelectableCard({
     required this.cita,
+    required this.searchQuery,
     required this.isSelected,
     required this.ruletaFull,
     required this.onTap,
@@ -733,6 +798,20 @@ class _CitaSelectableCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final disabled = ruletaFull && !isSelected;
+    final summary = citaSearchSummary(cita);
+    final showDescription = shouldShowCitaDescription(cita, searchQuery);
+    final descriptionPrimaryMatch =
+        isDescriptionPrimaryMatch(cita, searchQuery);
+    final titleStyle = TextStyle(
+      fontWeight: FontWeight.w600,
+      color: disabled ? Colors.grey.shade400 : AppColors.violeta,
+      fontSize: 13,
+    );
+    final descriptionStyle = TextStyle(
+      fontSize: 11,
+      color: Colors.grey.shade500,
+    );
+
     return GestureDetector(
       onTap: disabled ? null : onTap,
       child: AnimatedContainer(
@@ -770,27 +849,53 @@ class _CitaSelectableCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  CitaHighlightedText(
                     cita.nombre,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: disabled
-                          ? Colors.grey.shade400
-                          : AppColors.violeta,
-                      fontSize: 13,
+                    query: searchQuery,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: titleStyle,
+                    highlightStyle: titleStyle.copyWith(
+                      fontWeight: FontWeight.w800,
+                      backgroundColor: AppColors.malva.withOpacity(0.32),
                     ),
                   ),
                   Row(
                     children: [
-                      Text(
-                        '${cita.presupuesto} · ${cita.tiempo}h',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade500,
+                      Expanded(
+                        child: CitaHighlightedText(
+                          summary.isEmpty
+                              ? '${cita.presupuesto} · ${cita.tiempo}h'
+                              : summary,
+                          query: searchQuery,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
                         ),
                       ),
                     ],
                   ),
+                  if (descriptionPrimaryMatch) ...[
+                    const SizedBox(height: 4),
+                    const CitaDescriptionMatchBadge(),
+                  ],
+                  if (showDescription) ...[
+                    const SizedBox(height: 4),
+                    CitaHighlightedText(
+                      cita.descripcion,
+                      query: searchQuery,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: descriptionStyle,
+                      highlightStyle: descriptionStyle.copyWith(
+                        fontWeight: FontWeight.w700,
+                        backgroundColor: AppColors.celeste.withOpacity(0.38),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -8,6 +8,7 @@ import '../../services/cita_service.dart';
 import '../../models/cita.dart';
 import 'result.dart';
 import '../../utils/animations.dart';
+import '../../utils/cita_search.dart';
 import '../../utils/colors.dart';
 import 'adventure_map.dart';
 
@@ -28,9 +29,12 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
   late Cita citaSelected;
   late List<Cita> listaLugares;
   late final ConfettiController _confettiController;
+  final TextEditingController _searchController = TextEditingController();
+  CitaQuickFilters _quickFilters = const CitaQuickFilters();
 
   String? _achievementText;
   int _achievementTick = 0;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -45,6 +49,7 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
   @override
   void dispose() {
     _confettiController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -52,6 +57,22 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
   List<Cita> get _lugares => listaLugares
       .where((l) => l.typeLocation == citaSelected.typeLocation)
       .toList();
+
+  List<Cita> get _lugaresFiltrados {
+    final lugares = _lugares.where(
+      (l) => matchesCitaFilters(
+        l,
+        query: _searchQuery,
+        filters: _quickFilters,
+      ),
+    );
+
+    return sortCitasBySearchRelevance(
+      lugares,
+      _searchQuery,
+      tieBreaker: _compareByPrioridad,
+    );
+  }
 
   int _compareByPrioridad(Cita a, Cita b) {
     final pa = a.prioridad <= 0 ? 999999 : a.prioridad;
@@ -69,9 +90,14 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
 
   List<Cita> get _lugaresOrdenados {
     return [
-      ..._sortedGroupByPrioridad(false),
-      ..._sortedGroupByPrioridad(true),
+      ..._sortListByPrioridad(_lugaresFiltrados.where((l) => !l.isVisited).toList()),
+      ..._sortListByPrioridad(_lugaresFiltrados.where((l) => l.isVisited).toList()),
     ];
+  }
+
+  List<Cita> _sortListByPrioridad(List<Cita> group) {
+    final sorted = [...group]..sort(_compareByPrioridad);
+    return sorted;
   }
 
   int get _visitados => _lugares.where((l) => l.isVisited).length;
@@ -252,34 +278,69 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
                 mensaje: progresoMensaje,
               ),
               _buildAchievementBanner(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CitaSearchField(
+                      controller: _searchController,
+                      hintText:
+                          'Busca por nombre, categoría, presupuesto o lugar',
+                      onChanged: (value) =>
+                          setState(() => _searchQuery = value),
+                    ),
+                    const SizedBox(height: 12),
+                    CitaQuickFilterChips(
+                      citas: _lugares,
+                      filters: _quickFilters,
+                      query: _searchQuery,
+                      onChanged: (filters) =>
+                          setState(() => _quickFilters = filters),
+                    ),
+                  ],
+                ),
+              ),
 
               // ── Lista de lugares ────────────────────────────────────────────
               Expanded(
-                child: total == 0
-                    ? _buildEmpty()
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                        itemCount: lugares.length,
-                        itemBuilder: (context, index) {
-                          final lugar = lugares[index];
-                          return _LugarCard(
-                            lugar: lugar,
-                            onVisitadoChanged: (value) =>
-                                _onVisitadoChanged(lugar, value),
-                            onRatingChanged: (value) {
-                              setState(() => lugar.rating = value);
-                              unawaited(saveLugares([lugar]));
-                            },
-                            onMovePriorityUp: () =>
-                                unawaited(_movePriority(lugar, -1)),
-                            onMovePriorityDown: () =>
-                                unawaited(_movePriority(lugar, 1)),
-                            onTap: () => Navigator.of(
-                              context,
-                            ).push(createRoute(ResultScreen(cita: lugar))),
-                          );
-                        },
-                      ),
+                child: CitaResultsSwitcher(
+                  transitionKey: [
+                    _searchQuery,
+                    _quickFilters.categoria ?? '',
+                    _quickFilters.presupuesto ?? '',
+                    _quickFilters.typeLocation ?? '',
+                    ...lugares.map((lugar) => lugar.nombre),
+                  ].join('|'),
+                  child: total == 0
+                      ? _buildEmpty()
+                      : lugares.isEmpty
+                          ? _buildEmptySearch()
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                              itemCount: lugares.length,
+                              itemBuilder: (context, index) {
+                                final lugar = lugares[index];
+                                return _LugarCard(
+                                  lugar: lugar,
+                                  searchQuery: _searchQuery,
+                                  onVisitadoChanged: (value) =>
+                                      _onVisitadoChanged(lugar, value),
+                                  onRatingChanged: (value) {
+                                    setState(() => lugar.rating = value);
+                                    unawaited(saveLugares([lugar]));
+                                  },
+                                  onMovePriorityUp: () =>
+                                      unawaited(_movePriority(lugar, -1)),
+                                  onMovePriorityDown: () =>
+                                      unawaited(_movePriority(lugar, 1)),
+                                  onTap: () => Navigator.of(
+                                    context,
+                                  ).push(createRoute(ResultScreen(cita: lugar))),
+                                );
+                              },
+                            ),
+                ),
               ),
             ],
           ),
@@ -370,6 +431,33 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
           Text(
             'Agrega lugares desde la pantalla anterior',
             style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptySearch() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.search_off_rounded,
+              size: 52, color: AppColors.violeta),
+          const SizedBox(height: 16),
+          const Text(
+            'No encontramos citas con esa búsqueda',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.violeta,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Prueba con otra categoría, presupuesto o tipo de lugar',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -533,6 +621,7 @@ class _ProgressHeader extends StatelessWidget {
 // ── Card individual de lugar ───────────────────────────────────────────────────
 class _LugarCard extends StatelessWidget {
   final Cita lugar;
+  final String searchQuery;
   final ValueChanged<bool> onVisitadoChanged;
   final ValueChanged<double> onRatingChanged;
   final VoidCallback onMovePriorityUp;
@@ -541,6 +630,7 @@ class _LugarCard extends StatelessWidget {
 
   const _LugarCard({
     required this.lugar,
+    required this.searchQuery,
     required this.onVisitadoChanged,
     required this.onRatingChanged,
     required this.onMovePriorityUp,
@@ -550,6 +640,20 @@ class _LugarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final descriptionPrimaryMatch =
+        isDescriptionPrimaryMatch(lugar, searchQuery);
+    final titleStyle = TextStyle(
+      decoration: lugar.isVisited ? TextDecoration.lineThrough : null,
+      decorationColor: Colors.grey,
+      color: lugar.isVisited ? Colors.grey.shade400 : AppColors.violeta,
+      fontWeight: FontWeight.bold,
+      fontSize: 14,
+    );
+    final descriptionStyle = TextStyle(
+      fontSize: 12,
+      color: Colors.grey.shade500,
+    );
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.only(bottom: 10),
@@ -599,25 +703,53 @@ class _LugarCard extends StatelessWidget {
                 ),
               ),
             ),
-            title: Text(
+            title: CitaHighlightedText(
               lugar.nombre,
-              style: TextStyle(
-                decoration: lugar.isVisited ? TextDecoration.lineThrough : null,
-                decorationColor: Colors.grey,
-                color: lugar.isVisited
-                    ? Colors.grey.shade400
-                    : AppColors.violeta,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+              query: searchQuery,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: titleStyle,
+              highlightStyle: titleStyle.copyWith(
+                fontWeight: FontWeight.w800,
+                backgroundColor: AppColors.malva.withOpacity(0.32),
               ),
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                lugar.descripcion,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (descriptionPrimaryMatch) ...[
+                    const CitaDescriptionMatchBadge(),
+                    const SizedBox(height: 4),
+                  ],
+                  CitaHighlightedText(
+                    lugar.descripcion,
+                    query: searchQuery,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: descriptionStyle,
+                    highlightStyle: descriptionStyle.copyWith(
+                      fontWeight: FontWeight.w700,
+                      backgroundColor: AppColors.celeste.withOpacity(0.38),
+                    ),
+                  ),
+                  if (citaSearchSummary(lugar).isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    CitaHighlightedText(
+                      citaSearchSummary(lugar),
+                      query: searchQuery,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade400,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             trailing: Icon(

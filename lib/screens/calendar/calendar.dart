@@ -21,6 +21,7 @@ import '../../models/cita.dart';
 import '../../services/events.dart';
 import '../../services/cita_service.dart';
 import '../../services/upload_service.dart';
+import '../../utils/cita_search.dart';
 import 'counter.dart';
 import '../letters/letters.dart';
 
@@ -1745,7 +1746,7 @@ class _AgendarDesdeCalendarioSheetState
 // ─────────────────────────────────────────────────────────────────────────────
 // Sheet selector de citas
 // ─────────────────────────────────────────────────────────────────────────────
-class _CitaSelectorSheet extends StatelessWidget {
+class _CitaSelectorSheet extends StatefulWidget {
   final List<Cita> citas;
   final Cita? citaSeleccionada;
   final void Function(Cita) onSeleccionada;
@@ -1759,7 +1760,43 @@ class _CitaSelectorSheet extends StatelessWidget {
   });
 
   @override
+  State<_CitaSelectorSheet> createState() => _CitaSelectorSheetState();
+}
+
+class _CitaSelectorSheetState extends State<_CitaSelectorSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  CitaQuickFilters _quickFilters = const CitaQuickFilters();
+
+  List<Cita> get _filteredCitas {
+    final citas = widget.citas.where(
+      (cita) => matchesCitaFilters(
+        cita,
+        query: _searchQuery,
+        filters: _quickFilters,
+      ),
+    );
+
+    return sortCitasBySearchRelevance(citas, _searchQuery);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final filteredCitas = _filteredCitas;
+    final resultsKey = [
+      _searchQuery,
+      _quickFilters.categoria ?? '',
+      _quickFilters.presupuesto ?? '',
+      _quickFilters.typeLocation ?? '',
+      ...filteredCitas.map((cita) => cita.nombre),
+    ].join('|');
+
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.7,
@@ -1800,6 +1837,27 @@ class _CitaSelectorSheet extends StatelessWidget {
             ),
           ),
           const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CitaSearchField(
+                  controller: _searchController,
+                  hintText: 'Busca por nombre, categoría, presupuesto o lugar',
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                ),
+                const SizedBox(height: 12),
+                CitaQuickFilterChips(
+                  citas: widget.citas,
+                  filters: _quickFilters,
+                  query: _searchQuery,
+                  onChanged: (filters) =>
+                      setState(() => _quickFilters = filters),
+                ),
+              ],
+            ),
+          ),
           ListTile(
             leading: Container(
               width: 40,
@@ -1820,56 +1878,127 @@ class _CitaSelectorSheet extends StatelessWidget {
             subtitle: const Text('Escribe el título y descripción manualmente'),
             onTap: () {
               Navigator.of(context).pop();
-              onNuevaCita();
+              widget.onNuevaCita();
             },
           ),
           const Divider(height: 1),
           Flexible(
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: citas.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
-              itemBuilder: (ctx, i) {
-                final cita = citas[i];
-                final isSelected = citaSeleccionada?.nombre == cita.nombre;
-                return ListTile(
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.violeta
-                          : const Color(0xFFEDE9F5),
-                      borderRadius: BorderRadius.circular(8),
+            child: CitaResultsSwitcher(
+              transitionKey: resultsKey,
+              child: filteredCitas.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'No hay citas que coincidan con tu búsqueda',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: filteredCitas.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(height: 1, indent: 72),
+                      itemBuilder: (ctx, i) {
+                        final cita = filteredCitas[i];
+                        final isSelected =
+                            widget.citaSeleccionada?.nombre == cita.nombre;
+                        final summary = citaSearchSummary(cita);
+                        final showDescription =
+                            shouldShowCitaDescription(cita, _searchQuery);
+                        final descriptionPrimaryMatch =
+                          isDescriptionPrimaryMatch(cita, _searchQuery);
+                        final titleStyle = TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: isSelected
+                            ? AppColors.violeta
+                            : Colors.black87,
+                        );
+                        final descriptionStyle =
+                          TextStyle(color: Colors.grey.shade600);
+                        return ListTile(
+                          leading: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.violeta
+                                  : const Color(0xFFEDE9F5),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.backpack_outlined,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.violeta,
+                              size: 20,
+                            ),
+                          ),
+                          title: CitaHighlightedText(
+                            cita.nombre,
+                            query: _searchQuery,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: titleStyle,
+                            highlightStyle: titleStyle.copyWith(
+                              fontWeight: FontWeight.w800,
+                              backgroundColor:
+                                  AppColors.malva.withOpacity(0.32),
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (descriptionPrimaryMatch) ...[
+                                const SizedBox(height: 2),
+                                const CitaDescriptionMatchBadge(),
+                                const SizedBox(height: 4),
+                              ],
+                              if (summary.isNotEmpty)
+                                CitaHighlightedText(
+                                  summary,
+                                  query: _searchQuery,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              if (showDescription) ...[
+                                if (summary.isNotEmpty)
+                                  const SizedBox(height: 2),
+                                CitaHighlightedText(
+                                  cita.descripcion,
+                                  query: _searchQuery,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: descriptionStyle,
+                                  highlightStyle: descriptionStyle.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    backgroundColor:
+                                        AppColors.celeste.withOpacity(0.38),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          trailing: isSelected
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  color: AppColors.violeta,
+                                )
+                              : null,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            widget.onSeleccionada(cita);
+                          },
+                        );
+                      },
                     ),
-                    child: Icon(
-                      Icons.backpack_outlined,
-                      color: isSelected ? Colors.white : AppColors.violeta,
-                      size: 20,
-                    ),
-                  ),
-                  title: Text(
-                    cita.nombre,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: isSelected ? AppColors.violeta : Colors.black87,
-                    ),
-                  ),
-                  subtitle: Text(
-                    cita.descripcion,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                  trailing: isSelected
-                      ? const Icon(Icons.check_circle, color: AppColors.violeta)
-                      : null,
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    onSeleccionada(cita);
-                  },
-                );
-              },
             ),
           ),
           const SizedBox(height: 16),
