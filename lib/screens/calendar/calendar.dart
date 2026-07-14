@@ -50,14 +50,14 @@ class _EventImage extends StatelessWidget {
             width: width,
             height: height,
             fit: fit,
-            placeholder: (_, __) => SizedBox(
+            placeholder: (_, _) => SizedBox(
               width: width,
               height: height,
               child: const Center(
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
-            errorWidget: (_, __, ___) => _fallback(),
+            errorWidget: (_, _, _) => _fallback(),
           );
 
     if (borderRadius != null) {
@@ -67,11 +67,10 @@ class _EventImage extends StatelessWidget {
   }
 
   Widget _fallback() => SizedBox(
-        width: width,
-        height: height,
-        child:
-            const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
-      );
+    width: width,
+    height: height,
+    child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+  );
 }
 
 // ── Modelo interno para los marcadores del día ────────────────────────────────
@@ -177,8 +176,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   _DayData _getDayData(DateTime day) {
     final recuerdos = _mostrarRecuerdos
         ? _recuerdos
-            .where((r) => _monthDayFromApiDate(r.date) == _toMonthDayKey(day))
-            .toList()
+              .where((r) => _monthDayFromApiDate(r.date) == _toMonthDayKey(day))
+              .toList()
         : <Recuerdo>[];
 
     CartaSorpresa? carta;
@@ -253,7 +252,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: value ? activeColor.withOpacity(0.15) : Colors.transparent,
+          color: value
+              ? activeColor.withValues(alpha: 0.15)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: value ? activeColor : Colors.grey.shade300,
@@ -559,237 +560,262 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   child: CircularProgressIndicator(color: AppColors.violeta),
                 )
               : _error != null
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error_outline,
-                              color: Colors.red, size: 48),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Error al cargar datos',
-                            style: TextStyle(color: Colors.grey.shade700),
-                          ),
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: _loadData,
-                            child: const Text('Reintentar'),
-                          ),
-                        ],
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 48,
                       ),
-                    )
-                  : Column(
-                      children: [
-                        const SizedBox(height: 12),
-                        _buildFilterBar()
+                      const SizedBox(height: 12),
+                      Text(
+                        'Error al cargar datos',
+                        style: TextStyle(color: Colors.grey.shade700),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: _loadData,
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    _buildFilterBar()
+                        .animate()
+                        .fadeIn(duration: _kEnterDuration)
+                        .slideY(begin: -0.04, duration: _kSlideDuration),
+                    const SizedBox(height: 8),
+                    if (_eventos.isNotEmpty)
+                      TweenAnimationBuilder<double>(
+                        key: ValueKey('counter_pulse_$_counterPulseTick'),
+                        duration: const Duration(milliseconds: 420),
+                        tween: Tween<double>(begin: 0.92, end: 1),
+                        curve: Curves.elasticOut,
+                        builder: (_, scale, child) =>
+                            Transform.scale(scale: scale, child: child),
+                        child: ProximaCitaCounter(eventos: _eventos)
                             .animate()
-                            .fadeIn(duration: _kEnterDuration)
-                            .slideY(begin: -0.04, duration: _kSlideDuration),
-                        const SizedBox(height: 8),
-                        if (_eventos.isNotEmpty)
-                          TweenAnimationBuilder<double>(
-                            key: ValueKey('counter_pulse_$_counterPulseTick'),
-                            duration: const Duration(milliseconds: 420),
-                            tween: Tween<double>(begin: 0.92, end: 1),
-                            curve: Curves.elasticOut,
-                            builder: (_, scale, child) =>
-                                Transform.scale(scale: scale, child: child),
-                            child: ProximaCitaCounter(eventos: _eventos)
-                                .animate()
-                                .fadeIn(delay: 90.ms, duration: _kEnterDuration)
-                                .slideY(
-                                  begin: 0.05,
-                                  delay: 90.ms,
-                                  duration: _kSlideDuration,
-                                ),
-                          ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: TableCalendar(
-                        firstDay: _date(DateTime.now().year - 1, 1, 1),
-                        lastDay: _date(DateTime.now().year + 1, 12, 31),
-                        focusedDay: _focusedDay,
-                        calendarFormat: CalendarFormat.month,
-                        headerStyle: const HeaderStyle(
-                          formatButtonVisible: false,
-                          titleCentered: true,
-                          titleTextStyle: TextStyle(
-                            color: AppColors.violeta,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          leftChevronIcon: Icon(
-                            Icons.chevron_left,
-                            color: AppColors.violeta,
-                          ),
-                          rightChevronIcon: Icon(
-                            Icons.chevron_right,
-                            color: AppColors.violeta,
-                          ),
-                        ),
-                        daysOfWeekStyle: const DaysOfWeekStyle(
-                          weekdayStyle: TextStyle(
-                            color: AppColors.violeta,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          weekendStyle: TextStyle(
-                            color: AppColors.violeta,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        eventLoader: _getEventsForDay,
-                        calendarBuilders: CalendarBuilders(
-                          defaultBuilder: (ctx, day, _) => Container(
-                            margin: const EdgeInsets.all(4),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
+                            .fadeIn(delay: 90.ms, duration: _kEnterDuration)
+                            .slideY(
+                              begin: 0.05,
+                              delay: 90.ms,
+                              duration: _kSlideDuration,
                             ),
-                            child: Text(
-                              day.day.toString(),
-                              style: const TextStyle(color: AppColors.violeta),
-                            ),
-                          ),
-                          // ── markerBuilder ahora usa _DayData directamente ──────
-                          // No hay triple lookup por día.
-                          markerBuilder: (ctx, day, events) {
-                            if (events.isEmpty) return null;
-
-                            // Determinamos el tipo del primer evento
-                            final first = events.first;
-
-                            if (first is Recuerdo && _mostrarRecuerdos) {
-                              if (first.imagePath.isNotEmpty) {
-                                return Positioned(
-                                  bottom: 1,
-                                  child: Hero(
-                                    tag: 'recuerdo-${first.id}',
-                                    child: _buildThumbnail(first.imagePath),
+                      ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child:
+                          TableCalendar(
+                                firstDay: _date(DateTime.now().year - 1, 1, 1),
+                                lastDay: _date(DateTime.now().year + 1, 12, 31),
+                                focusedDay: _focusedDay,
+                                calendarFormat: CalendarFormat.month,
+                                headerStyle: const HeaderStyle(
+                                  formatButtonVisible: false,
+                                  titleCentered: true,
+                                  titleTextStyle: TextStyle(
+                                    color: AppColors.violeta,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                );
-                              }
-                              return Positioned(
-                                bottom: 1,
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.pinkAccent.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(4),
+                                  leftChevronIcon: Icon(
+                                    Icons.chevron_left,
+                                    color: AppColors.violeta,
                                   ),
-                                  child: const Icon(
-                                    Icons.favorite,
-                                    size: 16,
-                                    color: Colors.pinkAccent,
-                                  ),
-                                ),
-                              );
-                            }
-
-                            if (first is CartaSorpresa && _mostrarCartas) {
-                              final now = DateTime.now();
-                              final today =
-                                  DateTime(now.year, now.month, now.day);
-                              final localDay = DateTime(
-                                day.year,
-                                day.month,
-                                day.day,
-                              );
-                              final bloqueada =
-                                  localDay.isAfter(today) || !first.abierta;
-                              return Positioned(
-                                bottom: 1,
-                                child: Icon(
-                                  bloqueada ? Icons.lock : Icons.lock_open,
-                                  color: bloqueada
-                                      ? AppColors.locked
-                                      : AppColors.unlocked,
-                                  size: 16,
-                                ),
-                              );
-                            }
-
-                            if (first is EventoImportante && _mostrarCitas) {
-                              return Positioned(
-                                bottom: 1,
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.violeta.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Icon(
-                                    _iconFromString(first.icon),
-                                    size: 16,
+                                  rightChevronIcon: Icon(
+                                    Icons.chevron_right,
                                     color: AppColors.violeta,
                                   ),
                                 ),
-                              );
-                            }
+                                daysOfWeekStyle: const DaysOfWeekStyle(
+                                  weekdayStyle: TextStyle(
+                                    color: AppColors.violeta,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  weekendStyle: TextStyle(
+                                    color: AppColors.violeta,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                eventLoader: _getEventsForDay,
+                                calendarBuilders: CalendarBuilders(
+                                  defaultBuilder: (ctx, day, _) => Container(
+                                    margin: const EdgeInsets.all(4),
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      day.day.toString(),
+                                      style: const TextStyle(
+                                        color: AppColors.violeta,
+                                      ),
+                                    ),
+                                  ),
+                                  // ── markerBuilder ahora usa _DayData directamente ──────
+                                  // No hay triple lookup por día.
+                                  markerBuilder: (ctx, day, events) {
+                                    if (events.isEmpty) return null;
 
-                            return null;
-                          },
-                        ),
-                        onDaySelected: (selectedDay, focusedDay) async {
-                          setState(() => _focusedDay = focusedDay);
+                                    // Determinamos el tipo del primer evento
+                                    final first = events.first;
 
-                          // Una sola llamada — sin triple lookup
-                          final data = _getDayData(selectedDay);
+                                    if (first is Recuerdo &&
+                                        _mostrarRecuerdos) {
+                                      if (first.imagePath.isNotEmpty) {
+                                        return Positioned(
+                                          bottom: 1,
+                                          child: Hero(
+                                            tag: 'recuerdo-${first.id}',
+                                            child: _buildThumbnail(
+                                              first.imagePath,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      return Positioned(
+                                        bottom: 1,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.pinkAccent.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                          child: const Icon(
+                                            Icons.favorite,
+                                            size: 16,
+                                            color: Colors.pinkAccent,
+                                          ),
+                                        ),
+                                      );
+                                    }
 
-                          if (data.carta != null && _mostrarCartas) {
-                            await _verificarCarta(selectedDay, data.carta!);
-                            return;
-                          }
-                          if (data.recuerdos.isNotEmpty && _mostrarRecuerdos) {
-                            _showRecuerdoDialog(data.recuerdos.first);
-                            return;
-                          }
-                          if (data.evento != null && _mostrarCitas) {
-                            _showEventoDialog(data.evento!);
-                            return;
-                          }
+                                    if (first is CartaSorpresa &&
+                                        _mostrarCartas) {
+                                      final now = DateTime.now();
+                                      final today = DateTime(
+                                        now.year,
+                                        now.month,
+                                        now.day,
+                                      );
+                                      final localDay = DateTime(
+                                        day.year,
+                                        day.month,
+                                        day.day,
+                                      );
+                                      final bloqueada =
+                                          localDay.isAfter(today) ||
+                                          !first.abierta;
+                                      return Positioned(
+                                        bottom: 1,
+                                        child: Icon(
+                                          bloqueada
+                                              ? Icons.lock
+                                              : Icons.lock_open,
+                                          color: bloqueada
+                                              ? AppColors.locked
+                                              : AppColors.unlocked,
+                                          size: 16,
+                                        ),
+                                      );
+                                    }
 
-                          _mostrarAgendarDesdeCalendario(selectedDay);
-                        },
-                        selectedDayPredicate: (day) =>
-                            isSameDay(day, _focusedDay),
-                          )
-                              .animate()
-                              .fadeIn(
-                                delay: 140.ms,
-                                duration: _kEnterDuration,
+                                    if (first is EventoImportante &&
+                                        _mostrarCitas) {
+                                      return Positioned(
+                                        bottom: 1,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.violeta.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            _iconFromString(first.icon),
+                                            size: 16,
+                                            color: AppColors.violeta,
+                                          ),
+                                        ),
+                                      );
+                                    }
+
+                                    return null;
+                                  },
+                                ),
+                                onDaySelected: (selectedDay, focusedDay) async {
+                                  setState(() => _focusedDay = focusedDay);
+
+                                  // Una sola llamada — sin triple lookup
+                                  final data = _getDayData(selectedDay);
+
+                                  if (data.carta != null && _mostrarCartas) {
+                                    await _verificarCarta(
+                                      selectedDay,
+                                      data.carta!,
+                                    );
+                                    return;
+                                  }
+                                  if (data.recuerdos.isNotEmpty &&
+                                      _mostrarRecuerdos) {
+                                    _showRecuerdoDialog(data.recuerdos.first);
+                                    return;
+                                  }
+                                  if (data.evento != null && _mostrarCitas) {
+                                    _showEventoDialog(data.evento!);
+                                    return;
+                                  }
+
+                                  _mostrarAgendarDesdeCalendario(selectedDay);
+                                },
+                                selectedDayPredicate: (day) =>
+                                    isSameDay(day, _focusedDay),
                               )
+                              .animate()
+                              .fadeIn(delay: 140.ms, duration: _kEnterDuration)
                               .slideY(
                                 begin: 0.08,
                                 delay: 140.ms,
                                 duration: _kSlideDuration,
                               ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _mostrarFormularioNuevoRecuerdo,
-                              icon: const Icon(Icons.movie_creation_outlined),
-                              label: const Text('Crear recuerdo'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.violeta,
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
-                                textStyle: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _mostrarFormularioNuevoRecuerdo,
+                          icon: const Icon(Icons.movie_creation_outlined),
+                          label: const Text('Crear recuerdo'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.violeta,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
+                  ],
+                ),
           Align(
             alignment: Alignment.topCenter,
             child: IgnorePointer(
@@ -1426,13 +1452,13 @@ class _AgendarDesdeCalendarioSheetState
     final Color borderColor = errorText != null
         ? Colors.redAccent.shade100
         : hasFile
-            ? AppColors.violeta
-            : Colors.grey.shade300;
+        ? AppColors.violeta
+        : Colors.grey.shade300;
     final Color bgColor = errorText != null
         ? Colors.red.shade50
         : hasFile
-            ? const Color(0xFFEDE9F5)
-            : Colors.grey.shade50;
+        ? const Color(0xFFEDE9F5)
+        : Colors.grey.shade50;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1472,17 +1498,17 @@ class _AgendarDesdeCalendarioSheetState
                   isUploading
                       ? 'Subiendo...'
                       : errorText != null
-                          ? 'Error al subir'
-                          : hasFile
-                              ? readyText
-                              : emptyText,
+                      ? 'Error al subir'
+                      : hasFile
+                      ? readyText
+                      : emptyText,
                   style: TextStyle(
                     fontSize: 15,
                     color: errorText != null
                         ? Colors.redAccent
                         : hasFile
-                            ? AppColors.violeta
-                            : Colors.grey,
+                        ? AppColors.violeta
+                        : Colors.grey,
                     fontWeight: hasFile ? FontWeight.w600 : FontWeight.normal,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -1534,7 +1560,7 @@ class _AgendarDesdeCalendarioSheetState
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.violeta.withOpacity(0.1)
+              ? AppColors.violeta.withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -1692,8 +1718,8 @@ class _AgendarDesdeCalendarioSheetState
     final label = !tieneCita
         ? 'Selecciona una cita'
         : _esNuevaCita
-            ? '✏️  Nueva cita'
-            : _citaSeleccionada!.nombre;
+        ? '✏️  Nueva cita'
+        : _citaSeleccionada!.nombre;
 
     return GestureDetector(
       onTap: _abrirSelectorCitas,
@@ -1770,11 +1796,8 @@ class _CitaSelectorSheetState extends State<_CitaSelectorSheet> {
 
   List<Cita> get _filteredCitas {
     final citas = widget.citas.where(
-      (cita) => matchesCitaFilters(
-        cita,
-        query: _searchQuery,
-        filters: _quickFilters,
-      ),
+      (cita) =>
+          matchesCitaFilters(cita, query: _searchQuery, filters: _quickFilters),
     );
 
     return sortCitasBySearchRelevance(citas, _searchQuery);
@@ -1899,25 +1922,28 @@ class _CitaSelectorSheetState extends State<_CitaSelectorSheet> {
                   : ListView.separated(
                       shrinkWrap: true,
                       itemCount: filteredCitas.length,
-                      separatorBuilder: (_, __) =>
+                      separatorBuilder: (_, _) =>
                           const Divider(height: 1, indent: 72),
                       itemBuilder: (ctx, i) {
                         final cita = filteredCitas[i];
                         final isSelected =
                             widget.citaSeleccionada?.nombre == cita.nombre;
                         final summary = citaSearchSummary(cita);
-                        final showDescription =
-                            shouldShowCitaDescription(cita, _searchQuery);
+                        final showDescription = shouldShowCitaDescription(
+                          cita,
+                          _searchQuery,
+                        );
                         final descriptionPrimaryMatch =
-                          isDescriptionPrimaryMatch(cita, _searchQuery);
+                            isDescriptionPrimaryMatch(cita, _searchQuery);
                         final titleStyle = TextStyle(
                           fontWeight: FontWeight.w600,
                           color: isSelected
-                            ? AppColors.violeta
-                            : Colors.black87,
+                              ? AppColors.violeta
+                              : Colors.black87,
                         );
-                        final descriptionStyle =
-                          TextStyle(color: Colors.grey.shade600);
+                        final descriptionStyle = TextStyle(
+                          color: Colors.grey.shade600,
+                        );
                         return ListTile(
                           leading: Container(
                             width: 40,
@@ -1944,8 +1970,9 @@ class _CitaSelectorSheetState extends State<_CitaSelectorSheet> {
                             style: titleStyle,
                             highlightStyle: titleStyle.copyWith(
                               fontWeight: FontWeight.w800,
-                              backgroundColor:
-                                  AppColors.malva.withOpacity(0.32),
+                              backgroundColor: AppColors.malva.withValues(
+                                alpha: 0.32,
+                              ),
                             ),
                           ),
                           subtitle: Column(
@@ -1979,8 +2006,8 @@ class _CitaSelectorSheetState extends State<_CitaSelectorSheet> {
                                   style: descriptionStyle,
                                   highlightStyle: descriptionStyle.copyWith(
                                     fontWeight: FontWeight.w700,
-                                    backgroundColor:
-                                        AppColors.celeste.withOpacity(0.38),
+                                    backgroundColor: AppColors.celeste
+                                        .withOpacity(0.38),
                                   ),
                                 ),
                               ],
@@ -2109,15 +2136,17 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
     final descripcion = _descripcionController.text.trim();
 
     if (titulo.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('El título es obligatorio')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('El título es obligatorio')));
       return;
     }
 
     if (_isUploadingImage) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Espera a que termine de subir la imagen')),
+        const SnackBar(
+          content: Text('Espera a que termine de subir la imagen'),
+        ),
       );
       return;
     }
@@ -2309,13 +2338,13 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
     final borderColor = _imageError != null
         ? Colors.redAccent.shade100
         : hasImage
-            ? AppColors.violeta
-            : Colors.grey.shade300;
+        ? AppColors.violeta
+        : Colors.grey.shade300;
     final bgColor = _imageError != null
         ? Colors.red.shade50
         : hasImage
-            ? const Color(0xFFEDE9F5)
-            : Colors.grey.shade50;
+        ? const Color(0xFFEDE9F5)
+        : Colors.grey.shade50;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2361,17 +2390,17 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
                   _isUploadingImage
                       ? 'Subiendo...'
                       : _imageError != null
-                          ? 'Error al subir'
-                          : hasImage
-                              ? 'Imagen cargada'
-                              : 'Agregar imagen',
+                      ? 'Error al subir'
+                      : hasImage
+                      ? 'Imagen cargada'
+                      : 'Agregar imagen',
                   style: TextStyle(
                     fontSize: 15,
                     color: _imageError != null
                         ? Colors.redAccent
                         : hasImage
-                            ? AppColors.violeta
-                            : Colors.grey,
+                        ? AppColors.violeta
+                        : Colors.grey,
                     fontWeight: hasImage ? FontWeight.w600 : FontWeight.normal,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -2391,7 +2420,9 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
                 )
               else
                 TextButton(
-                  onPressed: _isUploadingImage ? null : _seleccionarImagenRecuerdo,
+                  onPressed: _isUploadingImage
+                      ? null
+                      : _seleccionarImagenRecuerdo,
                   child: Text(_imageError != null ? 'Reintentar' : 'Elegir'),
                 ),
             ],
