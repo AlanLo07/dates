@@ -24,6 +24,8 @@ class _HomeMascotBubbleState extends State<HomeMascotBubble>
     'assets/Alan2.jpeg',
     'assets/Nati1.jpeg',
     'assets/Nati2.jpeg',
+    'assets/Nati3.jpeg',
+    'assets/Nati4.jpeg',
   ];
 
   final Random _random = Random();
