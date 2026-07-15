@@ -174,7 +174,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.error,
         content: Text(
-          '⚠️ Presupuesto excedido por ${_currency.format(overBy)} en ${DateFormat('MMMM yyyy', 'es_ES').format(month)}',
+          'Presupuesto excedido por ${_currency.format(overBy)} en ${DateFormat('MMMM yyyy', 'es_ES').format(month)}',
         ),
       ),
     );

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'screens/home.dart';
 
 const Color lavandaPalida = Color(0xFFD8C9E7);
@@ -7,7 +9,9 @@ const Color azulCelestePastel = Color(0xFFA9D1DF);
 const Color violetaProfundo = Color(0xFF796B9B);
 const Color grisClaroCalido = Color(0xFFF0F0F0);
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('es_ES');
   runApp(const MyApp());
 }
 
@@ -19,6 +23,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Citas',
+      locale: const Locale('es', 'ES'),
+      supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         // Usamos el color base para el tema principal
         primaryColor: malvaSuave,
