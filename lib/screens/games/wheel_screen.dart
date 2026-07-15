@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:confetti/confetti.dart';
 import '../../data/desire_content.dart';
+import '../../services/challenges_service.dart';
 import '../../utils/colors.dart';
 
 const List<Color> _wheelColors = [
@@ -29,6 +30,10 @@ class _WheelScreenState extends State<WheelScreen>
   DesireLevel? _filterLevel;
   final _random = Random();
 
+  List<ChallengeItem> _allChallenges = List<ChallengeItem>.from(kChallenges);
+  bool _isLoading = true;
+  String? _error;
+
   late AnimationController _spinController;
   late Animation<double> _spinAnimation;
   late ConfettiController _confetti;
@@ -40,9 +45,9 @@ class _WheelScreenState extends State<WheelScreen>
   bool _showResult = false;
 
   List<ChallengeItem> get _pool {
-    if (_filterLevel == null) return kChallenges;
-    final f = kChallenges.where((c) => c.level == _filterLevel).toList();
-    return f.isEmpty ? kChallenges : f;
+    if (_filterLevel == null) return _allChallenges;
+    final f = _allChallenges.where((c) => c.level == _filterLevel).toList();
+    return f.isEmpty ? _allChallenges : f;
   }
 
   @override
@@ -69,6 +74,8 @@ class _WheelScreenState extends State<WheelScreen>
         _confetti.play();
       }
     });
+
+    _loadChallenges();
   }
 
   @override
@@ -80,6 +87,7 @@ class _WheelScreenState extends State<WheelScreen>
 
   void _spin() {
     if (_isSpinning) return;
+    if (_pool.isEmpty) return;
     HapticFeedback.mediumImpact();
 
     final items = _pool;
@@ -106,6 +114,34 @@ class _WheelScreenState extends State<WheelScreen>
     });
   }
 
+  Future<void> _loadChallenges({bool forceRefresh = false}) async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final challenges = await ChallengesService().getChallenges(
+        forceRefresh: forceRefresh,
+      );
+      if (!mounted) return;
+
+      setState(() {
+        _allChallenges = challenges;
+        _result = null;
+        _showResult = false;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'No pudimos cargar los retos. Intenta de nuevo.';
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final items = _pool;
@@ -121,20 +157,66 @@ class _WheelScreenState extends State<WheelScreen>
         backgroundColor: AppColors.surface,
         iconTheme: const IconThemeData(color: AppColors.violeta),
         elevation: 1,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.violeta),
+            tooltip: 'Recargar',
+            onPressed: _isSpinning ? null : () => _loadChallenges(forceRefresh: true),
+          ),
+        ],
       ),
-      body: Stack(
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.violeta),
+            )
+          : Stack(
         alignment: Alignment.topCenter,
         children: [
           SafeArea(
             child: Column(
               children: [
                 const SizedBox(height: 12),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFEBEE),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE57373)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.warning_amber_rounded,
+                            color: Color(0xFFB71C1C),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _error!,
+                              style: const TextStyle(color: Color(0xFFB71C1C)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 _buildLevelFilter(),
                 const SizedBox(height: 8),
 
                 Expanded(
                   child: Center(
-                    child: Column(
+                    child: items.isEmpty
+                        ? const Text(
+                            'No hay retos disponibles por ahora.',
+                            style: TextStyle(
+                              color: AppColors.violeta,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
+                        : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _buildPointer(),
@@ -168,21 +250,23 @@ class _WheelScreenState extends State<WheelScreen>
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                   child: GestureDetector(
-                    onTap: _isSpinning ? null : _spin,
+                    onTap: _isSpinning || items.isEmpty ? null : _spin,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       height: 58,
                       decoration: BoxDecoration(
-                        gradient: _isSpinning
+                        gradient: _isSpinning || items.isEmpty
                             ? null
                             : const LinearGradient(
                                 colors: [Color(0xFFB0B6E8), Color(0xFF796B9B)],
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
                               ),
-                        color: _isSpinning ? Colors.grey.shade300 : null,
+                        color: _isSpinning || items.isEmpty
+                            ? Colors.grey.shade300
+                            : null,
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: _isSpinning
+                        boxShadow: _isSpinning || items.isEmpty
                             ? []
                             : [
                                 BoxShadow(
@@ -215,6 +299,15 @@ class _WheelScreenState extends State<WheelScreen>
                                     ),
                                   ),
                                 ],
+                              )
+                            : items.isEmpty
+                            ? Text(
+                                'Sin retos',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
                               )
                             : const Row(
                                 mainAxisSize: MainAxisSize.min,

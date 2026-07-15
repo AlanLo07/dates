@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../data/desire_content.dart';
+import '../../services/dice_service.dart';
 import '../../utils/colors.dart';
 
 class DiceScreen extends StatefulWidget {
@@ -15,6 +16,13 @@ class DiceScreen extends StatefulWidget {
 class _DiceScreenState extends State<DiceScreen> with TickerProviderStateMixin {
   final _random = Random();
   DesireLevel? _filterLevel; // null = todos los niveles
+
+  List<DiceEntry> _acciones = List<DiceEntry>.from(kAcciones);
+  List<DiceEntry> _zonas = List<DiceEntry>.from(kZonas);
+  List<DiceEntry> _modificadores = List<DiceEntry>.from(kModificadores);
+
+  bool _isLoading = true;
+  String? _error;
 
   late DiceEntry _accion;
   late DiceEntry _zona;
@@ -39,6 +47,8 @@ class _DiceScreenState extends State<DiceScreen> with TickerProviderStateMixin {
         )..addListener(() {
           setState(() => _rollTick++);
         });
+
+    _loadDiceData();
   }
 
   @override
@@ -58,15 +68,46 @@ class _DiceScreenState extends State<DiceScreen> with TickerProviderStateMixin {
     return pool[_random.nextInt(pool.length)];
   }
 
+  Future<void> _loadDiceData({bool forceRefresh = false}) async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final catalog = await DiceService().getCatalog(forceRefresh: forceRefresh);
+      if (!mounted) return;
+
+      setState(() {
+        _acciones = catalog.acciones;
+        _zonas = catalog.zonas;
+        _modificadores = catalog.modificadores;
+
+        if (!_locked[0]) _accion = _pick(_acciones);
+        if (!_locked[1]) _zona = _pick(_zonas);
+        if (!_locked[2]) _modificador = _pick(_modificadores);
+
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'No pudimos cargar los dados. Intenta de nuevo.';
+        _isLoading = false;
+      });
+    }
+  }
+
   Future<void> _rollDice() async {
     HapticFeedback.mediumImpact();
     _rollController.reset();
     await _rollController.forward();
 
     setState(() {
-      if (!_locked[0]) _accion = _pick(kAcciones);
-      if (!_locked[1]) _zona = _pick(kZonas);
-      if (!_locked[2]) _modificador = _pick(kModificadores);
+      if (!_locked[0]) _accion = _pick(_acciones);
+      if (!_locked[1]) _zona = _pick(_zonas);
+      if (!_locked[2]) _modificador = _pick(_modificadores);
     });
     HapticFeedback.heavyImpact();
   }
@@ -95,13 +136,47 @@ class _DiceScreenState extends State<DiceScreen> with TickerProviderStateMixin {
         backgroundColor: AppColors.surface,
         iconTheme: const IconThemeData(color: AppColors.violeta),
         elevation: 1,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.violeta),
+            tooltip: 'Recargar',
+            onPressed: () => _loadDiceData(forceRefresh: true),
+          ),
+        ],
       ),
-      body: SafeArea(
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.violeta),
+            )
+          : SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (_error != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEBEE),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE57373)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded,
+                          color: Color(0xFFB71C1C)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: Color(0xFFB71C1C)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               _buildLevelFilter(),
               const SizedBox(height: 20),
 
@@ -182,7 +257,7 @@ class _DiceScreenState extends State<DiceScreen> with TickerProviderStateMixin {
                       isRolling: _rollController.isAnimating,
                       onLockToggle: () =>
                           setState(() => _locked[0] = !_locked[0]),
-                      randomPreview: () => _pick(kAcciones).text,
+                      randomPreview: () => _pick(_acciones).text,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -197,7 +272,7 @@ class _DiceScreenState extends State<DiceScreen> with TickerProviderStateMixin {
                       isRolling: _rollController.isAnimating,
                       onLockToggle: () =>
                           setState(() => _locked[1] = !_locked[1]),
-                      randomPreview: () => _pick(kZonas).text,
+                      randomPreview: () => _pick(_zonas).text,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -212,7 +287,7 @@ class _DiceScreenState extends State<DiceScreen> with TickerProviderStateMixin {
                       isRolling: _rollController.isAnimating,
                       onLockToggle: () =>
                           setState(() => _locked[2] = !_locked[2]),
-                      randomPreview: () => _pick(kModificadores).text,
+                      randomPreview: () => _pick(_modificadores).text,
                     ),
                   ),
                 ],

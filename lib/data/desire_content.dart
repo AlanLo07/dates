@@ -47,12 +47,48 @@ extension DesireLevelX on DesireLevel {
         return const Color(0xFFFBE9E7);
     }
   }
+
+  static DesireLevel fromApi(String? raw) {
+    switch ((raw ?? '').toLowerCase().trim()) {
+      case 'suave':
+      case 'soft':
+      case 'easy':
+      case 'facil':
+      case 'fácil':
+        return DesireLevel.suave;
+      case 'picante':
+      case 'medio':
+      case 'intermedio':
+      case 'medium':
+      case 'hot':
+        return DesireLevel.picante;
+      case 'atrevido':
+      case 'avanzado':
+      case 'dificil':
+      case 'difícil':
+      case 'hard':
+      case 'extreme':
+        return DesireLevel.atrevido;
+      default:
+        return DesireLevel.suave;
+    }
+  }
 }
 
 class DiceEntry {
   final String text;
   final DesireLevel level;
   const DiceEntry(this.text, this.level);
+
+  factory DiceEntry.fromJson(Map<String, dynamic> json) {
+    final text = (json['text'] ?? json['title'] ?? json['name'] ?? '')
+        .toString()
+        .trim();
+    return DiceEntry(
+      text.isEmpty ? 'Sin texto' : text,
+      DesireLevelX.fromApi(json['level']?.toString()),
+    );
+  }
 }
 
 class ChallengeItem {
@@ -60,6 +96,18 @@ class ChallengeItem {
   final DesireLevel level;
   final String emoji;
   const ChallengeItem(this.text, this.level, {this.emoji = '💜'});
+
+  factory ChallengeItem.fromJson(Map<String, dynamic> json) {
+    final text = (json['text'] ?? json['title'] ?? json['name'] ?? '')
+        .toString()
+        .trim();
+    final emoji = (json['emoji'] ?? '💜').toString();
+    return ChallengeItem(
+      text.isEmpty ? 'Reto sorpresa' : text,
+      DesireLevelX.fromApi(json['level']?.toString()),
+      emoji: emoji.isEmpty ? '💜' : emoji,
+    );
+  }
 }
 
 // ── DADO 1: ACCIONES ─────────────────────────────────────────────────────

@@ -9,6 +9,8 @@ class ApiConfig {
   static const String eventosPath = '/citas';
   static const String phrases = '/love-phrases';
   static const String kamaPath = '/kamasutra';
+  static const String dicePath = '/dice';
+  static const String challengesPath = '/challenges';
   static const String uploadPath = '/images/upload-url';
   // Agrega aquí las rutas que necesites en el futuro
 }
