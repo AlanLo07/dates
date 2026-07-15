@@ -602,8 +602,8 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _isOverBudget
-              ? AppColors.error.withOpacity(0.40)
-              : AppColors.success.withOpacity(0.35),
+              ? AppColors.error.withValues(alpha: 0.40)
+              : AppColors.success.withValues(alpha: 0.35),
         ),
       ),
       child: Column(
