@@ -10,6 +10,7 @@ import '../services/phrases_service.dart';
 import '../utils/colors.dart';
 import '../widgets/motion/ambient_orbs_background.dart';
 import 'calendar/calendar.dart';
+import 'finances/couple_finances.dart';
 import 'games/games_menu.dart';
 import 'home/widgets/home_counter_strip.dart';
 import 'home/widgets/home_hero_header.dart';
@@ -394,6 +395,23 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 14),
                           HomeMenuCard(
                             index: 4,
+                            emoji: '💸',
+                            icon: Icons.savings_rounded,
+                            title: 'Finanzas de Pareja',
+                            subtitle:
+                                'Suscripciones, semana, vacaciones y gustos',
+                            destination: const CoupleFinancesScreen(),
+                            gradientColors: const [
+                              Color(0xFF6A88D6),
+                              Color(0xFF3456A1),
+                            ],
+                            fadeDuration: _kFadeDuration,
+                            slideDuration: _kSlideDuration,
+                            stagger: _kListStagger,
+                          ),
+                          const SizedBox(height: 14),
+                          HomeMenuCard(
+                            index: 5,
                             emoji: '🔒',
                             icon: Icons.favorite_border_rounded,
                             title: 'Juegos para dos',
@@ -411,7 +429,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           // if (DateTime.now().isAfter(_weddingUnlockDate))
                           if (true)
                             HomeMenuCard(
-                              index: 5,
+                              index: 6,
                               emoji: '💍',
                               icon: Icons.favorite,
                               title: 'Nuestra Boda',
