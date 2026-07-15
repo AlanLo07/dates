@@ -84,7 +84,8 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
 
   double get _budgetDifference => _monthlyBudget - _budgetMonthSpent;
 
-  bool get _isOverBudget => _monthlyBudget > 0 && _budgetMonthSpent > _monthlyBudget;
+  bool get _isOverBudget =>
+      _monthlyBudget > 0 && _budgetMonthSpent > _monthlyBudget;
 
   double get _budgetProgress {
     if (_monthlyBudget <= 0) {
@@ -95,8 +96,11 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
 
   double get _weeklySpent {
     final now = DateTime.now();
-    final startOfWeek = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
+    final startOfWeek = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
     return _entries
         .where((e) => !e.date.isBefore(startOfWeek))
         .fold(0, (sum, e) => sum + e.amount);
@@ -107,17 +111,18 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
     for (final entry in _entries) {
       set.add(DateTime(entry.date.year, entry.date.month));
     }
-    final months = set.toList()
-      ..sort((a, b) => b.compareTo(a));
+    final months = set.toList()..sort((a, b) => b.compareTo(a));
     return months;
   }
 
   List<_ExpenseEntry> get _visibleEntries {
     var filtered = _entries.where((entry) {
-      final categoryMatch = _selectedCategoryFilter == null ||
+      final categoryMatch =
+          _selectedCategoryFilter == null ||
           entry.category == _selectedCategoryFilter;
 
-      final monthMatch = _selectedMonthFilter == null ||
+      final monthMatch =
+          _selectedMonthFilter == null ||
           (entry.date.year == _selectedMonthFilter!.year &&
               entry.date.month == _selectedMonthFilter!.month);
 
@@ -136,8 +141,10 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
 
   double _spentForMonth(DateTime month) {
     return _entries
-        .where((entry) =>
-            entry.date.year == month.year && entry.date.month == month.month)
+        .where(
+          (entry) =>
+              entry.date.year == month.year && entry.date.month == month.month,
+        )
         .fold(0, (sum, entry) => sum + entry.amount);
   }
 
@@ -156,7 +163,8 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
     }
 
     final currentBudgetMonth = _budgetMonth;
-    if (month.year != currentBudgetMonth.year || month.month != currentBudgetMonth.month) {
+    if (month.year != currentBudgetMonth.year ||
+        month.month != currentBudgetMonth.month) {
       return;
     }
 
@@ -173,7 +181,9 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
   }
 
   Future<void> _showBudgetDialog() async {
-    final budgetCtrl = TextEditingController(text: _monthlyBudget.toStringAsFixed(2));
+    final budgetCtrl = TextEditingController(
+      text: _monthlyBudget.toStringAsFixed(2),
+    );
 
     final saved = await showDialog<bool>(
       context: context,
@@ -209,7 +219,9 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
       if (value == null || value <= 0) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ingresa un presupuesto valido mayor a 0.')),
+            const SnackBar(
+              content: Text('Ingresa un presupuesto valido mayor a 0.'),
+            ),
           );
         }
       } else {
@@ -220,7 +232,10 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
     budgetCtrl.dispose();
   }
 
-  Future<void> _showExpenseSheet({_ExpenseEntry? editing, int? sourceIndex}) async {
+  Future<void> _showExpenseSheet({
+    _ExpenseEntry? editing,
+    int? sourceIndex,
+  }) async {
     final isEditing = editing != null && sourceIndex != null;
 
     final titleCtrl = TextEditingController(text: editing?.title ?? '');
@@ -229,7 +244,8 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
     );
     final noteCtrl = TextEditingController(text: editing?.note ?? '');
 
-    ExpenseCategory selectedCategory = editing?.category ?? ExpenseCategory.groceries;
+    ExpenseCategory selectedCategory =
+        editing?.category ?? ExpenseCategory.groceries;
     DateTime selectedDate = editing?.date ?? DateTime.now();
 
     await showModalBottomSheet<void>(
@@ -299,9 +315,10 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                             const SizedBox(height: 12),
                             TextField(
                               controller: amountCtrl,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               decoration: const InputDecoration(
                                 labelText: 'Monto',
                                 border: OutlineInputBorder(),
@@ -346,7 +363,9 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                                       lastDate: DateTime(2100),
                                     );
                                     if (picked != null) {
-                                      setSheetState(() => selectedDate = picked);
+                                      setSheetState(
+                                        () => selectedDate = picked,
+                                      );
                                     }
                                   },
                                   icon: const Icon(Icons.event),
@@ -374,7 +393,9 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                                     amountCtrl.text.replaceAll(',', '.'),
                                   );
 
-                                  if (title.isEmpty || amount == null || amount <= 0) {
+                                  if (title.isEmpty ||
+                                      amount == null ||
+                                      amount <= 0) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text(
@@ -395,9 +416,13 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                                         : noteCtrl.text.trim(),
                                   );
 
-                                  final affectedMonth =
-                                      DateTime(selectedDate.year, selectedDate.month);
-                                  final beforeSpent = _spentForMonth(affectedMonth);
+                                  final affectedMonth = DateTime(
+                                    selectedDate.year,
+                                    selectedDate.month,
+                                  );
+                                  final beforeSpent = _spentForMonth(
+                                    affectedMonth,
+                                  );
 
                                   setState(() {
                                     if (isEditing) {
@@ -407,7 +432,9 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                                     }
                                   });
 
-                                  final afterSpent = _spentForMonth(affectedMonth);
+                                  final afterSpent = _spentForMonth(
+                                    affectedMonth,
+                                  );
                                   _notifyBudgetIfExceeded(
                                     month: affectedMonth,
                                     before: beforeSpent,
@@ -419,11 +446,15 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.violeta,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                 ),
                                 icon: const Icon(Icons.save_rounded),
                                 label: Text(
-                                  isEditing ? 'Guardar cambios' : 'Guardar gasto',
+                                  isEditing
+                                      ? 'Guardar cambios'
+                                      : 'Guardar gasto',
                                 ),
                               ),
                             ),
@@ -516,7 +547,8 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                 ),
               ),
             ],
-            onChanged: (value) => setState(() => _selectedCategoryFilter = value),
+            onChanged: (value) =>
+                setState(() => _selectedCategoryFilter = value),
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<DateTime?>(
@@ -580,7 +612,9 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
           Row(
             children: [
               Icon(
-                _isOverBudget ? Icons.warning_amber_rounded : Icons.track_changes_rounded,
+                _isOverBudget
+                    ? Icons.warning_amber_rounded
+                    : Icons.track_changes_rounded,
                 color: _isOverBudget ? AppColors.error : AppColors.success,
               ),
               const SizedBox(width: 8),
@@ -665,10 +699,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
           const SizedBox(height: 6),
           Text(
             'Vista previa para revisar como se ha comportado el gasto por mes. Aqui luego conectaremos el back.',
-            style: TextStyle(
-              color: Colors.grey.shade700,
-              height: 1.35,
-            ),
+            style: TextStyle(color: Colors.grey.shade700, height: 1.35),
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -679,7 +710,9 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final item = _historyPreviews[index];
-                final progress = item.budget <= 0 ? 0.0 : (item.spent / item.budget).clamp(0.0, 1.0);
+                final progress = item.budget <= 0
+                    ? 0.0
+                    : (item.spent / item.budget).clamp(0.0, 1.0);
                 final overBudget = item.spent > item.budget;
 
                 return Container(
@@ -719,7 +752,9 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                             ),
                           ),
                           Icon(
-                            overBudget ? Icons.warning_rounded : Icons.check_circle_rounded,
+                            overBudget
+                                ? Icons.warning_rounded
+                                : Icons.check_circle_rounded,
                             color: Colors.white.withOpacity(0.92),
                             size: 20,
                           ),
@@ -780,7 +815,8 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                 Expanded(
                   child: _HistoryMetric(
                     label: 'Con sobrecosto',
-                    value: '${_historyPreviews.where((e) => e.spent > e.budget).length}',
+                    value:
+                        '${_historyPreviews.where((e) => e.spent > e.budget).length}',
                     icon: Icons.trending_up_rounded,
                   ),
                 ),
@@ -811,16 +847,12 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
           TextButton.icon(
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const FinanceHistoryScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const FinanceHistoryScreen()),
               );
             },
             icon: const Icon(Icons.timeline_rounded),
             label: const Text('Historico'),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.violeta,
-            ),
+            style: TextButton.styleFrom(foregroundColor: AppColors.violeta),
           ),
           const SizedBox(width: 8),
         ],
@@ -851,7 +883,10 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
             children: ExpenseCategory.values.map((category) {
               final color = category.color;
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.14),
                   borderRadius: BorderRadius.circular(16),
@@ -932,12 +967,113 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-                  currency.format(entry.amount),
-                  textAlign: TextAlign.end,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.violeta.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.violeta.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.pie_chart_rounded,
+              color: AppColors.violeta,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Gasto total',
                   style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w800,
+                    color: AppColors.violeta,
+                    fontWeight: FontWeight.w700,
                   ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  currency.format(totalSpent),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Esta semana: ${currency.format(weeklySpent)}',
+                  style: TextStyle(color: Colors.grey.shade700),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpenseTile extends StatelessWidget {
+  final _ExpenseEntry entry;
+  final NumberFormat currency;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ExpenseTile({
+    required this.entry,
+    required this.currency,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: entry.category.color.withOpacity(0.12),
+            child: Icon(entry.category.icon, color: entry.category.color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  DateFormat('dd/MM/yyyy').format(entry.date) +
+                      (entry.note != null ? ' · ${entry.note}' : ''),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                currency.format(entry.amount),
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: entry.category.color,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               PopupMenuButton<String>(
@@ -955,14 +1091,18 @@ class _SummaryCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
 enum ExpenseCategory {
-  subscriptions('Suscripciones', Icons.subscriptions_rounded, Color(0xFF6A88D6)),
+  subscriptions(
+    'Suscripciones',
+    Icons.subscriptions_rounded,
+    Color(0xFF6A88D6),
+  ),
   groceries('Supermercado', Icons.shopping_basket_rounded, Color(0xFF4CAF50)),
   transport('Transporte', Icons.directions_car_rounded, Color(0xFF42A5F5)),
   dateNights('Citas y salidas', Icons.wine_bar_rounded, Color(0xFFE57373)),
@@ -986,11 +1126,20 @@ enum ExpenseCategory {
       case ExpenseCategory.subscriptions:
         return ['Netflix', 'Spotify Duo', 'Google One', 'Canva Pro'];
       case ExpenseCategory.groceries:
-        return ['Supermercado semanal', 'Mercado de frutas', 'Productos de limpieza'];
+        return [
+          'Supermercado semanal',
+          'Mercado de frutas',
+          'Productos de limpieza',
+        ];
       case ExpenseCategory.transport:
         return ['Gasolina', 'Uber', 'Parqueadero', 'Peajes'];
       case ExpenseCategory.dateNights:
-        return ['Cena aniversario', 'Cine', 'Cafe y postres', 'Salida de fin de semana'];
+        return [
+          'Cena aniversario',
+          'Cine',
+          'Cafe y postres',
+          'Salida de fin de semana',
+        ];
       case ExpenseCategory.home:
         return ['Arriendo', 'Servicios', 'Internet hogar', 'Mantenimiento'];
       case ExpenseCategory.health:
@@ -1004,9 +1153,19 @@ enum ExpenseCategory {
       case ExpenseCategory.hobbies:
         return ['Videojuego', 'Libro', 'Ropa', 'Curso online'];
       case ExpenseCategory.savings:
-        return ['Ahorro emergencia', 'Meta carro', 'Meta apartamento', 'Fondo boda'];
+        return [
+          'Ahorro emergencia',
+          'Meta carro',
+          'Meta apartamento',
+          'Fondo boda',
+        ];
       case ExpenseCategory.others:
-        return ['Imprevisto', 'Comision bancaria', 'Pago pendiente', 'Otro gasto'];
+        return [
+          'Imprevisto',
+          'Comision bancaria',
+          'Pago pendiente',
+          'Otro gasto',
+        ];
     }
   }
 }
@@ -1041,4 +1200,37 @@ class _HistoryMonthPreview {
     required this.highlight,
     required this.color,
   });
+}
+
+class _HistoryMetric extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _HistoryMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.violeta, size: 20),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ],
+    );
+  }
 }
