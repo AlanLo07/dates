@@ -1,6 +1,7 @@
-// lib/screens/wedding/wedding_providers.dart
 import 'package:flutter/material.dart';
-import 'models/wedding_models.dart';
+
+import '../../models/boda.dart';
+import '../../services/wedding_service.dart';
 
 const Color _rose = Color(0xFFE91E63);
 const Color _roseLight = Color(0xFFFCE4EC);
@@ -13,453 +14,576 @@ class WeddingProvidersScreen extends StatefulWidget {
 }
 
 class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
-  late List<Proveedor> _proveedores;
+  final WeddingService _service = WeddingService();
+  final List<ProveedorBoda> _proveedores = [];
+
+  String? _bodaId;
+  bool _loading = true;
+  String? _error;
   String _filtro = 'Todos';
+  String _query = '';
+  int _visibleCount = 20;
 
   @override
   void initState() {
     super.initState();
-    _proveedores = [
-      Proveedor(
-        id: '1',
-        nombre: 'Juan García - Fotógrafo',
-        servicio: 'Fotógrafo',
-        telefono: '+34 622 345 678',
-        email: 'juan@fotografia.com',
-        website: 'https://juanfoto.com',
-        precio: 15000,
-        descripcion: 'Fotógrafo profesional con 10 años de experiencia',
-        rating: 4.8,
-        fotos: ['https://via.placeholder.com/300x200'],
-        contratado: true,
-        fechaContratacion: DateTime(2024, 3, 15),
-        telefonosEmergencia: ['+34 622 345 679'],
-        notas: 'Contactar con 2 semanas de anticipación',
-      ),
-      Proveedor(
-        id: '2',
-        nombre: 'Catering Elite',
-        servicio: 'Catering',
-        telefono: '+34 632 456 789',
-        email: 'info@cateringelite.com',
-        website: 'https://cateringelite.com',
-        precio: 60000,
-        descripcion: 'Catering gourmet para eventos',
-        rating: 4.5,
-        contratado: true,
-        fechaContratacion: DateTime(2024, 4, 10),
-        telefonosEmergencia: ['+34 632 456 790'],
-      ),
-      Proveedor(
-        id: '3',
-        nombre: 'Flores y Diseño',
-        servicio: 'Flores',
-        telefono: '+34 643 567 890',
-        email: 'flores@diseño.com',
-        website: 'https://floresydiseño.com',
-        precio: 8500,
-        descripcion: 'Decoración floral personalizada',
-        rating: 4.7,
-        contratado: false,
-      ),
-      Proveedor(
-        id: '4',
-        nombre: 'DJ Carlos',
-        servicio: 'Música',
-        telefono: '+34 654 678 901',
-        email: 'carlos@djcarlos.com',
-        precio: 5000,
-        descripcion: 'DJ profesional con equipo de sonido premium',
-        rating: 4.6,
-        contratado: true,
-        fechaContratacion: DateTime(2024, 5, 1),
-      ),
-    ];
+    _loadProveedores();
   }
 
-  List<Proveedor> get _proveedoresFiltrados {
-    if (_filtro == 'Contratados') {
-      return _proveedores.where((p) => p.contratado).toList();
+  Future<void> _loadProveedores() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final meta = await _service.getPrimaryWedding();
+      final bodaId = meta?.id;
+      if (bodaId == null || bodaId.isEmpty) {
+        throw Exception('No hay boda activa.');
+      }
+
+      final proveedores = await _service.getProveedores(bodaId);
+      if (!mounted) return;
+      setState(() {
+        _bodaId = bodaId;
+        _proveedores
+          ..clear()
+          ..addAll(proveedores);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
     }
+  }
+
+  List<ProveedorBoda> get _filtrados {
+    Iterable<ProveedorBoda> list = _proveedores;
     if (_filtro == 'Pendientes') {
-      return _proveedores.where((p) => !p.contratado).toList();
+      list = list.where((p) => p.estado == EstadoProveedor.pendiente);
+    } else if (_filtro == 'Confirmados') {
+      list = list.where((p) => p.estado == EstadoProveedor.confirmado);
+    } else if (_filtro == 'Pagados') {
+      list = list.where((p) => p.estado == EstadoProveedor.pagado);
     }
-    return _proveedores;
+
+    final q = _query.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      list = list.where(
+        (p) =>
+            p.nombre.toLowerCase().contains(q) ||
+            p.categoria.toLowerCase().contains(q) ||
+            p.contacto.toLowerCase().contains(q),
+      );
+    }
+
+    return list.toList();
   }
 
-  String get _serviciosFiltro => _proveedores.map((p) => p.servicio).toSet().join(', ');
+  List<ProveedorBoda> get _visibles {
+    if (_filtrados.length <= _visibleCount) return _filtrados;
+    return _filtrados.take(_visibleCount).toList();
+  }
 
-  double get _costoTotal => _proveedores.fold(0, (s, p) => s + p.precio);
+  double get _total => _proveedores.fold(0, (s, p) => s + p.costo);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _roseLight,
       appBar: AppBar(
-        title: const Text('👨‍💼 Proveedores', style: TextStyle(color: _rose)),
+        title: const Text('Proveedores', style: TextStyle(color: _rose)),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: _rose),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add, color: _rose),
-            onPressed: () => _mostrarAgregarProveedor(context),
+            icon: const Icon(Icons.refresh_rounded, color: _rose),
+            onPressed: _loadProveedores,
           ),
           IconButton(
-            icon: const Icon(Icons.download, color: _rose),
-            onPressed: () => _exportarCSV(),
+            icon: const Icon(Icons.add, color: _rose),
+            onPressed: () => _mostrarAgregar(context),
           ),
         ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          // 🟢 Resumen superior
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Column(
-                            children: [
-                              Text(
-                                _proveedores.length.toString(),
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: _rose,
-                                ),
-                              ),
-                              const Text(
-                                'Total proveedores',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              Text(
-                                _proveedores.where((p) => p.contratado).length.toString(),
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                              const Text(
-                                'Contratados',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              Text(
-                                '\$${_costoTotal.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: _rose,
-                                ),
-                              ),
-                              const Text(
-                                'Costo total',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                        ],
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _rose))
+          : _error != null
+          ? _buildError()
+          : Column(
+              children: [
+                _buildResumen(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: TextField(
+                    onChanged: (value) {
+                      setState(() {
+                        _query = value;
+                        _visibleCount = 20;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Buscar proveedor o categoría',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                    ),
+                  ),
+                ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      _chipFiltro('Todos'),
+                      _chipFiltro('Pendientes'),
+                      _chipFiltro('Confirmados'),
+                      _chipFiltro('Pagados'),
                     ],
                   ),
                 ),
-              ),
-            ),
-          ),
-
-          // 🟢 Filtros
-          SliverToBoxAdapter(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  _buildFilterChip('Todos'),
-                  _buildFilterChip('Contratados'),
-                  _buildFilterChip('Pendientes'),
-                ],
-              ),
-            ),
-          ),
-
-          // 🟢 Lista de proveedores
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (_, i) => _buildProveedorCard(_proveedoresFiltrados[i]),
-                childCount: _proveedoresFiltrados.length,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label) {
-    final isSelected = _filtro == label;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (_) => setState(() => _filtro = label),
-        selectedColor: _rose,
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.white : Colors.black,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProveedorCard(Proveedor proveedor) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ExpansionTile(
-        title: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    proveedor.nombre,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    proveedor.servicio,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
-            if (proveedor.contratado)
-              Chip(
-                label: const Text('✓ Contratado'),
-                backgroundColor: Colors.green[100],
-                labelStyle: const TextStyle(fontSize: 11, color: Colors.green),
-              )
-            else
-              Chip(
-                label: const Text('⏳ Pendiente'),
-                backgroundColor: Colors.orange[100],
-                labelStyle: const TextStyle(fontSize: 11, color: Colors.orange),
-              ),
-          ],
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 🟢 Contacto
-                _buildSection('📞 Contacto', [
-                  Row(
-                    children: [
-                      Expanded(child: Text('Teléfono: ${proveedor.telefono}')),
-                      IconButton(
-                        icon: const Icon(Icons.phone, size: 18, color: _rose),
-                        onPressed: () {
-                          // TODO: Implementar llamada
-                        },
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Expanded(child: Text('Email: ${proveedor.email}')),
-                      IconButton(
-                        icon: const Icon(Icons.email, size: 18, color: _rose),
-                        onPressed: () {
-                          // TODO: Implementar email
-                        },
-                      ),
-                    ],
-                  ),
-                  if (proveedor.website != null)
-                    Row(
-                      children: [
-                        Expanded(child: Text('Web: ${proveedor.website}')),
-                        IconButton(
-                          icon: const Icon(Icons.language, size: 18, color: _rose),
-                          onPressed: () {
-                            // TODO: Abrir navegador
-                          },
+                const SizedBox(height: 8),
+                Expanded(
+                  child: _filtrados.isEmpty
+                      ? _buildEmpty()
+                      : ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          children: [
+                            ..._visibles.map(_buildItem),
+                            if (_filtrados.length > _visibleCount)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Center(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      setState(() {
+                                        _visibleCount += 20;
+                                      });
+                                    },
+                                    icon: const Icon(Icons.expand_more),
+                                    label: const Text('Cargar más'),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                      ],
-                    ),
-                ]),
-
-                const SizedBox(height: 12),
-
-                // 🟢 Detalles
-                _buildSection('💰 Detalles', [
-                  Text('Precio: \$${proveedor.precio.toStringAsFixed(0)}'),
-                  if (proveedor.rating > 0)
-                    Row(
-                      children: [
-                        const Text('Rating: '),
-                        ...List.generate(
-                          5,
-                          (i) => Icon(
-                            i < proveedor.rating.toInt() ? Icons.star : Icons.star_outline,
-                            size: 16,
-                            color: Colors.amber,
-                          ),
-                        ),
-                        Text(' (${proveedor.rating}/5)'),
-                      ],
-                    ),
-                  if (proveedor.descripcion != null)
-                    Text('Descripción: ${proveedor.descripcion}'),
-                ]),
-
-                const SizedBox(height: 12),
-
-                // 🟢 Fechas
-                if (proveedor.fechaContratacion != null)
-                  _buildSection('📅 Información de Contrato', [
-                    Text(
-                      'Contratado: ${proveedor.fechaContratacion!.toString().split(' ')[0]}',
-                    ),
-                  ]),
-
-                const SizedBox(height: 12),
-
-                // 🟢 Botones de acción
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (!proveedor.contratado)
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.check),
-                        label: const Text('Contratar'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () {
-                          // TODO: Marcar como contratado
-                        },
-                      ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: _rose),
-                      onPressed: () {
-                        // TODO: Editar proveedor
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () {
-                        // TODO: Eliminar proveedor
-                      },
-                    ),
-                  ],
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: _rose, size: 42),
+            const SizedBox(height: 10),
+            Text('No se pudieron cargar proveedores', style: TextStyle(color: Colors.grey.shade700)),
+            const SizedBox(height: 10),
+            ElevatedButton(onPressed: _loadProveedores, child: const Text('Reintentar')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResumen() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _miniStat('Total', _proveedores.length.toString(), _rose),
+          _miniStat(
+            'Pendientes',
+            _proveedores.where((e) => e.estado == EstadoProveedor.pendiente).length.toString(),
+            const Color(0xFFFB8C00),
           ),
+          _miniStat('Costo', '\$${_total.toStringAsFixed(0)}', _rose),
         ],
       ),
     );
   }
 
-  Widget _buildSection(String title, List<Widget> children) {
+  Widget _miniStat(String label, String value, Color color) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: _rose,
-            fontSize: 13,
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...children,
+        Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 16)),
+        const SizedBox(height: 3),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
       ],
     );
   }
 
-  void _exportarCSV() {
-    final csv = Proveedor.toCSV(_proveedores);
-    // 🟢 Aquí iría la lógica para descargar/compartir el CSV
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('✅ CSV preparado para descargar'),
-        action: SnackBarAction(
-          label: 'Ver',
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (_) => AlertDialog(
-                title: const Text('Proveedores (CSV)'),
-                content: SingleChildScrollView(
-                  child: SelectableText(csv),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cerrar'),
-                  ),
-                ],
-              ),
-            );
-          },
+  Widget _chipFiltro(String text) {
+    final selected = _filtro == text;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        selected: selected,
+        onSelected: (_) => setState(() => _filtro = text),
+        selectedColor: _rose,
+        label: Text(
+          text,
+          style: TextStyle(color: selected ? Colors.white : Colors.black87),
         ),
       ),
     );
   }
 
-  void _mostrarAgregarProveedor(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Agregar proveedor'),
-        content: const SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(decoration: InputDecoration(hintText: 'Nombre')),
-              SizedBox(height: 12),
-              TextField(decoration: InputDecoration(hintText: 'Servicio')),
-              SizedBox(height: 12),
-              TextField(decoration: InputDecoration(hintText: 'Teléfono')),
-              SizedBox(height: 12),
-              TextField(decoration: InputDecoration(hintText: 'Email')),
-              SizedBox(height: 12),
-              TextField(decoration: InputDecoration(hintText: 'Precio')),
-            ],
+  Widget _buildEmpty() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('👨‍💼', style: TextStyle(fontSize: 44)),
+          const SizedBox(height: 10),
+          Text('Sin proveedores registrados', style: TextStyle(color: Colors.grey.shade600)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItem(ProveedorBoda p) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: p.estado.color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.business_center_outlined, color: p.estado.color),
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Agregar'),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(p.nombre, style: const TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(
+                  '${p.categoria} · ${p.contacto.isEmpty ? 'Sin contacto' : p.contacto}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+                if (p.costo > 0)
+                  Text(
+                    '\$${p.costo.toStringAsFixed(0)}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+              ],
+            ),
+          ),
+          PopupMenuButton<EstadoProveedor>(
+            initialValue: p.estado,
+            onSelected: (estado) => _cambiarEstado(p, estado),
+            itemBuilder: (_) => EstadoProveedor.values
+                .map(
+                  (e) => PopupMenuItem<EstadoProveedor>(
+                    value: e,
+                    child: Text(e.label),
+                  ),
+                )
+                .toList(),
+            child: Chip(
+              label: Text(p.estado.label, style: TextStyle(color: p.estado.color)),
+              backgroundColor: p.estado.color.withOpacity(0.1),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, color: _rose),
+            onPressed: () => _mostrarEditar(context, p),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _cambiarEstado(ProveedorBoda proveedor, EstadoProveedor estado) async {
+    final bodaId = _bodaId;
+    if (bodaId == null) return;
+
+    final previo = proveedor.estado;
+    setState(() => proveedor.estado = estado);
+
+    try {
+      await _service.updateProveedor(bodaId, proveedor);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => proveedor.estado = previo);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo actualizar estado de proveedor')),
+      );
+    }
+  }
+
+  void _mostrarAgregar(BuildContext context) {
+    final nombreCtrl = TextEditingController();
+    final categoriaCtrl = TextEditingController();
+    final contactoCtrl = TextEditingController();
+    final linkCtrl = TextEditingController();
+    final costoCtrl = TextEditingController();
+    final notasCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Padding(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(context).viewInsets.bottom),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Nuevo proveedor',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _rose),
+                ),
+                const SizedBox(height: 14),
+                _textField(nombreCtrl, 'Nombre'),
+                const SizedBox(height: 10),
+                _textField(categoriaCtrl, 'Categoría'),
+                const SizedBox(height: 10),
+                _textField(contactoCtrl, 'Contacto'),
+                const SizedBox(height: 10),
+                _textField(linkCtrl, 'Link (opcional)'),
+                const SizedBox(height: 10),
+                _textField(costoCtrl, 'Costo', keyboard: TextInputType.number),
+                const SizedBox(height: 10),
+                _textField(notasCtrl, 'Notas (opcional)'),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _rose,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      if (nombreCtrl.text.trim().isEmpty) return;
+                      final bodaId = _bodaId;
+                      if (bodaId == null) return;
+
+                      final nuevo = ProveedorBoda(
+                        id: '',
+                        nombre: nombreCtrl.text.trim(),
+                        categoria: categoriaCtrl.text.trim().isEmpty ? 'General' : categoriaCtrl.text.trim(),
+                        contacto: contactoCtrl.text.trim(),
+                        link: linkCtrl.text.trim(),
+                        costo: double.tryParse(costoCtrl.text) ?? 0,
+                        estado: EstadoProveedor.pendiente,
+                        notas: notasCtrl.text.trim(),
+                      );
+
+                      _service
+                          .createProveedor(bodaId, nuevo)
+                          .then((creado) {
+                            if (!mounted) return;
+                            setState(() => _proveedores.add(creado));
+                          })
+                          .catchError((_) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('No se pudo agregar proveedor')),
+                            );
+                          });
+
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Agregar'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _mostrarEditar(BuildContext context, ProveedorBoda proveedor) {
+    final nombreCtrl = TextEditingController(text: proveedor.nombre);
+    final categoriaCtrl = TextEditingController(text: proveedor.categoria);
+    final contactoCtrl = TextEditingController(text: proveedor.contacto);
+    final linkCtrl = TextEditingController(text: proveedor.link);
+    final costoCtrl = TextEditingController(text: proveedor.costo.toStringAsFixed(0));
+    final notasCtrl = TextEditingController(text: proveedor.notas);
+    EstadoProveedor estado = proveedor.estado;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setLocal) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            24 + MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Editar proveedor',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: _rose,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _textField(nombreCtrl, 'Nombre'),
+                  const SizedBox(height: 10),
+                  _textField(categoriaCtrl, 'Categoría'),
+                  const SizedBox(height: 10),
+                  _textField(contactoCtrl, 'Contacto'),
+                  const SizedBox(height: 10),
+                  _textField(linkCtrl, 'Link'),
+                  const SizedBox(height: 10),
+                  _textField(costoCtrl, 'Costo', keyboard: TextInputType.number),
+                  const SizedBox(height: 10),
+                  _textField(notasCtrl, 'Notas'),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<EstadoProveedor>(
+                    value: estado,
+                    items: EstadoProveedor.values
+                        .map(
+                          (e) => DropdownMenuItem<EstadoProveedor>(
+                            value: e,
+                            child: Text(e.label),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) setLocal(() => estado = v);
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Estado',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _rose,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        final bodaId = _bodaId;
+                        if (bodaId == null || nombreCtrl.text.trim().isEmpty) return;
+
+                        final prev = ProveedorBoda(
+                          id: proveedor.id,
+                          nombre: proveedor.nombre,
+                          categoria: proveedor.categoria,
+                          contacto: proveedor.contacto,
+                          link: proveedor.link,
+                          costo: proveedor.costo,
+                          estado: proveedor.estado,
+                          notas: proveedor.notas,
+                        );
+
+                        setState(() {
+                          proveedor.nombre = nombreCtrl.text.trim();
+                          proveedor.categoria = categoriaCtrl.text.trim().isEmpty
+                              ? 'General'
+                              : categoriaCtrl.text.trim();
+                          proveedor.contacto = contactoCtrl.text.trim();
+                          proveedor.link = linkCtrl.text.trim();
+                          proveedor.costo = double.tryParse(costoCtrl.text) ?? 0;
+                          proveedor.notas = notasCtrl.text.trim();
+                          proveedor.estado = estado;
+                        });
+
+                        _service.updateProveedor(bodaId, proveedor).catchError((_) {
+                          if (!mounted) return;
+                          setState(() {
+                            proveedor.nombre = prev.nombre;
+                            proveedor.categoria = prev.categoria;
+                            proveedor.contacto = prev.contacto;
+                            proveedor.link = prev.link;
+                            proveedor.costo = prev.costo;
+                            proveedor.notas = prev.notas;
+                            proveedor.estado = prev.estado;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('No se pudo editar proveedor')),
+                          );
+                        });
+
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Guardar cambios'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _textField(
+    TextEditingController controller,
+    String label, {
+    TextInputType keyboard = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboard,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

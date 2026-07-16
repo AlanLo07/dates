@@ -1,6 +1,7 @@
 // lib/screens/wedding/wedding_budget.dart
 import 'package:flutter/material.dart';
 import '../../models/boda.dart';
+import '../../services/wedding_service.dart';
 
 const Color _rose = Color(0xFFE91E63);
 
@@ -11,43 +12,50 @@ class WeddingBudgetScreen extends StatefulWidget {
 }
 
 class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
-  final List<GastoBoda> _gastos = [
-    GastoBoda(
-      id: '1',
-      concepto: 'Venue',
-      categoria: 'Venue',
-      estimado: 45000,
-      pagado: 20000,
-    ),
-    GastoBoda(
-      id: '2',
-      concepto: 'Fotógrafo',
-      categoria: 'Fotos',
-      estimado: 15000,
-      pagado: 15000,
-    ),
-    GastoBoda(
-      id: '3',
-      concepto: 'Catering',
-      categoria: 'Catering',
-      estimado: 60000,
-      pagado: 0,
-    ),
-    GastoBoda(
-      id: '4',
-      concepto: 'Vestido de novia',
-      categoria: 'Look',
-      estimado: 18000,
-      pagado: 5000,
-    ),
-    GastoBoda(
-      id: '5',
-      concepto: 'DJ',
-      categoria: 'Música',
-      estimado: 8000,
-      pagado: 4000,
-    ),
-  ];
+  final WeddingService _service = WeddingService();
+  final List<GastoBoda> _gastos = [];
+  String? _bodaId;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGastos();
+  }
+
+  Future<void> _loadGastos() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final meta = await _service.getPrimaryWedding();
+      final bodaId = meta?.id;
+      if (bodaId == null || bodaId.isEmpty) {
+        throw Exception('No hay boda activa.');
+      }
+      final gastos = await _service.getGastos(bodaId);
+      if (!mounted) return;
+      setState(() {
+        _bodaId = bodaId;
+        _gastos
+          ..clear()
+          ..addAll(gastos);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
 
   double get _totalEstimado => _gastos.fold(0, (s, g) => s + g.estimado);
   double get _totalPagado => _gastos.fold(0, (s, g) => s + g.pagado);
@@ -74,12 +82,20 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
         iconTheme: const IconThemeData(color: _rose),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: _rose),
+            onPressed: _loadGastos,
+          ),
+          IconButton(
             icon: const Icon(Icons.add, color: _rose),
             onPressed: () => _mostrarAgregar(context),
           ),
         ],
       ),
-      body: Column(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _rose))
+          : _error != null
+          ? _buildError()
+          : Column(
         children: [
           _buildSummaryCard(),
           Expanded(
@@ -130,6 +146,24 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: _rose, size: 42),
+            const SizedBox(height: 10),
+            Text('No se pudieron cargar los gastos', style: TextStyle(color: Colors.grey.shade700)),
+            const SizedBox(height: 10),
+            ElevatedButton(onPressed: _loadGastos, child: const Text('Reintentar')),
+          ],
+        ),
       ),
     );
   }
@@ -344,7 +378,17 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
                 ),
                 onPressed: () {
                   final val = double.tryParse(ctrl.text) ?? g.pagado;
+                  final bodaId = _bodaId;
+                  if (bodaId == null) return;
+                  final prev = g.pagado;
                   setState(() => g.pagado = val);
+                  _service.updateGasto(bodaId, g).catchError((_) {
+                    if (!mounted) return;
+                    setState(() => g.pagado = prev);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No se pudo actualizar el gasto')),
+                    );
+                  });
                   Navigator.pop(context);
                 },
                 child: const Text('Guardar'),
@@ -431,18 +475,29 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
                 ),
                 onPressed: () {
                   if (conceptoCtrl.text.trim().isEmpty) return;
-                  setState(() {
-                    _gastos.add(
-                      GastoBoda(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        concepto: conceptoCtrl.text.trim(),
-                        categoria: categoriaCtrl.text.trim().isEmpty
-                            ? 'General'
-                            : categoriaCtrl.text.trim(),
-                        estimado: double.tryParse(estimadoCtrl.text) ?? 0,
-                      ),
-                    );
-                  });
+                  final bodaId = _bodaId;
+                  if (bodaId == null) return;
+                  final nuevo = GastoBoda(
+                    id: '',
+                    concepto: conceptoCtrl.text.trim(),
+                    categoria: categoriaCtrl.text.trim().isEmpty
+                        ? 'General'
+                        : categoriaCtrl.text.trim(),
+                    estimado: double.tryParse(estimadoCtrl.text) ?? 0,
+                    pagado: 0,
+                  );
+                  _service
+                      .createGasto(bodaId, nuevo)
+                      .then((creado) {
+                        if (!mounted) return;
+                        setState(() => _gastos.add(creado));
+                      })
+                      .catchError((_) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('No se pudo agregar el gasto')),
+                        );
+                      });
                   Navigator.pop(context);
                 },
                 child: const Text('Agregar'),

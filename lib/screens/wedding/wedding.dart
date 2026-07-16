@@ -12,12 +12,7 @@ import 'wedding_itinerary.dart';
 import 'wedding_budget.dart';
 import 'wedding_playlist.dart';
 import 'wedding_invitation.dart';
-import 'weedding_flowers.dart';
-import 'wedding_lodging.dart';
 import 'wedding_look.dart';
-import 'wedding_menu.dart';
-import 'wedding_album.dart';
-import 'wedding_gifts.dart';
 import 'wedding_providers.dart';
 import '../../widgets/motion/ambient_orbs_background.dart';
 import '../../widgets/motion/motion_section_reveal.dart';
@@ -78,37 +73,37 @@ class WeddingScreen extends StatelessWidget {
     WeddingOption(
       emoji: '📸',
       titulo: 'Álbum',
-      subtitulo: 'Fotos del gran día',
+      subtitulo: 'Próximamente',
       color: Color(0xFFF3E5F5),
-      screen: WeddingAlbumScreen(),
+      screen: null,
     ),
     WeddingOption(
       emoji: '🎁',
       titulo: 'Mesa de regalos',
-      subtitulo: 'Lista de deseos',
+      subtitulo: 'Próximamente',
       color: Color(0xFFFBE9E7),
-      screen: WeddingGiftsScreen(),
+      screen: null,
     ),
     WeddingOption(
       emoji: '🌸',
       titulo: 'Flores',
-      subtitulo: 'Arreglos y decoración',
+      subtitulo: 'Próximamente',
       color: Color(0xFFFCE4EC),
-      screen: WeddingFlowersScreen(),
+      screen: null,
     ),
     WeddingOption(
       emoji: '🍽️',
       titulo: 'Menú',
-      subtitulo: 'Catering y opciones',
+      subtitulo: 'Próximamente',
       color: Color(0xFFE8F5E9),
-      screen: WeddingMenuScreen(),
+      screen: null,
     ),
     WeddingOption(
       emoji: '🏨',
       titulo: 'Hospedaje',
-      subtitulo: 'Para los invitados',
+      subtitulo: 'Próximamente',
       color: Color(0xFFE3F2FD),
-      screen: WeddingLodgingScreen(),
+      screen: null,
     ),
     WeddingOption(
       emoji: '💄',

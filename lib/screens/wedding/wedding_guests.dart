@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/boda.dart';
+import '../../services/wedding_service.dart';
 
 const Color _rose = Color(0xFFE91E63);
 
@@ -10,35 +11,76 @@ class WeddingGuestsScreen extends StatefulWidget {
 }
 
 class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
-  // TODO: reemplazar con datos de la API
-  final List<Invitado> _invitados = [
-    Invitado(
-      id: '1',
-      nombre: 'Familia Martínez',
-      grupo: 'Familia',
-      personas: 4,
-      rsvp: RsvpStatus.confirmado,
-    ),
-    Invitado(
-      id: '2',
-      nombre: 'Carlos & Sofía',
-      grupo: 'Amigos',
-      personas: 2,
-      rsvp: RsvpStatus.confirmado,
-    ),
-    Invitado(
-      id: '3',
-      nombre: 'Laura Sánchez',
-      grupo: 'Amigos',
-      personas: 1,
-      rsvp: RsvpStatus.pendiente,
-    ),
-  ];
+  final WeddingService _service = WeddingService();
+  final bool _canConfirmRsvp = true;
+  final List<Invitado> _invitados = [];
+  String? _bodaId;
+  bool _loading = true;
+  String? _error;
+  String _query = '';
+  int _visibleCount = 20;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInvitados();
+  }
+
+  Future<void> _loadInvitados() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final meta = await _service.getPrimaryWedding();
+      final bodaId = meta?.id;
+      if (bodaId == null || bodaId.isEmpty) {
+        throw Exception('No hay boda activa.');
+      }
+      final invitados = await _service.getInvitados(bodaId);
+      if (!mounted) return;
+      setState(() {
+        _bodaId = bodaId;
+        _invitados
+          ..clear()
+          ..addAll(invitados);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
 
   int get _confirmados => _invitados
       .where((i) => i.rsvp == RsvpStatus.confirmado)
       .fold(0, (s, i) => s + i.personas);
   int get _total => _invitados.fold(0, (s, i) => s + i.personas);
+
+  List<Invitado> get _filtrados {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _invitados;
+    return _invitados
+        .where(
+          (i) =>
+              i.nombre.toLowerCase().contains(q) ||
+              i.grupo.toLowerCase().contains(q),
+        )
+        .toList();
+  }
+
+  List<Invitado> get _visibles {
+    final list = _filtrados;
+    if (list.length <= _visibleCount) return list;
+    return list.take(_visibleCount).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,13 +92,39 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
         iconTheme: const IconThemeData(color: _rose),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: _rose),
+            onPressed: _loadInvitados,
+          ),
+          IconButton(
             icon: const Icon(Icons.person_add_outlined, color: _rose),
             onPressed: () => _mostrarAgregarInvitado(context),
           ),
         ],
       ),
-      body: Column(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _rose))
+          : _error != null
+          ? _buildError()
+          : Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  _query = value;
+                  _visibleCount = 20;
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Buscar invitado o grupo',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
           // Resumen
           Padding(
             padding: const EdgeInsets.all(16),
@@ -86,14 +154,47 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
             ),
           ),
           Expanded(
-            child: ListView.separated(
+            child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _invitados.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (ctx, i) => _buildInvitadoCard(_invitados[i]),
+              children: [
+                ..._visibles.map(_buildInvitadoCard),
+                if (_filtrados.length > _visibleCount)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Center(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _visibleCount += 20;
+                          });
+                        },
+                        icon: const Icon(Icons.expand_more),
+                        label: const Text('Cargar más'),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: _rose, size: 42),
+            const SizedBox(height: 10),
+            Text('No se pudieron cargar invitados', style: TextStyle(color: Colors.grey.shade700)),
+            const SizedBox(height: 10),
+            ElevatedButton(onPressed: _loadInvitados, child: const Text('Reintentar')),
+          ],
+        ),
       ),
     );
   }
@@ -168,9 +269,35 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
               ],
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, color: _rose),
+            onPressed: () => _mostrarEditarInvitado(context, inv),
+          ),
           PopupMenuButton<RsvpStatus>(
             initialValue: inv.rsvp,
-            onSelected: (v) => setState(() => inv.rsvp = v),
+            onSelected: (v) async {
+              if (!_canConfirmRsvp) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Solo los novios pueden confirmar invitados.'),
+                  ),
+                );
+                return;
+              }
+              final bodaId = _bodaId;
+              if (bodaId == null) return;
+              final previous = inv.rsvp;
+              setState(() => inv.rsvp = v);
+              try {
+                await _service.updateInvitadoRsvp(bodaId, inv.id, v);
+              } catch (_) {
+                if (!mounted) return;
+                setState(() => inv.rsvp = previous);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('No se pudo actualizar RSVP')),
+                );
+              }
+            },
             itemBuilder: (_) => RsvpStatus.values
                 .map((s) => PopupMenuItem(value: s, child: Text(s.label)))
                 .toList(),
@@ -181,7 +308,7 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                inv.rsvp.label,
+                _canConfirmRsvp ? inv.rsvp.label : '${inv.rsvp.label} 🔒',
                 style: TextStyle(
                   fontSize: 12,
                   color: colors[inv.rsvp],
@@ -191,6 +318,133 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _mostrarEditarInvitado(BuildContext context, Invitado invitado) {
+    final nombreCtrl = TextEditingController(text: invitado.nombre);
+    final grupoCtrl = TextEditingController(text: invitado.grupo);
+    int personas = invitado.personas;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setLocal) => Container(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            24 + MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Editar invitado',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: _rose,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nombreCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Nombre',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: grupoCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Grupo',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Text('Personas:'),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: () {
+                      if (personas > 1) setLocal(() => personas--);
+                    },
+                  ),
+                  Text(
+                    '$personas',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline, color: _rose),
+                    onPressed: () => setLocal(() => personas++),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _rose,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    final bodaId = _bodaId;
+                    if (bodaId == null || nombreCtrl.text.trim().isEmpty) return;
+
+                    final prevNombre = invitado.nombre;
+                    final prevGrupo = invitado.grupo;
+                    final prevPersonas = invitado.personas;
+
+                    setState(() {
+                      invitado.nombre = nombreCtrl.text.trim();
+                      invitado.grupo = grupoCtrl.text.trim().isEmpty
+                          ? 'Amigos'
+                          : grupoCtrl.text.trim();
+                      invitado.personas = personas;
+                    });
+
+                    _service.updateInvitado(bodaId, invitado).catchError((_) {
+                      if (!mounted) return;
+                      setState(() {
+                        invitado.nombre = prevNombre;
+                        invitado.grupo = prevGrupo;
+                        invitado.personas = prevPersonas;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No se pudo editar invitado')),
+                      );
+                    });
+
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Guardar cambios'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -284,18 +538,28 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
                   ),
                   onPressed: () {
                     if (nombreCtrl.text.trim().isEmpty) return;
-                    setState(() {
-                      _invitados.add(
-                        Invitado(
-                          id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          nombre: nombreCtrl.text.trim(),
-                          grupo: grupoCtrl.text.trim().isEmpty
-                              ? 'Amigos'
-                              : grupoCtrl.text.trim(),
-                          personas: personas,
-                        ),
-                      );
-                    });
+                    final bodaId = _bodaId;
+                    if (bodaId == null) return;
+                    final nuevo = Invitado(
+                      id: '',
+                      nombre: nombreCtrl.text.trim(),
+                      grupo: grupoCtrl.text.trim().isEmpty
+                          ? 'Amigos'
+                          : grupoCtrl.text.trim(),
+                      personas: personas,
+                    );
+                    _service
+                        .createInvitado(bodaId, nuevo)
+                        .then((creado) {
+                          if (!mounted) return;
+                          setState(() => _invitados.add(creado));
+                        })
+                        .catchError((_) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('No se pudo agregar invitado')),
+                          );
+                        });
                     Navigator.pop(context);
                   },
                   child: const Text('Agregar'),

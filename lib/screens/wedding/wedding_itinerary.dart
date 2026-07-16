@@ -1,6 +1,7 @@
 // lib/screens/wedding_itinerary.dart
 import 'package:flutter/material.dart';
 import '../../models/boda.dart';
+import '../../services/wedding_service.dart';
 
 const Color _rose = Color(0xFFE91E63);
 
@@ -11,64 +12,51 @@ class WeddingItineraryScreen extends StatefulWidget {
 }
 
 class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
-  final List<PasoBoda> _pasos = [
-    PasoBoda(
-      id: '1',
-      titulo: 'Ceremonia religiosa',
-      hora: '17:00',
-      nota: 'Iglesia de San Francisco',
-      emoji: '💒',
-    ),
-    PasoBoda(
-      id: '2',
-      titulo: 'Sesión de fotos',
-      hora: '18:30',
-      nota: 'Jardín del venue',
-      emoji: '📸',
-    ),
-    PasoBoda(
-      id: '3',
-      titulo: 'Coctel de bienvenida',
-      hora: '19:00',
-      nota: 'Terraza principal',
-      emoji: '🥂',
-    ),
-    PasoBoda(
-      id: '4',
-      titulo: 'Cena',
-      hora: '20:00',
-      nota: 'Salón principal',
-      emoji: '🍽️',
-    ),
-    PasoBoda(
-      id: '5',
-      titulo: 'Primer baile',
-      hora: '21:30',
-      nota: 'Can\'t Help Falling in Love',
-      emoji: '💃',
-    ),
-    PasoBoda(
-      id: '6',
-      titulo: 'Vals con padres',
-      hora: '21:45',
-      nota: '',
-      emoji: '🌹',
-    ),
-    PasoBoda(
-      id: '7',
-      titulo: 'Fiesta',
-      hora: '22:00',
-      nota: 'DJ hasta las 2am',
-      emoji: '🎉',
-    ),
-    PasoBoda(
-      id: '8',
-      titulo: 'Lanzamiento del ramo',
-      hora: '00:30',
-      nota: '',
-      emoji: '💐',
-    ),
-  ];
+  final WeddingService _service = WeddingService();
+  final List<PasoBoda> _pasos = [];
+  String? _bodaId;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadItinerario();
+  }
+
+  Future<void> _loadItinerario() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final meta = await _service.getPrimaryWedding();
+      final bodaId = meta?.id;
+      if (bodaId == null || bodaId.isEmpty) {
+        throw Exception('No hay boda activa.');
+      }
+      final pasos = await _service.getItinerario(bodaId);
+      pasos.sort((a, b) => a.hora.compareTo(b.hora));
+      if (!mounted) return;
+      setState(() {
+        _bodaId = bodaId;
+        _pasos
+          ..clear()
+          ..addAll(pasos);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,12 +68,20 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
         iconTheme: const IconThemeData(color: _rose),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: _rose),
+            onPressed: _loadItinerario,
+          ),
+          IconButton(
             icon: const Icon(Icons.add, color: _rose),
             onPressed: () => _mostrarAgregar(context),
           ),
         ],
       ),
-      body: ListView.builder(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _rose))
+          : _error != null
+          ? _buildError()
+          : ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _pasos.length,
         itemBuilder: (ctx, i) {
@@ -179,6 +175,24 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
     );
   }
 
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: _rose, size: 42),
+            const SizedBox(height: 10),
+            Text('No se pudo cargar el itinerario', style: TextStyle(color: Colors.grey.shade700)),
+            const SizedBox(height: 10),
+            ElevatedButton(onPressed: _loadItinerario, child: const Text('Reintentar')),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _mostrarAgregar(BuildContext context) {
     final tituloCtrl = TextEditingController();
     final horaCtrl = TextEditingController();
@@ -252,17 +266,29 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
                 ),
                 onPressed: () {
                   if (tituloCtrl.text.trim().isEmpty) return;
-                  setState(() {
-                    _pasos.add(
-                      PasoBoda(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        titulo: tituloCtrl.text.trim(),
-                        hora: horaCtrl.text.trim(),
-                        nota: notaCtrl.text.trim(),
-                      ),
-                    );
-                    _pasos.sort((a, b) => a.hora.compareTo(b.hora));
-                  });
+                  final bodaId = _bodaId;
+                  if (bodaId == null) return;
+                  final nuevo = PasoBoda(
+                    id: '',
+                    titulo: tituloCtrl.text.trim(),
+                    hora: horaCtrl.text.trim(),
+                    nota: notaCtrl.text.trim(),
+                  );
+                  _service
+                      .createPaso(bodaId, nuevo)
+                      .then((creado) {
+                        if (!mounted) return;
+                        setState(() {
+                          _pasos.add(creado);
+                          _pasos.sort((a, b) => a.hora.compareTo(b.hora));
+                        });
+                      })
+                      .catchError((_) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('No se pudo agregar el paso')),
+                        );
+                      });
                   Navigator.pop(context);
                 },
                 child: const Text('Agregar'),

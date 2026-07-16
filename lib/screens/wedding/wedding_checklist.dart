@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/boda.dart';
+import '../../services/wedding_service.dart';
 
 const Color _rose = Color(0xFFE91E63);
 
@@ -10,26 +11,50 @@ class WeddingChecklistScreen extends StatefulWidget {
 }
 
 class _WeddingChecklistScreenState extends State<WeddingChecklistScreen> {
-  final List<TareaBoda> _tareas = [
-    TareaBoda(
-      id: '1',
-      titulo: 'Elegir el venue',
-      categoria: 'Venue',
-      completada: true,
-    ),
-    TareaBoda(id: '2', titulo: 'Contratar fotógrafo', categoria: 'Fotos'),
-    TareaBoda(id: '3', titulo: 'Elegir pastel', categoria: 'Catering'),
-    TareaBoda(id: '4', titulo: 'Enviar invitaciones', categoria: 'Invitados'),
-    TareaBoda(id: '5', titulo: 'Confirmar DJ / Música', categoria: 'Música'),
-    TareaBoda(id: '6', titulo: 'Flores y decoración', categoria: 'Flores'),
-    TareaBoda(
-      id: '7',
-      titulo: 'Vestido y traje',
-      categoria: 'Look',
-      completada: true,
-    ),
-    TareaBoda(id: '8', titulo: 'Reservar luna de miel', categoria: 'Viaje'),
-  ];
+  final WeddingService _service = WeddingService();
+  final List<TareaBoda> _tareas = [];
+  String? _bodaId;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTareas();
+  }
+
+  Future<void> _loadTareas() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final meta = await _service.getPrimaryWedding();
+      final bodaId = meta?.id;
+      if (bodaId == null || bodaId.isEmpty) {
+        throw Exception('No hay boda activa.');
+      }
+      final tareas = await _service.getTareas(bodaId);
+      if (!mounted) return;
+      setState(() {
+        _bodaId = bodaId;
+        _tareas
+          ..clear()
+          ..addAll(tareas);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
 
   Map<String, List<TareaBoda>> get _grouped {
     final m = <String, List<TareaBoda>>{};
@@ -51,12 +76,20 @@ class _WeddingChecklistScreenState extends State<WeddingChecklistScreen> {
         iconTheme: const IconThemeData(color: _rose),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: _rose),
+            onPressed: _loadTareas,
+          ),
+          IconButton(
             icon: const Icon(Icons.add, color: _rose),
             onPressed: () => _mostrarAgregar(context),
           ),
         ],
       ),
-      body: Column(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _rose))
+          : _error != null
+          ? _buildError()
+          : Column(
         children: [
           // Barra de progreso
           Padding(
@@ -109,8 +142,22 @@ class _WeddingChecklistScreenState extends State<WeddingChecklistScreen> {
                         child: CheckboxListTile(
                           value: t.completada,
                           activeColor: _rose,
-                          onChanged: (v) =>
-                              setState(() => t.completada = v ?? false),
+                          onChanged: (v) async {
+                            final bodaId = _bodaId;
+                            if (bodaId == null) return;
+                            final prev = t.completada;
+                            final nuevo = v ?? false;
+                            setState(() => t.completada = nuevo);
+                            try {
+                              await _service.updateTarea(bodaId, t);
+                            } catch (_) {
+                              if (!mounted) return;
+                              setState(() => t.completada = prev);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('No se pudo actualizar la tarea')),
+                              );
+                            }
+                          },
                           title: Text(
                             t.titulo,
                             style: TextStyle(
@@ -134,6 +181,24 @@ class _WeddingChecklistScreenState extends State<WeddingChecklistScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: _rose, size: 42),
+            const SizedBox(height: 10),
+            Text('No se pudieron cargar tareas', style: TextStyle(color: Colors.grey.shade700)),
+            const SizedBox(height: 10),
+            ElevatedButton(onPressed: _loadTareas, child: const Text('Reintentar')),
+          ],
+        ),
       ),
     );
   }
@@ -201,15 +266,25 @@ class _WeddingChecklistScreenState extends State<WeddingChecklistScreen> {
                 ),
                 onPressed: () {
                   if (ctrl.text.trim().isEmpty) return;
-                  setState(() {
-                    _tareas.add(
-                      TareaBoda(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        titulo: ctrl.text.trim(),
-                        categoria: cat.trim().isEmpty ? 'General' : cat.trim(),
-                      ),
-                    );
-                  });
+                  final bodaId = _bodaId;
+                  if (bodaId == null) return;
+                  final nueva = TareaBoda(
+                    id: '',
+                    titulo: ctrl.text.trim(),
+                    categoria: cat.trim().isEmpty ? 'General' : cat.trim(),
+                  );
+                  _service
+                      .createTarea(bodaId, nueva)
+                      .then((creada) {
+                        if (!mounted) return;
+                        setState(() => _tareas.add(creada));
+                      })
+                      .catchError((_) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('No se pudo agregar la tarea')),
+                        );
+                      });
                   Navigator.pop(context);
                 },
                 child: const Text('Agregar'),

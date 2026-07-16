@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/boda.dart';
+import '../../services/wedding_service.dart';
 
 const Color _rose = Color(0xFFE91E63);
 const List<String> _momentos = ['Entrada', 'Primer baile', 'Vals', 'Fiesta'];
@@ -13,32 +14,50 @@ class WeddingPlaylistScreen extends StatefulWidget {
 }
 
 class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
-  final List<CancionBoda> _canciones = [
-    CancionBoda(
-      id: '1',
-      titulo: 'Perfect',
-      artista: 'Ed Sheeran',
-      momento: 'Entrada',
-    ),
-    CancionBoda(
-      id: '2',
-      titulo: "Can't Help Falling in Love",
-      artista: 'Elvis Presley',
-      momento: 'Primer baile',
-    ),
-    CancionBoda(
-      id: '3',
-      titulo: 'La Bikina',
-      artista: 'Los Panchos',
-      momento: 'Vals',
-    ),
-    CancionBoda(
-      id: '4',
-      titulo: 'Uptown Funk',
-      artista: 'Bruno Mars',
-      momento: 'Fiesta',
-    ),
-  ];
+  final WeddingService _service = WeddingService();
+  final List<CancionBoda> _canciones = [];
+  String? _bodaId;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCanciones();
+  }
+
+  Future<void> _loadCanciones() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final meta = await _service.getPrimaryWedding();
+      final bodaId = meta?.id;
+      if (bodaId == null || bodaId.isEmpty) {
+        throw Exception('No hay boda activa.');
+      }
+      final canciones = await _service.getCanciones(bodaId);
+      if (!mounted) return;
+      setState(() {
+        _bodaId = bodaId;
+        _canciones
+          ..clear()
+          ..addAll(canciones);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
 
   Future<void> _abrirSpotify(String link) async {
     if (link.isEmpty) return;
@@ -76,12 +95,20 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
         iconTheme: const IconThemeData(color: _rose),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: _rose),
+            onPressed: _loadCanciones,
+          ),
+          IconButton(
             icon: const Icon(Icons.add, color: _rose),
             onPressed: () => _mostrarAgregar(context),
           ),
         ],
       ),
-      body: _canciones.isEmpty
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _rose))
+          : _error != null
+          ? _buildError()
+          : _canciones.isEmpty
           ? _buildEmpty()
           : ListView(
               padding: const EdgeInsets.all(16),
@@ -118,6 +145,24 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
                 );
               }).toList(),
             ),
+    );
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: _rose, size: 42),
+            const SizedBox(height: 10),
+            Text('No se pudieron cargar canciones', style: TextStyle(color: Colors.grey.shade700)),
+            const SizedBox(height: 10),
+            ElevatedButton(onPressed: _loadCanciones, child: const Text('Reintentar')),
+          ],
+        ),
+      ),
     );
   }
 
@@ -328,17 +373,27 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
                   ),
                   onPressed: () {
                     if (tituloCtrl.text.trim().isEmpty) return;
-                    setState(() {
-                      _canciones.add(
-                        CancionBoda(
-                          id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          titulo: tituloCtrl.text.trim(),
-                          artista: artistaCtrl.text.trim(),
-                          momento: momento,
-                          link: linkCtrl.text.trim(),
-                        ),
-                      );
-                    });
+                    final bodaId = _bodaId;
+                    if (bodaId == null) return;
+                    final nueva = CancionBoda(
+                      id: '',
+                      titulo: tituloCtrl.text.trim(),
+                      artista: artistaCtrl.text.trim(),
+                      momento: momento,
+                      link: linkCtrl.text.trim(),
+                    );
+                    _service
+                        .createCancion(bodaId, nueva)
+                        .then((creada) {
+                          if (!mounted) return;
+                          setState(() => _canciones.add(creada));
+                        })
+                        .catchError((_) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('No se pudo agregar la canción')),
+                          );
+                        });
                     Navigator.pop(context);
                   },
                   child: const Text('Agregar'),
