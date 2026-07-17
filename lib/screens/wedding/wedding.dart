@@ -1,9 +1,7 @@
 // lib/screens/wedding.dart
 import 'package:flutter/material.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+
 import 'models/wedding_option.dart';
-import 'models/wedding_models.dart';
 import 'widgets/wedding_countdown_header.dart';
 import 'widgets/wedding_option_card.dart';
 import 'wedding_guests.dart';
@@ -14,6 +12,7 @@ import 'wedding_playlist.dart';
 import 'wedding_invitation.dart';
 import 'wedding_look.dart';
 import 'wedding_providers.dart';
+import '../../services/wedding_pdf_export_service.dart';
 import '../../widgets/motion/ambient_orbs_background.dart';
 import '../../widgets/motion/motion_section_reveal.dart';
 
@@ -24,8 +23,13 @@ DateTime kWeddingDate = DateTime(2027, 2, 14);
 const Color _rose = Color(0xFFE91E63);
 const Color _roseLight = Color(0xFFFCE4EC);
 
+enum _WeddingMenuAction { exportPdf }
+
 class WeddingScreen extends StatelessWidget {
   const WeddingScreen({super.key});
+
+  static final WeddingPdfExportService _pdfExportService =
+      WeddingPdfExportService();
 
   static const List<WeddingOption> _opciones = [
     WeddingOption(
@@ -134,14 +138,14 @@ class WeddingScreen extends StatelessWidget {
         iconTheme: const IconThemeData(color: _rose),
         elevation: 1,
         actions: [
-          PopupMenuButton(
+          PopupMenuButton<_WeddingMenuAction>(
             color: Colors.white,
+            onSelected: (value) => _handleMenuAction(context, value),
             itemBuilder: (_) => [
-              // const PopupMenuItem(child: Text('📥 Exportar Checklist (CSV)')),
-              // const PopupMenuItem(child: Text('📥 Exportar Presupuesto (CSV)')),
-              // const PopupMenuItem(child: Text('📥 Exportar Proveedores (CSV)')),
-              // const PopupMenuDivider(),
-              // const PopupMenuItem(child: Text('⚙️ Configuración')),
+              const PopupMenuItem<_WeddingMenuAction>(
+                value: _WeddingMenuAction.exportPdf,
+                child: Text('Exportar PDF'),
+              ),
             ],
           ),
         ],
@@ -268,5 +272,32 @@ class WeddingScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _handleMenuAction(
+    BuildContext context,
+    _WeddingMenuAction action,
+  ) async {
+    switch (action) {
+      case _WeddingMenuAction.exportPdf:
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Generando PDF de boda...')),
+        );
+
+        try {
+          await _pdfExportService.exportWeddingPdf();
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            const SnackBar(content: Text('PDF generado y listo para compartir.')),
+          );
+        } catch (error) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(content: Text('No se pudo exportar el PDF: $error')),
+          );
+        }
+    }
   }
 }
