@@ -1,5 +1,8 @@
 // lib/screens/wedding.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'models/wedding_option.dart';
 import 'widgets/wedding_countdown_header.dart';
@@ -12,6 +15,7 @@ import 'wedding_playlist.dart';
 import 'wedding_invitation.dart';
 import 'wedding_look.dart';
 import 'wedding_providers.dart';
+import '../../services/wedding_service.dart';
 import '../../services/wedding_pdf_export_service.dart';
 import '../../widgets/motion/ambient_orbs_background.dart';
 import '../../widgets/motion/motion_section_reveal.dart';
@@ -25,7 +29,7 @@ const Color _roseLight = Color(0xFFFCE4EC);
 
 enum _WeddingMenuAction { exportPdf }
 
-class WeddingScreen extends StatelessWidget {
+class WeddingScreen extends StatefulWidget {
   const WeddingScreen({super.key});
 
   static final WeddingPdfExportService _pdfExportService =
@@ -124,6 +128,88 @@ class WeddingScreen extends StatelessWidget {
       screen: WeddingProvidersScreen(),
     ),
   ];
+
+  @override
+  State<WeddingScreen> createState() => _WeddingScreenState();
+}
+
+class _WeddingScreenState extends State<WeddingScreen> {
+  final WeddingService _service = WeddingService();
+  final MapController _mapController = MapController();
+  WeddingMeta? _meta;
+  LatLng? _eventPoint;
+  bool _locationLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocationSummary();
+  }
+
+  Future<void> _loadLocationSummary() async {
+    setState(() {
+      _locationLoading = true;
+    });
+
+    try {
+      final meta = await _service.getPrimaryWedding();
+      final point = await _resolvePoint(meta);
+      if (!mounted) return;
+      setState(() {
+        _meta = meta;
+        _eventPoint = point;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _meta = null;
+        _eventPoint = null;
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _locationLoading = false;
+      });
+    }
+  }
+
+  Future<LatLng?> _resolvePoint(WeddingMeta? meta) async {
+    if (meta == null) return null;
+
+    final query = _composeLocationQuery(meta);
+    if (query.isEmpty) return null;
+
+    final directPoint = _parseCoords(query);
+    if (directPoint != null) return directPoint;
+
+    try {
+      final result = await locationFromAddress(query);
+      if (result.isEmpty) return null;
+      return LatLng(result.first.latitude, result.first.longitude);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _composeLocationQuery(WeddingMeta meta) {
+    final parts = <String>[
+      if (meta.lugar != null && meta.lugar!.trim().isNotEmpty) meta.lugar!.trim(),
+      if (meta.direccion != null && meta.direccion!.trim().isNotEmpty) meta.direccion!.trim(),
+    ];
+    return parts.join(', ');
+  }
+
+  LatLng? _parseCoords(String value) {
+    final regex = RegExp(r'(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)');
+    final match = regex.firstMatch(value);
+    if (match == null) return null;
+
+    final lat = double.tryParse(match.group(1)!);
+    final lng = double.tryParse(match.group(2)!);
+    if (lat == null || lng == null) return null;
+    if (lat.abs() > 90 || lng.abs() > 180) return null;
+    return LatLng(lat, lng);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -245,6 +331,16 @@ class WeddingScreen extends StatelessWidget {
               ),
             ),
 
+              SliverToBoxAdapter(
+                child: MotionSectionReveal(
+                  delay: const Duration(milliseconds: 160),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: _buildLocationSummaryCard(context),
+                  ),
+                ),
+              ),
+
             // ── Grid de opciones ────────────────────────────────────────────
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
@@ -254,11 +350,11 @@ class WeddingScreen extends StatelessWidget {
                     delay: Duration(milliseconds: 180 + (i * 45)),
                     beginOffsetY: 0.08,
                     child: WeddingOptionCard(
-                      option: _opciones[i],
+                      option: WeddingScreen._opciones[i],
                       accentColor: _rose,
                     ),
                   ),
-                  childCount: _opciones.length,
+                  childCount: WeddingScreen._opciones.length,
                 ),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
@@ -270,6 +366,111 @@ class WeddingScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLocationSummaryCard(BuildContext context) {
+    final locationLabel = _meta?.lugar?.trim().isNotEmpty == true
+        ? _meta!.lugar!
+        : (_meta?.direccion?.trim().isNotEmpty == true ? _meta!.direccion! : 'Ubicación pendiente');
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.place_outlined, color: _rose),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Ubicación de la boda',
+                  style: TextStyle(
+                    color: _rose,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const WeddingInvitationScreen(),
+                    ),
+                  );
+                },
+                child: const Text('Ver detalle'),
+              ),
+            ],
+          ),
+          Text(
+            locationLabel,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 10),
+          if (_locationLoading)
+            const SizedBox(
+              height: 130,
+              child: Center(child: CircularProgressIndicator(color: _rose)),
+            )
+          else if (_eventPoint != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                height: 150,
+                child: FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _eventPoint!,
+                    initialZoom: 14,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.nuestrolugarseguro.app',
+                      maxZoom: 19,
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: _eventPoint!,
+                          width: 38,
+                          height: 38,
+                          child: const Icon(
+                            Icons.location_on,
+                            color: _rose,
+                            size: 34,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Container(
+              height: 90,
+              width: double.infinity,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFCE4EC),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'No fue posible ubicar la dirección automáticamente.',
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -287,7 +488,7 @@ class WeddingScreen extends StatelessWidget {
         );
 
         try {
-          await _pdfExportService.exportWeddingPdf();
+          await WeddingScreen._pdfExportService.exportWeddingPdf();
           messenger.hideCurrentSnackBar();
           messenger.showSnackBar(
             const SnackBar(content: Text('PDF generado y listo para compartir.')),

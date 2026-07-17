@@ -158,6 +158,25 @@ class WeddingService {
         'hora': paso.hora,
         'nota': paso.nota,
         'emoji': paso.emoji,
+        'ubicacion': paso.ubicacion,
+        'ubicacionLat': paso.ubicacionLat,
+        'ubicacionLng': paso.ubicacionLng,
+      },
+    );
+    return PasoBoda.fromJson(map);
+  }
+
+  Future<PasoBoda> updatePaso(String bodaId, PasoBoda paso) async {
+    final map = await _put(
+      '/bodas/$bodaId/itinerario/${paso.id}',
+      body: {
+        'titulo': paso.titulo,
+        'hora': paso.hora,
+        'nota': paso.nota,
+        'emoji': paso.emoji,
+        'ubicacion': paso.ubicacion,
+        'ubicacionLat': paso.ubicacionLat,
+        'ubicacionLng': paso.ubicacionLng,
       },
     );
     return PasoBoda.fromJson(map);

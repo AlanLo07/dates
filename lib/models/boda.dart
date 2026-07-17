@@ -102,6 +102,9 @@ class PasoBoda {
   String hora; // "HH:mm"
   String nota;
   String emoji;
+  String ubicacion;
+  double? ubicacionLat;
+  double? ubicacionLng;
 
   PasoBoda({
     required this.id,
@@ -109,6 +112,9 @@ class PasoBoda {
     required this.hora,
     this.nota = '',
     this.emoji = '💒',
+    this.ubicacion = '',
+    this.ubicacionLat,
+    this.ubicacionLng,
   });
 
   factory PasoBoda.fromJson(Map<String, dynamic> json) => PasoBoda(
@@ -117,6 +123,9 @@ class PasoBoda {
     hora: json['hora'] ?? '',
     nota: json['nota'] ?? '',
     emoji: json['emoji'] ?? '💒',
+    ubicacion: json['ubicacion'] ?? '',
+    ubicacionLat: _asNullableDouble(json['ubicacionLat'] ?? json['lat'] ?? json['latitude']),
+    ubicacionLng: _asNullableDouble(json['ubicacionLng'] ?? json['lng'] ?? json['longitude']),
   );
 
   Map<String, dynamic> toJson() => {
@@ -126,7 +135,16 @@ class PasoBoda {
     'hora': hora,
     'nota': nota,
     'emoji': emoji,
+    'ubicacion': ubicacion,
+    'ubicacionLat': ubicacionLat,
+    'ubicacionLng': ubicacionLng,
   };
+
+  static double? _asNullableDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString());
+  }
 }
 
 // ── Gasto ──────────────────────────────────────────────────────────────────
