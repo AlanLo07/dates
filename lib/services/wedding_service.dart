@@ -48,7 +48,9 @@ class WeddingService {
   factory WeddingService() => _instance;
   WeddingService._internal();
 
-  static const _jsonHeaders = {'Content-Type': 'application/json; charset=UTF-8'};
+  static const _jsonHeaders = {
+    'Content-Type': 'application/json; charset=UTF-8',
+  };
 
   String get _base => ApiConfig.baseUrl.endsWith('/')
       ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
@@ -58,7 +60,7 @@ class WeddingService {
 
   Future<WeddingMeta?> getPrimaryWedding() async {
     final response = await http
-        .get(_uri('/boda'))
+        .get(_uri('/bodas'))
         .timeout(const Duration(seconds: 12));
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -215,7 +217,10 @@ class WeddingService {
     return items.map(ProveedorBoda.fromJson).toList();
   }
 
-  Future<ProveedorBoda> createProveedor(String bodaId, ProveedorBoda proveedor) async {
+  Future<ProveedorBoda> createProveedor(
+    String bodaId,
+    ProveedorBoda proveedor,
+  ) async {
     final map = await _post(
       '/bodas/$bodaId/proveedores',
       body: {
@@ -231,7 +236,10 @@ class WeddingService {
     return ProveedorBoda.fromJson(map);
   }
 
-  Future<ProveedorBoda> updateProveedor(String bodaId, ProveedorBoda proveedor) async {
+  Future<ProveedorBoda> updateProveedor(
+    String bodaId,
+    ProveedorBoda proveedor,
+  ) async {
     final map = await _put(
       '/bodas/$bodaId/proveedores/${proveedor.id}',
       body: {
@@ -285,7 +293,9 @@ class WeddingService {
   }
 
   Future<List<Map<String, dynamic>>> _getItems(String path) async {
-    final response = await http.get(_uri(path)).timeout(const Duration(seconds: 12));
+    final response = await http
+        .get(_uri(path))
+        .timeout(const Duration(seconds: 12));
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception('Error al consultar $path: ${response.statusCode}');
     }
@@ -299,15 +309,13 @@ class WeddingService {
     required Map<String, dynamic> body,
   }) async {
     final response = await http
-        .post(
-          _uri(path),
-          headers: _jsonHeaders,
-          body: jsonEncode(body),
-        )
+        .post(_uri(path), headers: _jsonHeaders, body: jsonEncode(body))
         .timeout(const Duration(seconds: 12));
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Error al crear en $path: ${response.statusCode} - ${response.body}');
+      throw Exception(
+        'Error al crear en $path: ${response.statusCode} - ${response.body}',
+      );
     }
 
     return _extractSingleItem(response.body);
@@ -318,15 +326,13 @@ class WeddingService {
     required Map<String, dynamic> body,
   }) async {
     final response = await http
-        .put(
-          _uri(path),
-          headers: _jsonHeaders,
-          body: jsonEncode(body),
-        )
+        .put(_uri(path), headers: _jsonHeaders, body: jsonEncode(body))
         .timeout(const Duration(seconds: 12));
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Error al actualizar en $path: ${response.statusCode} - ${response.body}');
+      throw Exception(
+        'Error al actualizar en $path: ${response.statusCode} - ${response.body}',
+      );
     }
 
     return _extractSingleItem(response.body);
@@ -337,15 +343,13 @@ class WeddingService {
     required Map<String, dynamic> body,
   }) async {
     final response = await http
-        .patch(
-          _uri(path),
-          headers: _jsonHeaders,
-          body: jsonEncode(body),
-        )
+        .patch(_uri(path), headers: _jsonHeaders, body: jsonEncode(body))
         .timeout(const Duration(seconds: 12));
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Error al actualizar en $path: ${response.statusCode} - ${response.body}');
+      throw Exception(
+        'Error al actualizar en $path: ${response.statusCode} - ${response.body}',
+      );
     }
 
     return _extractSingleItem(response.body);
