@@ -57,11 +57,53 @@ class HomeCounterStrip extends StatelessWidget {
   }
 }
 
-class _HomeCounterBox extends StatelessWidget {
+class _HomeCounterBox extends StatefulWidget {
   final int value;
   final String label;
 
   const _HomeCounterBox({required this.value, required this.label});
+
+  @override
+  State<_HomeCounterBox> createState() => _HomeCounterBoxState();
+}
+
+class _HomeCounterBoxState extends State<_HomeCounterBox>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _flipAnimation;
+  int _lastValue = 0;
+  bool _isFlipping = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastValue = widget.value;
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void didUpdateWidget(_HomeCounterBox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && !_isFlipping) {
+      _isFlipping = true;
+      _controller.forward(from: 0).then((_) {
+        _lastValue = widget.value;
+        _isFlipping = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,15 +116,37 @@ class _HomeCounterBox extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            value.toString().padLeft(2, '0'),
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.violeta,
+          SizedBox(
+            height: 30,
+            child: AnimatedBuilder(
+              animation: _flipAnimation,
+              builder: (context, child) {
+                final angle = _flipAnimation.value * 3.14159265; // π radians
+                final opacity = (1 - (_flipAnimation.value - 0.5).abs() * 2).clamp(0.0, 1.0);
+
+                return Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.001) // Perspectiva
+                    ..rotateX(angle),
+                  child: Opacity(
+                    opacity: opacity,
+                    child: Text(
+                      _flipAnimation.value < 0.5
+                          ? _lastValue.toString().padLeft(2, '0')
+                          : widget.value.toString().padLeft(2, '0'),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.violeta,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
-          Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+          Text(widget.label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
         ],
       ),
     );

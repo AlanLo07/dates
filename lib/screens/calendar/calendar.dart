@@ -657,6 +657,72 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       ),
                                     ),
                                   ),
+                                  selectedBuilder: (ctx, day, focusedDay) =>
+                                      TweenAnimationBuilder<double>(
+                                    tween: Tween<double>(begin: 0.95, end: 1.0),
+                                    duration: const Duration(milliseconds: 280),
+                                    curve: Curves.elasticOut,
+                                    builder: (_, scale, __) => Transform.scale(
+                                      scale: scale,
+                                      child: Container(
+                                        margin: const EdgeInsets.all(4),
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              AppColors.violeta
+                                                  .withOpacity(0.3),
+                                              AppColors.violeta
+                                                  .withOpacity(0.15),
+                                            ],
+                                          ),
+                                          border: Border.all(
+                                            color: AppColors.violeta,
+                                            width: 2,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.violeta
+                                                  .withOpacity(0.4),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Text(
+                                          day.day.toString(),
+                                          style: const TextStyle(
+                                            color: AppColors.violeta,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  todayBuilder: (ctx, day, _) => Container(
+                                    margin: const EdgeInsets.all(4),
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: AppColors.violeta
+                                            .withOpacity(0.5),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      day.day.toString(),
+                                      style: const TextStyle(
+                                        color: AppColors.violeta,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
                                   // ── markerBuilder ahora usa _DayData directamente ──────
                                   // No hay triple lookup por día.
                                   markerBuilder: (ctx, day, events) {

@@ -301,13 +301,18 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
         ),
 
         // ── Card del lugar seleccionado ────────────────────────────────────
-        if (_selectedMarker != null)
-          Positioned(
-            bottom: 24,
-            left: 16,
-            right: 16,
-            child: _buildPlaceCard(_selectedMarker!),
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+          bottom: _selectedMarker != null ? 24 : -400,
+          left: 16,
+          right: 16,
+          child: AnimatedOpacity(
+            opacity: _selectedMarker != null ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            child: _selectedMarker != null ? _buildPlaceCard(_selectedMarker!) : const SizedBox.shrink(),
           ),
+        ),
       ],
     );
   }
@@ -326,31 +331,40 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
             _mapController.move(pm.position, 14);
           }
         }),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isSelected ? AppColors.violeta : Colors.white,
-              width: isSelected ? 3 : 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.violeta.withOpacity(isSelected ? 0.4 : 0.2),
-                blurRadius: isSelected ? 12 : 6,
-                offset: const Offset(0, 3),
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 1.0, end: isSelected ? 1.2 : 1.0),
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.elasticOut,
+          builder: (_, scale, __) => Transform.scale(
+            scale: scale,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? AppColors.violeta : Colors.white,
+                  width: isSelected ? 3 : 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.violeta.withOpacity(isSelected ? 0.5 : 0.2),
+                    blurRadius: isSelected ? 16 : 6,
+                    offset: Offset(0, isSelected ? 4 : 2),
+                    spreadRadius: isSelected ? 2 : 0,
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: ClipOval(
-            child: pm.cita.imagenUrl.isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: pm.cita.imagenUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) => _emojiMarker(),
-                    errorWidget: (_, __, ___) => _emojiMarker(),
-                  )
-                : _emojiMarker(),
+              child: ClipOval(
+                child: pm.cita.imagenUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: pm.cita.imagenUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => _emojiMarker(),
+                        errorWidget: (_, __, ___) => _emojiMarker(),
+                      )
+                    : _emojiMarker(),
+              ),
+            ),
           ),
         ),
       ),
@@ -370,12 +384,16 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
     return Material(
       elevation: 8,
       borderRadius: BorderRadius.circular(20),
-      shadowColor: AppColors.violeta.withOpacity(0.2),
+      shadowColor: AppColors.violeta.withOpacity(0.3),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppColors.violeta.withOpacity(0.2),
+            width: 1.5,
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -383,18 +401,26 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
             // ── Fila principal: foto + info + link ─────────────────────────
             Row(
               children: [
-                // Foto o emoji
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: cita.imagenUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: cita.imagenUrl,
-                          width: 64,
-                          height: 64,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => _cardEmojiBox(),
-                        )
-                      : _cardEmojiBox(),
+                // Foto o emoji con escala de entrada
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0.8, end: 1.0),
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.elasticOut,
+                  builder: (_, scale, __) => Transform.scale(
+                    scale: scale,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: cita.imagenUrl.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: cita.imagenUrl,
+                              width: 64,
+                              height: 64,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => _cardEmojiBox(),
+                            )
+                          : _cardEmojiBox(),
+                    ),
+                  ),
                 ),
 
                 const SizedBox(width: 12),
@@ -405,65 +431,87 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        cita.nombre,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: AppColors.violeta,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (cita.descripcion.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          cita.descripcion,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade500,
+                      TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeOut,
+                        builder: (_, opacity, __) => Opacity(
+                          opacity: opacity,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                cita.nombre,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: AppColors.violeta,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (cita.descripcion.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  cita.descripcion,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                              if (cita.rating > 0) ...[
+                                const SizedBox(height: 5),
+                                Row(
+                                  children: List.generate(5, (i) {
+                                    return Icon(
+                                      i < cita.rating
+                                          ? Icons.star_rounded
+                                          : Icons.star_border_rounded,
+                                      size: 13,
+                                      color: i < cita.rating
+                                          ? const Color(0xFFFFCA28)
+                                          : Colors.grey.shade300,
+                                    );
+                                  }),
+                                ),
+                              ],
+                            ],
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                      if (cita.rating > 0) ...[
-                        const SizedBox(height: 5),
-                        Row(
-                          children: List.generate(5, (i) {
-                            return Icon(
-                              i < cita.rating
-                                  ? Icons.star_rounded
-                                  : Icons.star_border_rounded,
-                              size: 13,
-                              color: i < cita.rating
-                                  ? const Color(0xFFFFCA28)
-                                  : Colors.grey.shade300,
-                            );
-                          }),
-                        ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
 
                 const SizedBox(width: 8),
 
-                // Botón link externo (mapa)
+                // Botón link externo (mapa) con escala
                 if (cita.link.isNotEmpty)
                   GestureDetector(
                     onTap: () => _launchUrl(cita.link),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppColors.violeta.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.open_in_new_rounded,
-                        size: 18,
-                        color: AppColors.violeta,
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0.6, end: 1.0),
+                      duration: const Duration(milliseconds: 450),
+                      curve: Curves.elasticOut,
+                      builder: (_, scale, __) => Transform.scale(
+                        scale: scale,
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.violeta.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.open_in_new_rounded,
+                            size: 18,
+                            color: AppColors.violeta,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -472,24 +520,32 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
 
             // ── Botón "Más detalles" ────────────────────────────────────────
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _navigateToResult(cita),
-                icon: const Icon(Icons.info_outline_rounded, size: 17),
-                label: const Text('Ver detalle'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.violeta,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  textStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOut,
+              builder: (_, opacity, __) => Opacity(
+                opacity: opacity,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _navigateToResult(cita),
+                    icon: const Icon(Icons.info_outline_rounded, size: 17),
+                    label: const Text('Ver detalle'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.violeta,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
                 ),
               ),
             ),
