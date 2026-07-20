@@ -343,3 +343,132 @@ class LookBoda {
     'notas': notas,
   };
 }
+
+// ── Hospedaje ──────────────────────────────────────────────────────────────
+class HospedajeBoda {
+  final String id;
+  String nombre;
+  String direccion;
+  String contacto;
+  String checkIn;
+  String checkOut;
+  String mapaUrl;
+  String nota;
+
+  HospedajeBoda({
+    required this.id,
+    required this.nombre,
+    this.direccion = '',
+    this.contacto = '',
+    this.checkIn = '',
+    this.checkOut = '',
+    this.mapaUrl = '',
+    this.nota = '',
+  });
+
+  factory HospedajeBoda.fromJson(Map<String, dynamic> json) => HospedajeBoda(
+    id: (json['id'] ?? '').toString(),
+    nombre: (json['nombre'] ?? '').toString(),
+    direccion: (json['direccion'] ?? '').toString(),
+    contacto: (json['contacto'] ?? '').toString(),
+    checkIn: (json['checkIn'] ?? '').toString(),
+    checkOut: (json['checkOut'] ?? '').toString(),
+    mapaUrl: (json['mapaUrl'] ?? '').toString(),
+    nota: (json['nota'] ?? '').toString(),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'nombre': nombre,
+    'direccion': direccion,
+    'contacto': contacto,
+    'checkIn': checkIn,
+    'checkOut': checkOut,
+    'mapaUrl': mapaUrl,
+    'nota': nota,
+  };
+}
+
+// ── Menú ───────────────────────────────────────────────────────────────────
+class MenuBodaItem {
+  final String id;
+  String nombre;
+  String momento;
+  String descripcion;
+  String tipo;
+  List<String> restricciones;
+  bool esVegetariano;
+
+  MenuBodaItem({
+    required this.id,
+    required this.nombre,
+    this.momento = 'Recepción',
+    this.descripcion = '',
+    this.tipo = '',
+    this.restricciones = const [],
+    this.esVegetariano = false,
+  });
+
+  factory MenuBodaItem.fromJson(Map<String, dynamic> json) => MenuBodaItem(
+    id: (json['id'] ?? '').toString(),
+    nombre: (json['nombre'] ?? '').toString(),
+    momento: (json['momento'] ?? 'Recepción').toString(),
+    descripcion: (json['descripcion'] ?? '').toString(),
+    tipo: (json['tipo'] ?? '').toString(),
+    restricciones: (json['restricciones'] is List)
+        ? List<String>.from(json['restricciones'])
+        : const [],
+    esVegetariano: json['esVegetariano'] == true,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'nombre': nombre,
+    'momento': momento,
+    'descripcion': descripcion,
+    'tipo': tipo,
+    'restricciones': restricciones,
+    'esVegetariano': esVegetariano,
+  };
+}
+
+// ── Álbum ──────────────────────────────────────────────────────────────────
+class AlbumFotoBoda {
+  final String id;
+  String titulo;
+  String url;
+  String s3Key;
+  String mimeType;
+  String subidoPor;
+  String comentario;
+
+  AlbumFotoBoda({
+    required this.id,
+    required this.titulo,
+    required this.url,
+    this.s3Key = '',
+    this.mimeType = '',
+    this.subidoPor = 'invitado',
+    this.comentario = '',
+  });
+
+  factory AlbumFotoBoda.fromJson(Map<String, dynamic> json) => AlbumFotoBoda(
+    id: (json['id'] ?? '').toString(),
+    titulo: (json['titulo'] ?? '').toString(),
+    url: (json['url'] ?? '').toString(),
+    s3Key: (json['s3Key'] ?? '').toString(),
+    mimeType: (json['mimeType'] ?? '').toString(),
+    subidoPor: (json['subidoPor'] ?? 'invitado').toString(),
+    comentario: (json['comentario'] ?? '').toString(),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'titulo': titulo,
+    'url': url,
+    's3Key': s3Key,
+    'mimeType': mimeType,
+    'subidoPor': subidoPor,
+    'comentario': comentario,
+  };
+}

@@ -13,7 +13,10 @@ import 'wedding_itinerary.dart';
 import 'wedding_budget.dart';
 import 'wedding_playlist.dart';
 import 'wedding_invitation.dart';
+import 'wedding_album.dart';
 import 'wedding_look.dart';
+import 'wedding_lodging.dart';
+import 'wedding_menu.dart';
 import 'wedding_providers.dart';
 import '../../services/wedding_service.dart';
 import '../../services/wedding_pdf_export_service.dart';
@@ -81,9 +84,9 @@ class WeddingScreen extends StatefulWidget {
     WeddingOption(
       emoji: '📸',
       titulo: 'Álbum',
-      subtitulo: 'Próximamente',
+      subtitulo: 'Fotos del gran día',
       color: Color(0xFFF3E5F5),
-      screen: null,
+      screen: WeddingAlbumScreen(),
     ),
     WeddingOption(
       emoji: '🎁',
@@ -102,16 +105,16 @@ class WeddingScreen extends StatefulWidget {
     WeddingOption(
       emoji: '🍽️',
       titulo: 'Menú',
-      subtitulo: 'Próximamente',
+      subtitulo: 'Platillos y restricciones',
       color: Color(0xFFE8F5E9),
-      screen: null,
+      screen: WeddingMenuScreen(),
     ),
     WeddingOption(
       emoji: '🏨',
       titulo: 'Hospedaje',
-      subtitulo: 'Próximamente',
+      subtitulo: 'Hoteles y opciones',
       color: Color(0xFFE3F2FD),
-      screen: null,
+      screen: WeddingLodgingScreen(),
     ),
     WeddingOption(
       emoji: '💄',

@@ -311,6 +311,119 @@ class WeddingService {
     return LookBoda.fromJson(map);
   }
 
+  Future<List<HospedajeBoda>> getHospedajes(String bodaId) async {
+    final items = await _getItems('/bodas/$bodaId/hospedaje');
+    return items.map(HospedajeBoda.fromJson).toList();
+  }
+
+  Future<HospedajeBoda> createHospedaje(
+    String bodaId,
+    HospedajeBoda hospedaje,
+  ) async {
+    final map = await _post(
+      '/bodas/$bodaId/hospedaje',
+      body: {
+        'nombre': hospedaje.nombre,
+        'direccion': hospedaje.direccion,
+        'contacto': hospedaje.contacto,
+        'checkIn': hospedaje.checkIn,
+        'checkOut': hospedaje.checkOut,
+        'mapaUrl': hospedaje.mapaUrl,
+        'nota': hospedaje.nota,
+      },
+    );
+    return HospedajeBoda.fromJson(map);
+  }
+
+  Future<HospedajeBoda> updateHospedaje(
+    String bodaId,
+    HospedajeBoda hospedaje,
+  ) async {
+    final map = await _put(
+      '/bodas/$bodaId/hospedaje/${hospedaje.id}',
+      body: {
+        'nombre': hospedaje.nombre,
+        'direccion': hospedaje.direccion,
+        'contacto': hospedaje.contacto,
+        'checkIn': hospedaje.checkIn,
+        'checkOut': hospedaje.checkOut,
+        'mapaUrl': hospedaje.mapaUrl,
+        'nota': hospedaje.nota,
+      },
+    );
+    return HospedajeBoda.fromJson(map);
+  }
+
+  Future<List<MenuBodaItem>> getMenuItems(String bodaId) async {
+    final items = await _getItems('/bodas/$bodaId/menu');
+    return items.map(MenuBodaItem.fromJson).toList();
+  }
+
+  Future<MenuBodaItem> createMenuItem(String bodaId, MenuBodaItem item) async {
+    final map = await _post(
+      '/bodas/$bodaId/menu',
+      body: {
+        'nombre': item.nombre,
+        'momento': item.momento,
+        'descripcion': item.descripcion,
+        'tipo': item.tipo,
+        'restricciones': item.restricciones,
+        'esVegetariano': item.esVegetariano,
+      },
+    );
+    return MenuBodaItem.fromJson(map);
+  }
+
+  Future<MenuBodaItem> updateMenuItem(String bodaId, MenuBodaItem item) async {
+    final map = await _put(
+      '/bodas/$bodaId/menu/${item.id}',
+      body: {
+        'nombre': item.nombre,
+        'momento': item.momento,
+        'descripcion': item.descripcion,
+        'tipo': item.tipo,
+        'restricciones': item.restricciones,
+        'esVegetariano': item.esVegetariano,
+      },
+    );
+    return MenuBodaItem.fromJson(map);
+  }
+
+  Future<List<AlbumFotoBoda>> getAlbumItems(String bodaId) async {
+    final items = await _getItems('/bodas/$bodaId/album');
+    return items.map(AlbumFotoBoda.fromJson).toList();
+  }
+
+  Future<AlbumFotoBoda> createAlbumItem(String bodaId, AlbumFotoBoda item) async {
+    final map = await _post(
+      '/bodas/$bodaId/album',
+      body: {
+        'titulo': item.titulo,
+        'url': item.url,
+        's3Key': item.s3Key,
+        'mimeType': item.mimeType,
+        'subidoPor': item.subidoPor,
+        'comentario': item.comentario,
+      },
+    );
+    return AlbumFotoBoda.fromJson(map);
+  }
+
+  Future<AlbumFotoBoda> updateAlbumItem(String bodaId, AlbumFotoBoda item) async {
+    final map = await _put(
+      '/bodas/$bodaId/album/${item.id}',
+      body: {
+        'titulo': item.titulo,
+        'url': item.url,
+        's3Key': item.s3Key,
+        'mimeType': item.mimeType,
+        'subidoPor': item.subidoPor,
+        'comentario': item.comentario,
+      },
+    );
+    return AlbumFotoBoda.fromJson(map);
+  }
+
   Future<List<Map<String, dynamic>>> _getItems(String path) async {
     final response = await http
         .get(_uri(path))
