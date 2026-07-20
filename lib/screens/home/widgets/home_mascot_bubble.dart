@@ -3,11 +3,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../models/phrase.dart';
+import '../../../services/home_mascot_service.dart';
 import '../../../services/phrases_service.dart';
 import '../../../utils/colors.dart';
 
 /// Mascota flotante en la esquina inferior derecha del Home.
-/// Muestra una imagen al azar (Chopper / Luffy) junto a un globo
+/// Muestra una imagen remota al azar junto a un globo
 /// de texto con una frase aleatoria del pool del ahorcado.
 /// Tocar la mascota cambia la frase; el botón (x) la oculta.
 class HomeMascotBubble extends StatefulWidget {
@@ -19,20 +20,14 @@ class HomeMascotBubble extends StatefulWidget {
 
 class _HomeMascotBubbleState extends State<HomeMascotBubble>
     with SingleTickerProviderStateMixin {
-  static const List<String> _images = [
-    'assets/Alan1.jpeg',
-    'assets/Alan2.jpeg',
-    'assets/Nati1.jpeg',
-    'assets/Nati2.jpeg',
-    'assets/Nati3.jpeg',
-    'assets/Nati4.jpeg',
-  ];
-
   final Random _random = Random();
-  late final String _imagePath;
+  final HomeMascotService _mascotService = HomeMascotService();
+
+  String? _imageUrl;
 
   LovePhrase? _phrase;
   bool _isLoading = true;
+  bool _isImageLoading = true;
   bool _visible = true;
 
   late final AnimationController _entryCtrl;
@@ -41,7 +36,6 @@ class _HomeMascotBubbleState extends State<HomeMascotBubble>
   @override
   void initState() {
     super.initState();
-    _imagePath = _images[_random.nextInt(_images.length)];
 
     _entryCtrl = AnimationController(
       vsync: this,
@@ -49,6 +43,7 @@ class _HomeMascotBubbleState extends State<HomeMascotBubble>
     );
     _scale = CurvedAnimation(parent: _entryCtrl, curve: Curves.elasticOut);
 
+    _loadMascotImage();
     _loadPhrase();
   }
 
@@ -68,13 +63,32 @@ class _HomeMascotBubbleState extends State<HomeMascotBubble>
     _entryCtrl.forward();
   }
 
+  Future<void> _loadMascotImage({bool forceRefresh = false}) async {
+    final imageUrl = await _mascotService.getRandomImage(
+      forceRefresh: forceRefresh,
+    );
+    if (!mounted) return;
+    setState(() {
+      _imageUrl = imageUrl;
+      _isImageLoading = false;
+    });
+  }
+
   Future<void> _shuffle() async {
-    setState(() => _isLoading = true);
-    final phrase = await PhrasesService().getRandomPhrase();
+    setState(() {
+      _isLoading = true;
+      _isImageLoading = true;
+    });
+    final phraseFuture = PhrasesService().getRandomPhrase();
+    final imagesFuture = _mascotService.getMascotImages();
+    final phrase = await phraseFuture;
+    final images = await imagesFuture;
     if (!mounted) return;
     setState(() {
       _phrase = phrase;
+      _imageUrl = images.isEmpty ? null : images[_random.nextInt(images.length)];
       _isLoading = false;
+      _isImageLoading = false;
     });
   }
 
@@ -162,7 +176,7 @@ class _HomeMascotBubbleState extends State<HomeMascotBubble>
                     ],
                   ),
                   child: ClipOval(
-                    child: Image.asset(_imagePath, fit: BoxFit.cover),
+                    child: _buildMascotImage(),
                   ),
                 ),
               ),
@@ -191,6 +205,58 @@ class _HomeMascotBubbleState extends State<HomeMascotBubble>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMascotImage() {
+    if (_isImageLoading) {
+      return const Center(
+        child: SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.violeta,
+          ),
+        ),
+      );
+    }
+
+    if (_imageUrl == null || _imageUrl!.isEmpty) {
+      return Container(
+        color: const Color(0xFFF6F0FF),
+        child: const Icon(
+          Icons.favorite_rounded,
+          color: AppColors.violeta,
+          size: 30,
+        ),
+      );
+    }
+
+    return Image.network(
+      _imageUrl!,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        color: const Color(0xFFF6F0FF),
+        child: const Icon(
+          Icons.image_not_supported_outlined,
+          color: AppColors.violeta,
+          size: 26,
+        ),
+      ),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return const Center(
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.violeta,
+            ),
+          ),
+        );
+      },
     );
   }
 }

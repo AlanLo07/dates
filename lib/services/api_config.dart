@@ -11,6 +11,7 @@ class ApiConfig {
   static const String kamaPath = '/kamasutra';
   static const String dicePath = '/dice';
   static const String challengesPath = '/challenges';
+  static const String mascotImagesPath = '/images/home-mascot-images';
   static const String uploadPath = '/images/upload-url';
   // Agrega aquí las rutas que necesites en el futuro
 }
