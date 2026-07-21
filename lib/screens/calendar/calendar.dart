@@ -435,6 +435,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 await _service.deleteEvento(id);
                 setState(() => _eventos.removeWhere((e) => e.id == id));
               },
+              onEdit: (actualizado) async {
+                final guardado = await _service.updateEvento(actualizado);
+                if (!mounted) return;
+                setState(() {
+                  final index = _eventos.indexWhere((e) => e.id == guardado.id);
+                  if (index >= 0) {
+                    _eventos[index] = guardado;
+                  }
+                });
+              },
             ),
           ),
         ),
@@ -659,59 +669,69 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                   ),
                                   selectedBuilder: (ctx, day, focusedDay) =>
                                       TweenAnimationBuilder<double>(
-                                    tween: Tween<double>(begin: 0.95, end: 1.0),
-                                    duration: const Duration(milliseconds: 280),
-                                    curve: Curves.elasticOut,
-                                    builder: (_, scale, __) => Transform.scale(
-                                      scale: scale,
-                                      child: Container(
-                                        margin: const EdgeInsets.all(4),
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          gradient: LinearGradient(
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                            colors: [
-                                              AppColors.violeta
-                                                  .withOpacity(0.3),
-                                              AppColors.violeta
-                                                  .withOpacity(0.15),
-                                            ],
-                                          ),
-                                          border: Border.all(
-                                            color: AppColors.violeta,
-                                            width: 2,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppColors.violeta
-                                                  .withOpacity(0.4),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
+                                        tween: Tween<double>(
+                                          begin: 0.95,
+                                          end: 1.0,
+                                        ),
+                                        duration: const Duration(
+                                          milliseconds: 280,
+                                        ),
+                                        curve: Curves.elasticOut,
+                                        builder: (_, scale, __) =>
+                                            Transform.scale(
+                                              scale: scale,
+                                              child: Container(
+                                                margin: const EdgeInsets.all(4),
+                                                alignment: Alignment.center,
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  gradient: LinearGradient(
+                                                    begin: Alignment.topLeft,
+                                                    end: Alignment.bottomRight,
+                                                    colors: [
+                                                      AppColors.violeta
+                                                          .withOpacity(0.3),
+                                                      AppColors.violeta
+                                                          .withOpacity(0.15),
+                                                    ],
+                                                  ),
+                                                  border: Border.all(
+                                                    color: AppColors.violeta,
+                                                    width: 2,
+                                                  ),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: AppColors.violeta
+                                                          .withOpacity(0.4),
+                                                      blurRadius: 8,
+                                                      offset: const Offset(
+                                                        0,
+                                                        2,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: Text(
+                                                  day.day.toString(),
+                                                  style: const TextStyle(
+                                                    color: AppColors.violeta,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                              ),
                                             ),
-                                          ],
-                                        ),
-                                        child: Text(
-                                          day.day.toString(),
-                                          style: const TextStyle(
-                                            color: AppColors.violeta,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
                                       ),
-                                    ),
-                                  ),
                                   todayBuilder: (ctx, day, _) => Container(
                                     margin: const EdgeInsets.all(4),
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: AppColors.violeta
-                                            .withOpacity(0.5),
+                                        color: AppColors.violeta.withOpacity(
+                                          0.5,
+                                        ),
                                         width: 1.5,
                                       ),
                                     ),
@@ -913,11 +933,13 @@ class _EventoDialog extends StatefulWidget {
   final EventoImportante evento;
   final IconData Function(String) iconFromString;
   final Future<void> Function(String id) onDelete;
+  final Future<void> Function(EventoImportante evento) onEdit;
 
   const _EventoDialog({
     required this.evento,
     required this.iconFromString,
     required this.onDelete,
+    required this.onEdit,
   });
 
   @override
@@ -941,6 +963,23 @@ class _EventoDialogState extends State<_EventoDialog> {
       context: context,
       builder: (_) => _EventoDetallesDialog(evento: widget.evento),
     );
+  }
+
+  Future<void> _editarDetalle() async {
+    final result = await showModalBottomSheet<EventoImportante>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditarEventoSheet(
+        evento: widget.evento,
+        onGuardar: (actualizado) async {
+          await widget.onEdit(actualizado);
+        },
+      ),
+    );
+
+    if (result == null || !mounted) return;
+    if (mounted) Navigator.of(context).pop();
   }
 
   Future<void> _confirmarEliminar() async {
@@ -1042,6 +1081,18 @@ class _EventoDialogState extends State<_EventoDialog> {
       ),
       actions: [
         TextButton.icon(
+          onPressed: _editarDetalle,
+          icon: const Icon(
+            Icons.edit_outlined,
+            color: AppColors.violeta,
+            size: 18,
+          ),
+          label: const Text(
+            'Editar',
+            style: TextStyle(color: AppColors.violeta),
+          ),
+        ),
+        TextButton.icon(
           onPressed: _mostrarDetalles,
           icon: Icon(
             _tieneDetalles ? Icons.visibility_outlined : Icons.info_outline,
@@ -1085,6 +1136,621 @@ class _EventoDialogState extends State<_EventoDialog> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _EditarEventoSheet extends StatefulWidget {
+  final EventoImportante evento;
+  final Future<void> Function(EventoImportante evento) onGuardar;
+
+  const _EditarEventoSheet({required this.evento, required this.onGuardar});
+
+  @override
+  State<_EditarEventoSheet> createState() => _EditarEventoSheetState();
+}
+
+class _EditarEventoSheetState extends State<_EditarEventoSheet> {
+  late DateTime _fechaSeleccionada;
+
+  final _tituloController = TextEditingController();
+  final _descripcionController = TextEditingController();
+  final _presupuestoGastadoCtrl = TextEditingController();
+  final _presupuestoLimiteCtrl = TextEditingController();
+  final List<TextEditingController> _itinerarioFechaCtrls = [];
+  final List<TextEditingController> _itinerarioTiempoCtrls = [];
+  final List<TextEditingController> _itinerarioActividadCtrls = [];
+  final List<TextEditingController> _conceptoNombreCtrls = [];
+  final List<TextEditingController> _conceptoMontoCtrls = [];
+  final List<TextEditingController> _documentoCtrls = [];
+
+  bool _isSaving = false;
+  bool _mostrarDetallesOpcionales = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fechaSeleccionada = _parseFecha(widget.evento.date);
+    _tituloController.text = widget.evento.title;
+    _descripcionController.text = widget.evento.description;
+    _presupuestoGastadoCtrl.text = widget.evento.presupuesto.gastado.toString();
+    _presupuestoLimiteCtrl.text = widget.evento.presupuesto.limite.toString();
+
+    for (final actividad in widget.evento.itinerario.actividades) {
+      _itinerarioFechaCtrls.add(TextEditingController(text: actividad.fecha));
+      _itinerarioTiempoCtrls.add(TextEditingController(text: actividad.tiempo));
+      _itinerarioActividadCtrls.add(
+        TextEditingController(text: actividad.actividad),
+      );
+    }
+
+    for (final concepto in widget.evento.presupuesto.conceptos) {
+      _conceptoNombreCtrls.add(TextEditingController(text: concepto.concepto));
+      _conceptoMontoCtrls.add(
+        TextEditingController(text: concepto.monto.toString()),
+      );
+    }
+
+    for (final documento in widget.evento.documentos) {
+      _documentoCtrls.add(TextEditingController(text: documento));
+    }
+  }
+
+  @override
+  void dispose() {
+    _tituloController.dispose();
+    _descripcionController.dispose();
+    _presupuestoGastadoCtrl.dispose();
+    _presupuestoLimiteCtrl.dispose();
+    for (final c in _itinerarioFechaCtrls) c.dispose();
+    for (final c in _itinerarioTiempoCtrls) c.dispose();
+    for (final c in _itinerarioActividadCtrls) c.dispose();
+    for (final c in _conceptoNombreCtrls) c.dispose();
+    for (final c in _conceptoMontoCtrls) c.dispose();
+    for (final c in _documentoCtrls) c.dispose();
+    super.dispose();
+  }
+
+  DateTime _parseFecha(String value) {
+    final parts = value.split('-');
+    if (parts.length != 3) return DateTime.now();
+    final day = int.tryParse(parts[0]) ?? DateTime.now().day;
+    final month = int.tryParse(parts[1]) ?? DateTime.now().month;
+    final year = int.tryParse(parts[2]) ?? DateTime.now().year;
+    return DateTime(year, month, day);
+  }
+
+  String _formatFecha(DateTime day) {
+    final d = day.day.toString().padLeft(2, '0');
+    final m = day.month.toString().padLeft(2, '0');
+    final y = day.year.toString();
+    return '$d-$m-$y';
+  }
+
+  Future<void> _seleccionarFecha() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _fechaSeleccionada,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.violeta,
+            onPrimary: Colors.white,
+            onSurface: AppColors.violeta,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => _fechaSeleccionada = picked);
+  }
+
+  void _agregarItinerario() {
+    setState(() {
+      _itinerarioFechaCtrls.add(TextEditingController());
+      _itinerarioTiempoCtrls.add(TextEditingController());
+      _itinerarioActividadCtrls.add(TextEditingController());
+    });
+  }
+
+  void _eliminarItinerario(int index) {
+    setState(() {
+      _itinerarioFechaCtrls.removeAt(index).dispose();
+      _itinerarioTiempoCtrls.removeAt(index).dispose();
+      _itinerarioActividadCtrls.removeAt(index).dispose();
+    });
+  }
+
+  void _agregarConcepto() {
+    setState(() {
+      _conceptoNombreCtrls.add(TextEditingController());
+      _conceptoMontoCtrls.add(TextEditingController());
+    });
+  }
+
+  void _eliminarConcepto(int index) {
+    setState(() {
+      _conceptoNombreCtrls.removeAt(index).dispose();
+      _conceptoMontoCtrls.removeAt(index).dispose();
+    });
+  }
+
+  void _agregarDocumento() {
+    setState(() => _documentoCtrls.add(TextEditingController()));
+  }
+
+  void _eliminarDocumento(int index) {
+    setState(() => _documentoCtrls.removeAt(index).dispose());
+  }
+
+  double _parseDouble(String value) {
+    final normalized = value.trim().replaceAll(',', '.');
+    return double.tryParse(normalized) ?? 0.0;
+  }
+
+  ItinerarioEvento _buildItinerarioFromForm() {
+    final actividades = <ActividadItinerario>[];
+    for (var i = 0; i < _itinerarioActividadCtrls.length; i++) {
+      final actividad = _itinerarioActividadCtrls[i].text.trim();
+      final fecha = _itinerarioFechaCtrls[i].text.trim();
+      final tiempo = _itinerarioTiempoCtrls[i].text.trim();
+      if (actividad.isEmpty && fecha.isEmpty && tiempo.isEmpty) continue;
+      actividades.add(
+        ActividadItinerario(fecha: fecha, tiempo: tiempo, actividad: actividad),
+      );
+    }
+    return ItinerarioEvento(actividades: actividades);
+  }
+
+  PresupuestoEvento _buildPresupuestoFromForm() {
+    final conceptos = <ConceptoGasto>[];
+    for (var i = 0; i < _conceptoNombreCtrls.length; i++) {
+      final concepto = _conceptoNombreCtrls[i].text.trim();
+      final monto = _parseDouble(_conceptoMontoCtrls[i].text);
+      if (concepto.isEmpty && monto == 0) continue;
+      conceptos.add(ConceptoGasto(concepto: concepto, monto: monto));
+    }
+    return PresupuestoEvento(
+      gastado: _parseDouble(_presupuestoGastadoCtrl.text),
+      limite: _parseDouble(_presupuestoLimiteCtrl.text),
+      conceptos: conceptos,
+    );
+  }
+
+  List<String> _buildDocumentosFromForm() {
+    return _documentoCtrls
+        .map((c) => c.text.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> _guardar() async {
+    if (_tituloController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor escribe un título')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final actualizado = widget.evento.copyWith(
+        title: _tituloController.text.trim(),
+        description: _descripcionController.text.trim(),
+        date: _formatFecha(_fechaSeleccionada),
+        itinerario: _buildItinerarioFromForm(),
+        presupuesto: _buildPresupuestoFromForm(),
+        documentos: _buildDocumentosFromForm(),
+      );
+      await widget.onGuardar(actualizado);
+      if (!mounted) return;
+      Navigator.of(context).pop(actualizado);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al guardar: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    String hint, {
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      textCapitalization: TextCapitalization.sentences,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.violeta, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatePicker() {
+    return GestureDetector(
+      onTap: _seleccionarFecha,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.violeta, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          color: const Color(0xFFEDE9F5),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.calendar_today,
+              color: AppColors.violeta,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              _formatFecha(_fechaSeleccionada),
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.violeta,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.edit_calendar_outlined,
+              color: AppColors.violeta,
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AppColors.violeta,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState({
+    required VoidCallback onAdd,
+    required String label,
+  }) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: onAdd,
+        icon: const Icon(Icons.add),
+        label: Text(label),
+      ),
+    );
+  }
+
+  Widget _buildDetallesOpcionalesCita() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300, width: 1.2),
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.grey.shade50,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.tune, color: AppColors.violeta, size: 18),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Detalles opcionales',
+                  style: TextStyle(
+                    color: AppColors.violeta,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(
+                  () =>
+                      _mostrarDetallesOpcionales = !_mostrarDetallesOpcionales,
+                ),
+                child: Text(_mostrarDetallesOpcionales ? 'Ocultar' : 'Agregar'),
+              ),
+            ],
+          ),
+          if (_mostrarDetallesOpcionales) ...[
+            const SizedBox(height: 6),
+            _buildSectionLabel('Itinerario'),
+            if (_itinerarioActividadCtrls.isEmpty)
+              _buildEmptyState(
+                onAdd: _agregarItinerario,
+                label: 'Agregar actividad',
+              )
+            else ...[
+              for (var i = 0; i < _itinerarioActividadCtrls.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                _itinerarioFechaCtrls[i],
+                                'Fecha',
+                                'dd-MM-yyyy',
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildTextField(
+                                _itinerarioTiempoCtrls[i],
+                                'Tiempo',
+                                '18:30',
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        _buildTextField(
+                          _itinerarioActividadCtrls[i],
+                          'Actividad',
+                          'Ej: Cena en terraza',
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: IconButton(
+                            tooltip: 'Eliminar actividad',
+                            onPressed: () => _eliminarItinerario(i),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _agregarItinerario,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Agregar actividad'),
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            _buildSectionLabel('Presupuesto'),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    _presupuestoGastadoCtrl,
+                    'Gastado',
+                    '0.00',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildTextField(
+                    _presupuestoLimiteCtrl,
+                    'Límite',
+                    '0.00',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_conceptoNombreCtrls.isEmpty)
+              _buildEmptyState(
+                onAdd: _agregarConcepto,
+                label: 'Agregar concepto de gasto',
+              )
+            else ...[
+              for (var i = 0; i < _conceptoNombreCtrls.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          _conceptoNombreCtrls[i],
+                          'Concepto',
+                          'Ej: Transporte',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildTextField(
+                          _conceptoMontoCtrls[i],
+                          'Monto',
+                          '0.00',
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Eliminar concepto',
+                        onPressed: () => _eliminarConcepto(i),
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.redAccent,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _agregarConcepto,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Agregar concepto'),
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            _buildSectionLabel('Documentos (links)'),
+            if (_documentoCtrls.isEmpty)
+              _buildEmptyState(onAdd: _agregarDocumento, label: 'Agregar link')
+            else ...[
+              for (var i = 0; i < _documentoCtrls.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          _documentoCtrls[i],
+                          'Link',
+                          'https://...',
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Eliminar link',
+                        onPressed: () => _eliminarDocumento(i),
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.redAccent,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _agregarDocumento,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Agregar link'),
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Row(
+              children: [
+                Icon(
+                  Icons.backpack_outlined,
+                  color: AppColors.violeta,
+                  size: 28,
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Editar cita',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.violeta,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _buildTextField(_tituloController, 'Título', 'Ej: Cena romántica'),
+            const SizedBox(height: 12),
+            _buildTextField(
+              _descripcionController,
+              'Descripción (opcional)',
+              'Ej: Reservación en el restaurante favorito',
+              maxLines: 2,
+            ),
+            const SizedBox(height: 16),
+            _buildDatePicker(),
+            const SizedBox(height: 16),
+            _buildDetallesOpcionalesCita(),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _isSaving ? null : _guardar,
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.check_circle_outline),
+              label: Text(_isSaving ? 'Guardando...' : 'Guardar cambios'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.violeta,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1251,10 +1917,7 @@ class _EventoDetallesDialog extends StatelessWidget {
   Widget _emptyLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: TextStyle(color: Colors.grey.shade600),
-      ),
+      child: Text(text, style: TextStyle(color: Colors.grey.shade600)),
     );
   }
 
@@ -1434,11 +2097,7 @@ class _AgendarDesdeCalendarioSheetState
       if (actividad.isEmpty && fecha.isEmpty && tiempo.isEmpty) continue;
 
       actividades.add(
-        ActividadItinerario(
-          fecha: fecha,
-          tiempo: tiempo,
-          actividad: actividad,
-        ),
+        ActividadItinerario(fecha: fecha, tiempo: tiempo, actividad: actividad),
       );
     }
     return ItinerarioEvento(actividades: actividades);
@@ -2099,11 +2758,7 @@ class _AgendarDesdeCalendarioSheetState
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.tune,
-                color: AppColors.violeta,
-                size: 18,
-              ),
+              const Icon(Icons.tune, color: AppColors.violeta, size: 18),
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
@@ -2116,7 +2771,8 @@ class _AgendarDesdeCalendarioSheetState
               ),
               TextButton(
                 onPressed: () => setState(
-                  () => _mostrarDetallesOpcionales = !_mostrarDetallesOpcionales,
+                  () =>
+                      _mostrarDetallesOpcionales = !_mostrarDetallesOpcionales,
                 ),
                 child: Text(_mostrarDetallesOpcionales ? 'Ocultar' : 'Agregar'),
               ),
@@ -2264,10 +2920,7 @@ class _AgendarDesdeCalendarioSheetState
             const SizedBox(height: 10),
             _buildSectionLabel('Documentos (links)'),
             if (_documentoCtrls.isEmpty)
-              _buildEmptyState(
-                onAdd: _agregarDocumento,
-                label: 'Agregar link',
-              )
+              _buildEmptyState(onAdd: _agregarDocumento, label: 'Agregar link')
             else ...[
               for (var i = 0; i < _documentoCtrls.length; i++)
                 Padding(
