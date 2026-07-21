@@ -106,78 +106,81 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
           : _error != null
           ? _buildError()
           : Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
-              onChanged: (value) {
-                setState(() {
-                  _query = value;
-                  _visibleCount = 20;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Buscar invitado o grupo',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
-          // Resumen
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
               children: [
-                _buildStat(
-                  '$_confirmados',
-                  'Confirmados',
-                  const Color(0xFF1B5E20),
-                  const Color(0xFFE8F5E9),
-                ),
-                const SizedBox(width: 10),
-                _buildStat(
-                  '${_invitados.where((i) => i.rsvp == RsvpStatus.pendiente).length}',
-                  'Pendientes',
-                  const Color(0xFF4A148C),
-                  const Color(0xFFF3E5F5),
-                ),
-                const SizedBox(width: 10),
-                _buildStat(
-                  '$_total',
-                  'Total personas',
-                  _rose,
-                  const Color(0xFFFCE4EC),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                ..._visibles.map(_buildInvitadoCard),
-                if (_filtrados.length > _visibleCount)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Center(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _visibleCount += 20;
-                          });
-                        },
-                        icon: const Icon(Icons.expand_more),
-                        label: const Text('Cargar más'),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: TextField(
+                    onChanged: (value) {
+                      setState(() {
+                        _query = value;
+                        _visibleCount = 20;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Buscar invitado o grupo',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
+                ),
+                // Resumen
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      _buildStat(
+                        '$_confirmados',
+                        'Confirmados',
+                        const Color(0xFF1B5E20),
+                        const Color(0xFFE8F5E9),
+                      ),
+                      const SizedBox(width: 10),
+                      _buildStat(
+                        '${_invitados.where((i) => i.rsvp == RsvpStatus.pendiente).length}',
+                        'Pendientes',
+                        const Color(0xFF4A148C),
+                        const Color(0xFFF3E5F5),
+                      ),
+                      const SizedBox(width: 10),
+                      _buildStat(
+                        '$_total',
+                        'Total personas',
+                        _rose,
+                        const Color(0xFFFCE4EC),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    children: [
+                      for (final inv in _visibles) ...[
+                        _buildInvitadoCard(inv),
+                        const SizedBox(height: 10),
+                      ],
+                      if (_filtrados.length > _visibleCount)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Center(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  _visibleCount += 20;
+                                });
+                              },
+                              icon: const Icon(Icons.expand_more),
+                              label: const Text('Cargar más'),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -190,9 +193,15 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
           children: [
             const Icon(Icons.error_outline, color: _rose, size: 42),
             const SizedBox(height: 10),
-            Text('No se pudieron cargar invitados', style: TextStyle(color: Colors.grey.shade700)),
+            Text(
+              'No se pudieron cargar invitados',
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
             const SizedBox(height: 10),
-            ElevatedButton(onPressed: _loadInvitados, child: const Text('Reintentar')),
+            ElevatedButton(
+              onPressed: _loadInvitados,
+              child: const Text('Reintentar'),
+            ),
           ],
         ),
       ),
@@ -249,7 +258,9 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
           CircleAvatar(
             backgroundColor: const Color(0xFFFCE4EC),
             child: Text(
-              inv.nombre.substring(0, 1).toUpperCase(),
+              inv.nombre.trim().isNotEmpty
+                  ? inv.nombre.trim().substring(0, 1).toUpperCase()
+                  : '?',
               style: const TextStyle(color: _rose, fontWeight: FontWeight.bold),
             ),
           ),
@@ -279,7 +290,9 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
               if (!_canConfirmRsvp) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Solo los novios pueden confirmar invitados.'),
+                    content: Text(
+                      'Solo los novios pueden confirmar invitados.',
+                    ),
                   ),
                 );
                 return;
@@ -411,7 +424,8 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
                   ),
                   onPressed: () {
                     final bodaId = _bodaId;
-                    if (bodaId == null || nombreCtrl.text.trim().isEmpty) return;
+                    if (bodaId == null || nombreCtrl.text.trim().isEmpty)
+                      return;
 
                     final prevNombre = invitado.nombre;
                     final prevGrupo = invitado.grupo;
@@ -426,14 +440,16 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
                     });
 
                     _service.updateInvitado(bodaId, invitado).catchError((_) {
-                      if (!mounted) return;
+                      if (!mounted) return null;
                       setState(() {
                         invitado.nombre = prevNombre;
                         invitado.grupo = prevGrupo;
                         invitado.personas = prevPersonas;
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('No se pudo editar invitado')),
+                        const SnackBar(
+                          content: Text('No se pudo editar invitado'),
+                        ),
                       );
                     });
 
@@ -557,7 +573,9 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
                         .catchError((_) {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('No se pudo agregar invitado')),
+                            const SnackBar(
+                              content: Text('No se pudo agregar invitado'),
+                            ),
                           );
                         });
                     Navigator.pop(context);

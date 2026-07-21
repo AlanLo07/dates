@@ -37,8 +37,14 @@ class HomeCounterStrip extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('juntos', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                  Text('desde', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  Text(
+                    'juntos',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                  Text(
+                    'desde',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
                   Text(
                     '18 · 12 · 2023',
                     style: TextStyle(
@@ -82,9 +88,10 @@ class _HomeCounterBoxState extends State<_HomeCounterBox>
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _flipAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -118,35 +125,46 @@ class _HomeCounterBoxState extends State<_HomeCounterBox>
         children: [
           SizedBox(
             height: 30,
-            child: AnimatedBuilder(
-              animation: _flipAnimation,
-              builder: (context, child) {
-                final angle = _flipAnimation.value * 3.14159265; // π radians
-                final opacity = (1 - (_flipAnimation.value - 0.5).abs() * 2).clamp(0.0, 1.0);
-
-                return Transform(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              layoutBuilder: (currentChild, previousChildren) {
+                return Stack(
                   alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001) // Perspectiva
-                    ..rotateX(angle),
-                  child: Opacity(
-                    opacity: opacity,
-                    child: Text(
-                      _flipAnimation.value < 0.5
-                          ? _lastValue.toString().padLeft(2, '0')
-                          : widget.value.toString().padLeft(2, '0'),
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.violeta,
-                      ),
-                    ),
+                  children: [
+                    ...previousChildren,
+                    if (currentChild != null) currentChild,
+                  ],
+                );
+              },
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: ScaleTransition(
+                    scale: Tween<double>(
+                      begin: 0.92,
+                      end: 1.0,
+                    ).animate(animation),
+                    child: child,
                   ),
                 );
               },
+              child: Text(
+                widget.value.toString().padLeft(2, '0'),
+                key: ValueKey<int>(widget.value),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.violeta,
+                ),
+              ),
             ),
           ),
-          Text(widget.label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+          Text(
+            widget.label,
+            style: const TextStyle(fontSize: 9, color: Colors.grey),
+          ),
         ],
       ),
     );

@@ -92,121 +92,123 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
           : _error != null
           ? _buildError()
           : ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _pasos.length,
-        itemBuilder: (ctx, i) {
-          final paso = _pasos[i];
-          final isLast = i == _pasos.length - 1;
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Línea de tiempo
-                SizedBox(
-                  width: 48,
-                  child: Column(
+              padding: const EdgeInsets.all(16),
+              itemCount: _pasos.length,
+              itemBuilder: (ctx, i) {
+                final paso = _pasos[i];
+                final isLast = i == _pasos.length - 1;
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFCE4EC),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            paso.emoji,
-                            style: const TextStyle(fontSize: 18),
-                          ),
-                        ),
-                      ),
-                      if (!isLast)
-                        Expanded(
-                          child: Container(
-                            width: 2,
-                            color: Colors.pink.shade100,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Contenido
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      // Línea de tiempo
+                      SizedBox(
+                        width: 48,
+                        child: Column(
                           children: [
-                            Expanded(
-                              child: Text(
-                                paso.titulo,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: _rose,
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFCE4EC),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  paso.emoji,
+                                  style: const TextStyle(fontSize: 18),
                                 ),
                               ),
                             ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  paso.hora,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey.shade500,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                            if (!isLast)
+                              Expanded(
+                                child: Container(
+                                  width: 2,
+                                  color: Colors.pink.shade100,
                                 ),
-                                IconButton(
-                                  onPressed: () => _mostrarEditar(context, paso),
-                                  icon: const Icon(
-                                    Icons.edit_outlined,
-                                    color: _rose,
-                                    size: 20,
-                                  ),
-                                  tooltip: 'Editar paso',
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                              ],
-                            ),
+                              ),
                           ],
                         ),
-                        if (paso.nota.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            paso.nota,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade500,
-                            ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Contenido
+                      Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                        ],
-                        if (paso.ubicacion.trim().isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          _PasoLocationPreview(
-                            ubicacion: paso.ubicacion,
-                            ubicacionLat: paso.ubicacionLat,
-                            ubicacionLng: paso.ubicacionLng,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      paso.titulo,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: _rose,
+                                      ),
+                                    ),
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        paso.hora,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey.shade500,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: () =>
+                                            _mostrarEditar(context, paso),
+                                        icon: const Icon(
+                                          Icons.edit_outlined,
+                                          color: _rose,
+                                          size: 20,
+                                        ),
+                                        tooltip: 'Editar paso',
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              if (paso.nota.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  paso.nota,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                              if (paso.ubicacion.trim().isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                _PasoLocationPreview(
+                                  ubicacion: paso.ubicacion,
+                                  ubicacionLat: paso.ubicacionLat,
+                                  ubicacionLng: paso.ubicacionLng,
+                                ),
+                              ],
+                            ],
                           ),
-                        ],
-                      ],
-                    ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 
@@ -219,9 +221,15 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
           children: [
             const Icon(Icons.error_outline, color: _rose, size: 42),
             const SizedBox(height: 10),
-            Text('No se pudo cargar el itinerario', style: TextStyle(color: Colors.grey.shade700)),
+            Text(
+              'No se pudo cargar el itinerario',
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
             const SizedBox(height: 10),
-            ElevatedButton(onPressed: _loadItinerario, child: const Text('Reintentar')),
+            ElevatedButton(
+              onPressed: _loadItinerario,
+              child: const Text('Reintentar'),
+            ),
           ],
         ),
       ),
@@ -291,11 +299,7 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            _buildUbicacionField(
-              context,
-              ubicacionCtrl,
-              coordsNotifier,
-            ),
+            _buildUbicacionField(context, ubicacionCtrl, coordsNotifier),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
@@ -332,7 +336,9 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
                       .catchError((_) {
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('No se pudo agregar el paso')),
+                          const SnackBar(
+                            content: Text('No se pudo agregar el paso'),
+                          ),
                         );
                       });
                   Navigator.pop(context);
@@ -351,7 +357,8 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
     final horaCtrl = TextEditingController(text: paso.hora);
     final notaCtrl = TextEditingController(text: paso.nota);
     final ubicacionCtrl = TextEditingController(text: paso.ubicacion);
-    final initialPoint = (paso.ubicacionLat != null && paso.ubicacionLng != null)
+    final initialPoint =
+        (paso.ubicacionLat != null && paso.ubicacionLng != null)
         ? LatLng(paso.ubicacionLat!, paso.ubicacionLng!)
         : null;
     final coordsNotifier = ValueNotifier<LatLng?>(initialPoint);
@@ -412,11 +419,7 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            _buildUbicacionField(
-              context,
-              ubicacionCtrl,
-              coordsNotifier,
-            ),
+            _buildUbicacionField(context, ubicacionCtrl, coordsNotifier),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
@@ -445,10 +448,15 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
                   );
 
                   try {
-                    final saved = await _service.updatePaso(bodaId, actualizado);
+                    final saved = await _service.updatePaso(
+                      bodaId,
+                      actualizado,
+                    );
                     if (!mounted) return;
                     setState(() {
-                      final index = _pasos.indexWhere((item) => item.id == paso.id);
+                      final index = _pasos.indexWhere(
+                        (item) => item.id == paso.id,
+                      );
                       if (index != -1) {
                         _pasos[index] = saved;
                         _pasos.sort((a, b) => a.hora.compareTo(b.hora));
@@ -459,7 +467,9 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
                   } catch (_) {
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('No se pudo actualizar el paso')),
+                      const SnackBar(
+                        content: Text('No se pudo actualizar el paso'),
+                      ),
                     );
                   }
                 },
@@ -501,7 +511,8 @@ class _UbicacionAutocompleteField extends StatefulWidget {
       _UbicacionAutocompleteFieldState();
 }
 
-class _UbicacionAutocompleteFieldState extends State<_UbicacionAutocompleteField> {
+class _UbicacionAutocompleteFieldState
+    extends State<_UbicacionAutocompleteField> {
   final List<_AddressSuggestion> _suggestions = <_AddressSuggestion>[];
   Timer? _debounce;
   int _requestId = 0;
@@ -577,7 +588,9 @@ class _UbicacionAutocompleteFieldState extends State<_UbicacionAutocompleteField
         if (label.isEmpty) continue;
         final lat = double.tryParse((map['lat'] ?? '').toString());
         final lon = double.tryParse((map['lon'] ?? '').toString());
-        results.add(_AddressSuggestion(label: label, latitude: lat, longitude: lon));
+        results.add(
+          _AddressSuggestion(label: label, latitude: lat, longitude: lon),
+        );
       }
       return results;
     } catch (_) {
@@ -596,9 +609,7 @@ class _UbicacionAutocompleteFieldState extends State<_UbicacionAutocompleteField
           decoration: InputDecoration(
             labelText: 'Ubicación (opcional)',
             hintText: 'Escribe una dirección, coordenadas o enlace de mapa',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             suffixIcon: _loading
                 ? const Padding(
                     padding: EdgeInsets.all(12),
@@ -624,16 +635,26 @@ class _UbicacionAutocompleteFieldState extends State<_UbicacionAutocompleteField
               padding: EdgeInsets.zero,
               shrinkWrap: true,
               itemCount: _suggestions.length,
-              separatorBuilder: (_, _) => Divider(height: 1, color: Colors.grey.shade200),
+              separatorBuilder: (_, _) =>
+                  Divider(height: 1, color: Colors.grey.shade200),
               itemBuilder: (context, index) {
                 final item = _suggestions[index];
-                final subtitle = (item.latitude != null && item.longitude != null)
+                final subtitle =
+                    (item.latitude != null && item.longitude != null)
                     ? '${item.latitude!.toStringAsFixed(5)}, ${item.longitude!.toStringAsFixed(5)}'
                     : null;
                 return ListTile(
                   dense: true,
-                  leading: const Icon(Icons.place_outlined, color: _rose, size: 18),
-                  title: Text(item.label, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  leading: const Icon(
+                    Icons.place_outlined,
+                    color: _rose,
+                    size: 18,
+                  ),
+                  title: Text(
+                    item.label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   subtitle: subtitle == null ? null : Text(subtitle),
                   onTap: () {
                     widget.controller.text = item.label;
@@ -779,7 +800,9 @@ class _PasoLocationPreviewState extends State<_PasoLocationPreview> {
   Future<void> _openExternalMap() async {
     Uri uri;
     if (_point != null) {
-      uri = Uri.parse('https://www.google.com/maps?q=${_point!.latitude},${_point!.longitude}');
+      uri = Uri.parse(
+        'https://www.google.com/maps?q=${_point!.latitude},${_point!.longitude}',
+      );
     } else {
       uri = Uri.parse(
         'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(widget.ubicacion)}',
@@ -807,7 +830,9 @@ class _PasoLocationPreviewState extends State<_PasoLocationPreview> {
         if (_loading)
           const SizedBox(
             height: 86,
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: _rose)),
+            child: Center(
+              child: CircularProgressIndicator(strokeWidth: 2, color: _rose),
+            ),
           )
         else if (_point != null)
           ClipRRect(
@@ -815,13 +840,11 @@ class _PasoLocationPreviewState extends State<_PasoLocationPreview> {
             child: SizedBox(
               height: 110,
               child: FlutterMap(
-                options: MapOptions(
-                  initialCenter: _point!,
-                  initialZoom: 14,
-                ),
+                options: MapOptions(initialCenter: _point!, initialZoom: 14),
                 children: [
                   TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.nuestrolugarseguro.app',
                     maxZoom: 19,
                   ),
@@ -831,7 +854,11 @@ class _PasoLocationPreviewState extends State<_PasoLocationPreview> {
                         point: _point!,
                         width: 32,
                         height: 32,
-                        child: const Icon(Icons.location_on, color: _rose, size: 30),
+                        child: const Icon(
+                          Icons.location_on,
+                          color: _rose,
+                          size: 30,
+                        ),
                       ),
                     ],
                   ),

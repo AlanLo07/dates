@@ -95,69 +95,77 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
           : _error != null
           ? _buildError()
           : ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              padding: const EdgeInsets.all(16),
               children: [
-                Text(
-                  'Comprado hasta ahora',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                ),
-                Text(
-                  _fmt(_totalGastado),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: _rose,
-                    fontSize: 16,
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Comprado hasta ahora',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                      Text(
+                        _fmt(_totalGastado),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _rose,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          for (final persona in _personas) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  Icon(
-                    persona == 'Ella' ? Icons.woman_rounded : Icons.man_rounded,
-                    size: 16,
-                    color: _rose,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    persona,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: _rose,
-                      fontSize: 13,
+                for (final persona in _personas) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        Icon(
+                          persona == 'Ella'
+                              ? Icons.woman_rounded
+                              : Icons.man_rounded,
+                          size: 16,
+                          color: _rose,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          persona,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: _rose,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  if (_grouped[persona]!.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 22, bottom: 8),
+                      child: Text(
+                        'Sin prendas agregadas',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
+                    )
+                  else
+                    ..._grouped[persona]!.map((it) => _buildCard(it)),
+                  const SizedBox(height: 10),
                 ],
-              ),
+              ],
             ),
-            if (_grouped[persona]!.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(left: 22, bottom: 8),
-                child: Text(
-                  'Sin prendas agregadas',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-                ),
-              )
-            else
-              ..._grouped[persona]!.map((it) => _buildCard(it)),
-            const SizedBox(height: 10),
-          ],
-        ],
-      ),
     );
   }
 
@@ -170,9 +178,15 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
           children: [
             const Icon(Icons.error_outline, color: _rose, size: 42),
             const SizedBox(height: 10),
-            Text('No se pudo cargar el look', style: TextStyle(color: Colors.grey.shade700)),
+            Text(
+              'No se pudo cargar el look',
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
             const SizedBox(height: 10),
-            ElevatedButton(onPressed: _loadLooks, child: const Text('Reintentar')),
+            ElevatedButton(
+              onPressed: _loadLooks,
+              child: const Text('Reintentar'),
+            ),
           ],
         ),
       ),
@@ -203,7 +217,9 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
                 if (!mounted) return;
                 setState(() => it.comprado = prev);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('No se pudo actualizar el look')),
+                  const SnackBar(
+                    content: Text('No se pudo actualizar el look'),
+                  ),
                 );
               }
             },
@@ -244,7 +260,9 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
     final prendaCtrl = TextEditingController(text: item.prenda);
     final tiendaCtrl = TextEditingController(text: item.tienda);
     final tallaCtrl = TextEditingController(text: item.talla);
-    final precioCtrl = TextEditingController(text: item.precio.toStringAsFixed(0));
+    final precioCtrl = TextEditingController(
+      text: item.precio.toStringAsFixed(0),
+    );
     final notasCtrl = TextEditingController(text: item.notas);
     String persona = item.persona;
 
@@ -376,7 +394,8 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
                   ),
                   onPressed: () {
                     final bodaId = _bodaId;
-                    if (bodaId == null || prendaCtrl.text.trim().isEmpty) return;
+                    if (bodaId == null || prendaCtrl.text.trim().isEmpty)
+                      return;
 
                     final prev = LookBoda(
                       id: item.id,
@@ -399,7 +418,7 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
                     });
 
                     _service.updateLook(bodaId, item).catchError((_) {
-                      if (!mounted) return;
+                      if (!mounted) return null;
                       setState(() {
                         item.persona = prev.persona;
                         item.prenda = prev.prenda;
@@ -410,7 +429,9 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
                         item.notas = prev.notas;
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('No se pudo editar el look')),
+                        const SnackBar(
+                          content: Text('No se pudo editar el look'),
+                        ),
                       );
                     });
 
@@ -573,7 +594,9 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
                         .catchError((_) {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('No se pudo agregar el look')),
+                            const SnackBar(
+                              content: Text('No se pudo agregar el look'),
+                            ),
                           );
                         });
                     Navigator.pop(context);

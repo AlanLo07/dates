@@ -96,57 +96,60 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
           : _error != null
           ? _buildError()
           : Column(
-        children: [
-          _buildSummaryCard(),
-          Expanded(
-            child: _gastos.isEmpty
-                ? _buildEmpty()
-                : ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    children: _grouped.entries.map((entry) {
-                      final subtotalEstimado = entry.value.fold<double>(
-                        0,
-                        (s, g) => s + g.estimado,
-                      );
-                      final subtotalPagado = entry.value.fold<double>(
-                        0,
-                        (s, g) => s + g.pagado,
-                      );
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSummaryCard(),
+                Expanded(
+                  child: _gastos.isEmpty
+                      ? _buildEmpty()
+                      : ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          children: _grouped.entries.map((entry) {
+                            final subtotalEstimado = entry.value.fold<double>(
+                              0,
+                              (s, g) => s + g.estimado,
+                            );
+                            final subtotalPagado = entry.value.fold<double>(
+                              0,
+                              (s, g) => s + g.pagado,
+                            );
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  entry.key,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: _rose,
-                                    fontSize: 13,
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        entry.key,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: _rose,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${_fmt(subtotalPagado)} / ${_fmt(subtotalEstimado)}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade500,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                Text(
-                                  '${_fmt(subtotalPagado)} / ${_fmt(subtotalEstimado)}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade500,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                                ...entry.value.map((g) => _buildGastoCard(g)),
                               ],
-                            ),
-                          ),
-                          ...entry.value.map((g) => _buildGastoCard(g)),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-          ),
-        ],
-      ),
+                            );
+                          }).toList(),
+                        ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -159,9 +162,15 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
           children: [
             const Icon(Icons.error_outline, color: _rose, size: 42),
             const SizedBox(height: 10),
-            Text('No se pudieron cargar los gastos', style: TextStyle(color: Colors.grey.shade700)),
+            Text(
+              'No se pudieron cargar los gastos',
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
             const SizedBox(height: 10),
-            ElevatedButton(onPressed: _loadGastos, child: const Text('Reintentar')),
+            ElevatedButton(
+              onPressed: _loadGastos,
+              child: const Text('Reintentar'),
+            ),
           ],
         ),
       ),
@@ -383,10 +392,12 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
                   final prev = g.pagado;
                   setState(() => g.pagado = val);
                   _service.updateGasto(bodaId, g).catchError((_) {
-                    if (!mounted) return;
+                    if (!mounted) return null;
                     setState(() => g.pagado = prev);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('No se pudo actualizar el gasto')),
+                      const SnackBar(
+                        content: Text('No se pudo actualizar el gasto'),
+                      ),
                     );
                   });
                   Navigator.pop(context);
@@ -495,7 +506,9 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
                       .catchError((_) {
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('No se pudo agregar el gasto')),
+                          const SnackBar(
+                            content: Text('No se pudo agregar el gasto'),
+                          ),
                         );
                       });
                   Navigator.pop(context);

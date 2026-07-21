@@ -190,9 +190,15 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
           children: [
             const Icon(Icons.error_outline, color: _rose, size: 42),
             const SizedBox(height: 10),
-            Text('No se pudieron cargar proveedores', style: TextStyle(color: Colors.grey.shade700)),
+            Text(
+              'No se pudieron cargar proveedores',
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
             const SizedBox(height: 10),
-            ElevatedButton(onPressed: _loadProveedores, child: const Text('Reintentar')),
+            ElevatedButton(
+              onPressed: _loadProveedores,
+              child: const Text('Reintentar'),
+            ),
           ],
         ),
       ),
@@ -213,7 +219,10 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
           _miniStat('Total', _proveedores.length.toString(), _rose),
           _miniStat(
             'Pendientes',
-            _proveedores.where((e) => e.estado == EstadoProveedor.pendiente).length.toString(),
+            _proveedores
+                .where((e) => e.estado == EstadoProveedor.pendiente)
+                .length
+                .toString(),
             const Color(0xFFFB8C00),
           ),
           _miniStat('Costo', '\$${_total.toStringAsFixed(0)}', _rose),
@@ -225,9 +234,19 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
   Widget _miniStat(String label, String value, Color color) {
     return Column(
       children: [
-        Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 16)),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: color,
+            fontSize: 16,
+          ),
+        ),
         const SizedBox(height: 3),
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+        ),
       ],
     );
   }
@@ -255,7 +274,10 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
         children: [
           const Text('👨‍💼', style: TextStyle(fontSize: 44)),
           const SizedBox(height: 10),
-          Text('Sin proveedores registrados', style: TextStyle(color: Colors.grey.shade600)),
+          Text(
+            'Sin proveedores registrados',
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
         ],
       ),
     );
@@ -285,7 +307,10 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(p.nombre, style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  p.nombre,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   '${p.categoria} · ${p.contacto.isEmpty ? 'Sin contacto' : p.contacto}',
@@ -311,7 +336,10 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
                 )
                 .toList(),
             child: Chip(
-              label: Text(p.estado.label, style: TextStyle(color: p.estado.color)),
+              label: Text(
+                p.estado.label,
+                style: TextStyle(color: p.estado.color),
+              ),
               backgroundColor: p.estado.color.withOpacity(0.1),
             ),
           ),
@@ -324,7 +352,10 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
     );
   }
 
-  Future<void> _cambiarEstado(ProveedorBoda proveedor, EstadoProveedor estado) async {
+  Future<void> _cambiarEstado(
+    ProveedorBoda proveedor,
+    EstadoProveedor estado,
+  ) async {
     final bodaId = _bodaId;
     if (bodaId == null) return;
 
@@ -337,7 +368,9 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
       if (!mounted) return;
       setState(() => proveedor.estado = previo);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo actualizar estado de proveedor')),
+        const SnackBar(
+          content: Text('No se pudo actualizar estado de proveedor'),
+        ),
       );
     }
   }
@@ -355,7 +388,12 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          24 + MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: const BoxDecoration(
@@ -368,7 +406,11 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
               children: [
                 const Text(
                   'Nuevo proveedor',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _rose),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: _rose,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 _textField(nombreCtrl, 'Nombre'),
@@ -389,7 +431,9 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _rose,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: () {
                       if (nombreCtrl.text.trim().isEmpty) return;
@@ -399,7 +443,9 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
                       final nuevo = ProveedorBoda(
                         id: '',
                         nombre: nombreCtrl.text.trim(),
-                        categoria: categoriaCtrl.text.trim().isEmpty ? 'General' : categoriaCtrl.text.trim(),
+                        categoria: categoriaCtrl.text.trim().isEmpty
+                            ? 'General'
+                            : categoriaCtrl.text.trim(),
                         contacto: contactoCtrl.text.trim(),
                         link: linkCtrl.text.trim(),
                         costo: double.tryParse(costoCtrl.text) ?? 0,
@@ -416,7 +462,9 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
                           .catchError((_) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('No se pudo agregar proveedor')),
+                              const SnackBar(
+                                content: Text('No se pudo agregar proveedor'),
+                              ),
                             );
                           });
 
@@ -438,7 +486,9 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
     final categoriaCtrl = TextEditingController(text: proveedor.categoria);
     final contactoCtrl = TextEditingController(text: proveedor.contacto);
     final linkCtrl = TextEditingController(text: proveedor.link);
-    final costoCtrl = TextEditingController(text: proveedor.costo.toStringAsFixed(0));
+    final costoCtrl = TextEditingController(
+      text: proveedor.costo.toStringAsFixed(0),
+    );
     final notasCtrl = TextEditingController(text: proveedor.notas);
     EstadoProveedor estado = proveedor.estado;
 
@@ -481,7 +531,11 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
                   const SizedBox(height: 10),
                   _textField(linkCtrl, 'Link'),
                   const SizedBox(height: 10),
-                  _textField(costoCtrl, 'Costo', keyboard: TextInputType.number),
+                  _textField(
+                    costoCtrl,
+                    'Costo',
+                    keyboard: TextInputType.number,
+                  ),
                   const SizedBox(height: 10),
                   _textField(notasCtrl, 'Notas'),
                   const SizedBox(height: 10),
@@ -518,7 +572,8 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
                       ),
                       onPressed: () {
                         final bodaId = _bodaId;
-                        if (bodaId == null || nombreCtrl.text.trim().isEmpty) return;
+                        if (bodaId == null || nombreCtrl.text.trim().isEmpty)
+                          return;
 
                         final prev = ProveedorBoda(
                           id: proveedor.id,
@@ -533,18 +588,22 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
 
                         setState(() {
                           proveedor.nombre = nombreCtrl.text.trim();
-                          proveedor.categoria = categoriaCtrl.text.trim().isEmpty
+                          proveedor.categoria =
+                              categoriaCtrl.text.trim().isEmpty
                               ? 'General'
                               : categoriaCtrl.text.trim();
                           proveedor.contacto = contactoCtrl.text.trim();
                           proveedor.link = linkCtrl.text.trim();
-                          proveedor.costo = double.tryParse(costoCtrl.text) ?? 0;
+                          proveedor.costo =
+                              double.tryParse(costoCtrl.text) ?? 0;
                           proveedor.notas = notasCtrl.text.trim();
                           proveedor.estado = estado;
                         });
 
-                        _service.updateProveedor(bodaId, proveedor).catchError((_) {
-                          if (!mounted) return;
+                        _service.updateProveedor(bodaId, proveedor).catchError((
+                          _,
+                        ) {
+                          if (!mounted) return null;
                           setState(() {
                             proveedor.nombre = prev.nombre;
                             proveedor.categoria = prev.categoria;
@@ -555,7 +614,9 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
                             proveedor.estado = prev.estado;
                           });
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('No se pudo editar proveedor')),
+                            const SnackBar(
+                              content: Text('No se pudo editar proveedor'),
+                            ),
                           );
                         });
 
