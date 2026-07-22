@@ -1163,6 +1163,7 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
   final List<TextEditingController> _conceptoNombreCtrls = [];
   final List<TextEditingController> _conceptoMontoCtrls = [];
   final List<TextEditingController> _documentoCtrls = [];
+  final List<TextEditingController> _checklistItemCtrls = [];
 
   bool _isSaving = false;
   bool _mostrarDetallesOpcionales = false;
@@ -1194,6 +1195,10 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
     for (final documento in widget.evento.documentos) {
       _documentoCtrls.add(TextEditingController(text: documento));
     }
+
+    for (final item in widget.evento.checklist.items) {
+      _checklistItemCtrls.add(TextEditingController(text: item.nombre));
+    }
   }
 
   @override
@@ -1208,6 +1213,7 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
     for (final c in _conceptoNombreCtrls) c.dispose();
     for (final c in _conceptoMontoCtrls) c.dispose();
     for (final c in _documentoCtrls) c.dispose();
+    for (final c in _checklistItemCtrls) c.dispose();
     super.dispose();
   }
 
@@ -1285,6 +1291,18 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
     setState(() => _documentoCtrls.removeAt(index).dispose());
   }
 
+  void _agregarItemChecklist() {
+    setState(() {
+      _checklistItemCtrls.add(TextEditingController());
+    });
+  }
+
+  void _eliminarItemChecklist(int index) {
+    setState(() {
+      _checklistItemCtrls.removeAt(index).dispose();
+    });
+  }
+
   double _parseDouble(String value) {
     final normalized = value.trim().replaceAll(',', '.');
     return double.tryParse(normalized) ?? 0.0;
@@ -1326,6 +1344,17 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
         .toList();
   }
 
+  ChecklistEvento _buildChecklistFromForm() {
+    final items = <ItemChecklist>[];
+    for (var i = 0; i < _checklistItemCtrls.length; i++) {
+      final nombre = _checklistItemCtrls[i].text.trim();
+      if (nombre.isNotEmpty) {
+        items.add(ItemChecklist(nombre: nombre, incluido: false));
+      }
+    }
+    return ChecklistEvento(items: items);
+  }
+
   Future<void> _guardar() async {
     if (_tituloController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1343,6 +1372,7 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
         itinerario: _buildItinerarioFromForm(),
         presupuesto: _buildPresupuestoFromForm(),
         documentos: _buildDocumentosFromForm(),
+        checklist: _buildChecklistFromForm(),
       );
       await widget.onGuardar(actualizado);
       if (!mounted) return;
@@ -1657,6 +1687,47 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
                 ),
               ),
             ],
+            const SizedBox(height: 10),
+            _buildSectionLabel('Checklist - Qué llevar'),
+            if (_checklistItemCtrls.isEmpty)
+              _buildEmptyState(
+                onAdd: _agregarItemChecklist,
+                label: 'Agregar item',
+              )
+            else ...[
+              for (var i = 0; i < _checklistItemCtrls.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          _checklistItemCtrls[i],
+                          'Item',
+                          'Ej: Pasaporte',
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Eliminar item',
+                        onPressed: () => _eliminarItemChecklist(i),
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.redAccent,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _agregarItemChecklist,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Agregar item'),
+                ),
+              ),
+            ],
           ],
         ],
       ),
@@ -1884,6 +1955,42 @@ class _EventoDetallesDialog extends StatelessWidget {
                     ),
                   ),
                 ),
+              const SizedBox(height: 12),
+              _detailsSectionTitle('Checklist'),
+              if (evento.checklist.items.isEmpty)
+                _emptyLabel('Sin items en checklist')
+              else
+                ...evento.checklist.items.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(
+                          item.incluido
+                              ? Icons.check_circle
+                              : Icons.circle_outlined,
+                          size: 18,
+                          color: item.incluido
+                              ? Colors.green.shade600
+                              : Colors.grey.shade400,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            item.nombre,
+                            style: TextStyle(
+                              color: Colors.grey.shade800,
+                              decoration: item.incluido
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -2004,6 +2111,7 @@ class _AgendarDesdeCalendarioSheetState
   final List<TextEditingController> _conceptoNombreCtrls = [];
   final List<TextEditingController> _conceptoMontoCtrls = [];
   final List<TextEditingController> _documentoCtrls = [];
+  final List<TextEditingController> _checklistItemCtrls = [];
 
   @override
   void initState() {
@@ -2035,6 +2143,9 @@ class _AgendarDesdeCalendarioSheetState
       c.dispose();
     }
     for (final c in _documentoCtrls) {
+      c.dispose();
+    }
+    for (final c in _checklistItemCtrls) {
       c.dispose();
     }
 
@@ -2083,6 +2194,18 @@ class _AgendarDesdeCalendarioSheetState
     });
   }
 
+  void _agregarItemChecklist() {
+    setState(() {
+      _checklistItemCtrls.add(TextEditingController());
+    });
+  }
+
+  void _eliminarItemChecklist(int index) {
+    setState(() {
+      _checklistItemCtrls.removeAt(index).dispose();
+    });
+  }
+
   double _parseDouble(String value) {
     final normalized = value.trim().replaceAll(',', '.');
     return double.tryParse(normalized) ?? 0.0;
@@ -2124,6 +2247,17 @@ class _AgendarDesdeCalendarioSheetState
         .map((c) => c.text.trim())
         .where((value) => value.isNotEmpty)
         .toList();
+  }
+
+  ChecklistEvento _buildChecklistFromForm() {
+    final items = <ItemChecklist>[];
+    for (var i = 0; i < _checklistItemCtrls.length; i++) {
+      final nombre = _checklistItemCtrls[i].text.trim();
+      if (nombre.isNotEmpty) {
+        items.add(ItemChecklist(nombre: nombre, incluido: false));
+      }
+    }
+    return ChecklistEvento(items: items);
   }
 
   // Reutiliza el cache de ApiService — sin llamada extra a la red
@@ -2214,6 +2348,7 @@ class _AgendarDesdeCalendarioSheetState
       final itinerario = _buildItinerarioFromForm();
       final presupuesto = _buildPresupuestoFromForm();
       final documentos = _buildDocumentosFromForm();
+      final checklist = _buildChecklistFromForm();
 
       final nuevoEvento = await widget.service.createEvento(
         EventoImportante(
@@ -2225,6 +2360,7 @@ class _AgendarDesdeCalendarioSheetState
           itinerario: itinerario,
           presupuesto: presupuesto,
           documentos: documentos,
+          checklist: checklist,
         ),
       );
       if (mounted) {
@@ -2952,6 +3088,47 @@ class _AgendarDesdeCalendarioSheetState
                   onPressed: _agregarDocumento,
                   icon: const Icon(Icons.add),
                   label: const Text('Agregar link'),
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            _buildSectionLabel('Checklist - Qué llevar'),
+            if (_checklistItemCtrls.isEmpty)
+              _buildEmptyState(
+                onAdd: _agregarItemChecklist,
+                label: 'Agregar item',
+              )
+            else ...[
+              for (var i = 0; i < _checklistItemCtrls.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          _checklistItemCtrls[i],
+                          'Item',
+                          'Ej: Pasaporte',
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Eliminar item',
+                        onPressed: () => _eliminarItemChecklist(i),
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.redAccent,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _agregarItemChecklist,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Agregar item'),
                 ),
               ),
             ],

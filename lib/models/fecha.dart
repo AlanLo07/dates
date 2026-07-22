@@ -1,3 +1,46 @@
+class ItemChecklist {
+  final String nombre;
+  final bool incluido;
+
+  const ItemChecklist({
+    required this.nombre,
+    this.incluido = false,
+  });
+
+  factory ItemChecklist.fromJson(Map<String, dynamic> json) {
+    return ItemChecklist(
+      nombre: (json['nombre'] ?? '').toString(),
+      incluido: json['incluido'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'nombre': nombre, 'incluido': incluido};
+  }
+}
+
+class ChecklistEvento {
+  final List<ItemChecklist> items;
+
+  const ChecklistEvento({this.items = const []});
+
+  factory ChecklistEvento.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const ChecklistEvento();
+    final raw = json['items'];
+    final items = raw is List
+        ? raw
+              .whereType<Map>()
+              .map((item) => ItemChecklist.fromJson(Map<String, dynamic>.from(item)))
+              .toList()
+        : <ItemChecklist>[];
+    return ChecklistEvento(items: items);
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'items': items.map((i) => i.toJson()).toList()};
+  }
+}
+
 class ActividadItinerario {
   final String fecha;
   final String tiempo;
@@ -122,6 +165,7 @@ class EventoImportante {
   final ItinerarioEvento itinerario;
   final PresupuestoEvento presupuesto;
   final List<String> documentos;
+  final ChecklistEvento checklist;
 
   EventoImportante({
     required this.id,
@@ -132,6 +176,7 @@ class EventoImportante {
     this.itinerario = const ItinerarioEvento(),
     this.presupuesto = const PresupuestoEvento(),
     this.documentos = const [],
+    this.checklist = const ChecklistEvento(),
   });
 
   EventoImportante copyWith({
@@ -143,6 +188,7 @@ class EventoImportante {
     ItinerarioEvento? itinerario,
     PresupuestoEvento? presupuesto,
     List<String>? documentos,
+    ChecklistEvento? checklist,
   }) {
     return EventoImportante(
       id: id ?? this.id,
@@ -153,6 +199,7 @@ class EventoImportante {
       itinerario: itinerario ?? this.itinerario,
       presupuesto: presupuesto ?? this.presupuesto,
       documentos: documentos ?? this.documentos,
+      checklist: checklist ?? this.checklist,
     );
   }
 
@@ -179,6 +226,11 @@ class EventoImportante {
             : null,
       ),
       documentos: documentos,
+      checklist: ChecklistEvento.fromJson(
+        json['checklist'] is Map
+            ? Map<String, dynamic>.from(json['checklist'])
+            : null,
+      ),
     );
   }
 
@@ -192,5 +244,6 @@ class EventoImportante {
     'itinerario': itinerario.toJson(),
     'presupuesto': presupuesto.toJson(),
     'documentos': documentos,
+    'checklist': checklist.toJson(),
   };
 }
