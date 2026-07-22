@@ -161,14 +161,30 @@ class EventService {
     if (response.statusCode == 201) {
       final body = json.decode(response.body);
       return EventoImportante(
-        id: body['id'],
+        id: body['id'] ?? evento.id,
         title: evento.title,
         description: evento.description,
         date: evento.date,
         icon: evento.icon,
+        itinerario: evento.itinerario,
+        presupuesto: evento.presupuesto,
+        documentos: evento.documentos,
       );
     }
     throw Exception('Error al crear evento: ${response.body}');
+  }
+
+  Future<EventoImportante> updateEvento(EventoImportante evento) async {
+    final response = await http.put(
+      _uri('/${evento.id}'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(evento.toJson()),
+    );
+    if (response.statusCode == 200) {
+      final body = json.decode(response.body);
+      return EventoImportante.fromJson(body['item'] ?? body);
+    }
+    throw Exception('Error al actualizar evento: ${response.body}');
   }
 
   Future<void> deleteEvento(String id) async {

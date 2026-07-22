@@ -134,6 +134,28 @@ class EventoImportante {
     this.documentos = const [],
   });
 
+  EventoImportante copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? date,
+    String? icon,
+    ItinerarioEvento? itinerario,
+    PresupuestoEvento? presupuesto,
+    List<String>? documentos,
+  }) {
+    return EventoImportante(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      date: date ?? this.date,
+      icon: icon ?? this.icon,
+      itinerario: itinerario ?? this.itinerario,
+      presupuesto: presupuesto ?? this.presupuesto,
+      documentos: documentos ?? this.documentos,
+    );
+  }
+
   factory EventoImportante.fromJson(Map<String, dynamic> json) {
     final rawDocumentos = json['documentos'];
     final documentos = rawDocumentos is List
