@@ -687,6 +687,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.violeta.withOpacity(0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -697,7 +698,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Historico mensual',
+                  'Análisis histórico completo',
                   style: TextStyle(
                     color: AppColors.violeta,
                     fontWeight: FontWeight.w700,
@@ -705,138 +706,33 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                   ),
                 ),
               ),
-              Chip(
-                label: const Text('Maqueta'),
-                backgroundColor: AppColors.lavanda.withOpacity(0.55),
-                side: BorderSide(color: AppColors.violeta.withOpacity(0.14)),
-              ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Text(
-            'Vista previa para revisar como se ha comportado el gasto por mes. Aqui luego conectaremos el back.',
-            style: TextStyle(color: Colors.grey.shade700, height: 1.35),
+            'Visualiza el histórico completo de 12 meses con gráficas y análisis detallado.',
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 14),
           SizedBox(
-            height: 152,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _historyPreviews.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final item = _historyPreviews[index];
-                final progress = item.budget <= 0
-                    ? 0.0
-                    : (item.spent / item.budget).clamp(0.0, 1.0);
-                final overBudget = item.spent > item.budget;
-
-                return Container(
-                  width: 220,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        item.color.withOpacity(0.95),
-                        item.color.withOpacity(0.72),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: item.color.withOpacity(0.20),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              item.monthLabel,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          Icon(
-                            overBudget
-                                ? Icons.warning_rounded
-                                : Icons.check_circle_rounded,
-                            color: Colors.white.withOpacity(0.92),
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        item.highlight,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.88),
-                          fontSize: 12,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${_currency.format(item.spent)} / ${_currency.format(item.budget)}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: LinearProgressIndicator(
-                          minHeight: 9,
-                          value: progress,
-                          backgroundColor: Colors.white.withOpacity(0.20),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            overBudget ? Colors.white : Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const FinanceHistoryScreen(),
                   ),
                 );
               },
-            ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.grisCalido.withOpacity(0.50),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.violeta.withOpacity(0.08)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _HistoryMetric(
-                    label: 'Meses mostrados',
-                    value: '${_historyPreviews.length}',
-                    icon: Icons.calendar_month_rounded,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _HistoryMetric(
-                    label: 'Con sobrecosto',
-                    value:
-                        '${_historyPreviews.where((e) => e.spent > e.budget).length}',
-                    icon: Icons.trending_up_rounded,
-                  ),
-                ),
-              ],
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.violeta,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.timeline_rounded),
+              label: const Text('Ver histórico completo'),
             ),
           ),
         ],
@@ -997,6 +893,8 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                             onDelete: () => _confirmDeleteExpense(expense),
                           ),
                         ),
+                      const SizedBox(height: 18),
+                      _buildHistorySection(),
                     ],
                   ),
                 ),
@@ -1154,35 +1052,4 @@ class _ExpenseTile extends StatelessWidget {
   }
 }
 
-class _HistoryMetric extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
 
-  const _HistoryMetric({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: AppColors.violeta, size: 20),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
-            ),
-            const SizedBox(height: 4),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
-          ],
-        ),
-      ],
-    );
-  }
-}
