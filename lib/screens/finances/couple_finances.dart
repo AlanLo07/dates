@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../models/finances.dart';
+import '../../services/finances_service.dart';
 import '../../utils/colors.dart';
 import 'finance_history.dart';
 
@@ -12,68 +14,74 @@ class CoupleFinancesScreen extends StatefulWidget {
 }
 
 class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
-  final List<_ExpenseEntry> _entries = [
-    _ExpenseEntry(
-      title: 'Spotify Duo',
-      amount: 14.99,
-      date: DateTime.now().subtract(const Duration(days: 3)),
-      category: ExpenseCategory.subscriptions,
-      note: 'Pago mensual',
-    ),
-    _ExpenseEntry(
-      title: 'Supermercado semana',
-      amount: 38.50,
-      date: DateTime.now().subtract(const Duration(days: 2)),
-      category: ExpenseCategory.groceries,
-    ),
-    _ExpenseEntry(
-      title: 'Ahorro viaje playa',
-      amount: 120.00,
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      category: ExpenseCategory.vacations,
-    ),
-    _ExpenseEntry(
-      title: 'Cena aniversario',
-      amount: 45.90,
-      date: DateTime.now().subtract(const Duration(days: 6)),
-      category: ExpenseCategory.dateNights,
-    ),
-  ];
-
-  ExpenseCategory? _selectedCategoryFilter;
-  DateTime? _selectedMonthFilter;
-  double _monthlyBudget = 300.0;
-  final List<_HistoryMonthPreview> _historyPreviews = const [
-    _HistoryMonthPreview(
-      monthLabel: 'Julio 2026',
-      spent: 284.40,
-      budget: 300.00,
-      highlight: 'Casi al limite',
-      color: Color(0xFF4CAF50),
-    ),
-    _HistoryMonthPreview(
-      monthLabel: 'Junio 2026',
-      spent: 352.10,
-      budget: 320.00,
-      highlight: 'Se supero el presupuesto',
-      color: Color(0xFFE57373),
-    ),
-    _HistoryMonthPreview(
-      monthLabel: 'Mayo 2026',
-      spent: 218.75,
-      budget: 300.00,
-      highlight: 'Buen control',
-      color: Color(0xFF6A88D6),
-    ),
-  ];
-
+  final FinancesService _service = FinancesService();
   final NumberFormat _currency = NumberFormat.currency(
     locale: 'es_ES',
     symbol: r'$',
     decimalDigits: 2,
   );
 
-  double get _totalSpent => _entries.fold(0, (sum, e) => sum + e.amount);
+  List<Expense> _expenses = [];
+  CoupleData? _coupleData;
+  Budget? _currentBudget;
+  bool _loading = true;
+  String? _error;
+
+  ExpenseCategory? _selectedCategoryFilter;
+  DateTime? _selectedMonthFilter;
+  double _monthlyBudget = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      // Obtener datos de pareja
+      final couple = await _service.getCouple(forceRefresh: true);
+      _coupleData = couple;
+      _monthlyBudget = couple.monthlyBudget;
+
+      // Obtener gastos
+      final expenses = await _service.getExpenses(forceRefresh: true);
+      _expenses = expenses;
+
+      // Obtener presupuesto del mes actual
+      final monthYear =
+          '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}';
+      try {
+        final budget = await _service.getBudget(monthYear);
+        _currentBudget = budget;
+        _monthlyBudget = budget.amount;
+      } catch (_) {
+        // Budget no existe para este mes
+        _currentBudget = null;
+      }
+
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString().replaceAll('Exception: ', '');
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  String get _currentMonthYear =>
+      '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}';
 
   DateTime get _budgetMonth {
     final base = _selectedMonthFilter ?? DateTime.now();
@@ -88,9 +96,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
       _monthlyBudget > 0 && _budgetMonthSpent > _monthlyBudget;
 
   double get _budgetProgress {
-    if (_monthlyBudget <= 0) {
-      return 0;
-    }
+    if (_monthlyBudget <= 0) return 0;
     return (_budgetMonthSpent / _monthlyBudget).clamp(0.0, 1.0);
   }
 
@@ -101,30 +107,32 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
       now.month,
       now.day,
     ).subtract(Duration(days: now.weekday - 1));
-    return _entries
+    return _expenses
         .where((e) => !e.date.isBefore(startOfWeek))
         .fold(0, (sum, e) => sum + e.amount);
   }
 
+  double get _totalSpent => _expenses.fold(0, (sum, e) => sum + e.amount);
+
   List<DateTime> get _availableMonths {
     final set = <DateTime>{};
-    for (final entry in _entries) {
-      set.add(DateTime(entry.date.year, entry.date.month));
+    for (final expense in _expenses) {
+      set.add(DateTime(expense.date.year, expense.date.month));
     }
     final months = set.toList()..sort((a, b) => b.compareTo(a));
     return months;
   }
 
-  List<_ExpenseEntry> get _visibleEntries {
-    var filtered = _entries.where((entry) {
+  List<Expense> get _visibleExpenses {
+    var filtered = _expenses.where((expense) {
       final categoryMatch =
           _selectedCategoryFilter == null ||
-          entry.category == _selectedCategoryFilter;
+          expense.category == _selectedCategoryFilter;
 
       final monthMatch =
           _selectedMonthFilter == null ||
-          (entry.date.year == _selectedMonthFilter!.year &&
-              entry.date.month == _selectedMonthFilter!.month);
+          (expense.date.year == _selectedMonthFilter!.year &&
+              expense.date.month == _selectedMonthFilter!.month);
 
       return categoryMatch && monthMatch;
     }).toList();
@@ -133,49 +141,21 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
     return filtered;
   }
 
-  double _totalByCategory(ExpenseCategory category) {
-    return _entries
-        .where((e) => e.category == category)
-        .fold(0, (sum, e) => sum + e.amount);
-  }
-
   double _spentForMonth(DateTime month) {
-    return _entries
+    return _expenses
         .where(
-          (entry) =>
-              entry.date.year == month.year && entry.date.month == month.month,
+          (expense) =>
+              expense.date.year == month.year &&
+              expense.date.month == month.month,
         )
-        .fold(0, (sum, entry) => sum + entry.amount);
+        .fold(0, (sum, expense) => sum + expense.amount);
   }
 
-  void _notifyBudgetIfExceeded({
-    required DateTime month,
-    required double before,
-    required double after,
-  }) {
-    if (_monthlyBudget <= 0) {
-      return;
-    }
-
-    final exceededNow = before <= _monthlyBudget && after > _monthlyBudget;
-    if (!exceededNow) {
-      return;
-    }
-
-    final currentBudgetMonth = _budgetMonth;
-    if (month.year != currentBudgetMonth.year ||
-        month.month != currentBudgetMonth.month) {
-      return;
-    }
-
-    final overBy = after - _monthlyBudget;
+  void _showErrorSnackbar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        behavior: SnackBarBehavior.floating,
+        content: Text(message),
         backgroundColor: AppColors.error,
-        content: Text(
-          'Presupuesto excedido por ${_currency.format(overBy)} en ${DateFormat('MMMM yyyy', 'es_ES').format(month)}',
-        ),
       ),
     );
   }
@@ -217,26 +197,33 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
     if (saved == true) {
       final value = double.tryParse(budgetCtrl.text.replaceAll(',', '.'));
       if (value == null || value <= 0) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Ingresa un presupuesto valido mayor a 0.'),
-            ),
-          );
-        }
+        _showErrorSnackbar('Ingresa un presupuesto válido mayor a 0.');
       } else {
-        setState(() => _monthlyBudget = value);
+        try {
+          await _service.setBudget(
+            _currentMonthYear,
+            amount: value,
+          );
+          setState(() => _monthlyBudget = value);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✅ Presupuesto actualizado'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        } catch (e) {
+          _showErrorSnackbar(e.toString().replaceAll('Exception: ', ''));
+        }
       }
     }
 
     budgetCtrl.dispose();
   }
 
-  Future<void> _showExpenseSheet({
-    _ExpenseEntry? editing,
-    int? sourceIndex,
-  }) async {
-    final isEditing = editing != null && sourceIndex != null;
+  Future<void> _showExpenseSheet({Expense? editing}) async {
+    final isEditing = editing != null;
 
     final titleCtrl = TextEditingController(text: editing?.title ?? '');
     final amountCtrl = TextEditingController(
@@ -247,6 +234,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
     ExpenseCategory selectedCategory =
         editing?.category ?? ExpenseCategory.groceries;
     DateTime selectedDate = editing?.date ?? DateTime.now();
+    bool _isSaving = false;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -291,28 +279,14 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                             const SizedBox(height: 14),
                             TextField(
                               controller: titleCtrl,
-                              textCapitalization: TextCapitalization.sentences,
+                              textCapitalization:
+                                  TextCapitalization.sentences,
                               decoration: const InputDecoration(
                                 labelText: 'Concepto',
                                 border: OutlineInputBorder(),
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 6,
-                              children: selectedCategory.conceptSuggestions
-                                  .map(
-                                    (suggestion) => ActionChip(
-                                      label: Text(suggestion),
-                                      onPressed: () {
-                                        titleCtrl.text = suggestion;
-                                      },
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                            const SizedBox(height: 12),
                             TextField(
                               controller: amountCtrl,
                               keyboardType:
@@ -328,22 +302,24 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                             DropdownButtonFormField<ExpenseCategory>(
                               value: selectedCategory,
                               decoration: const InputDecoration(
-                                labelText: 'Categoria',
+                                labelText: 'Categoría',
                                 border: OutlineInputBorder(),
                               ),
                               items: ExpenseCategory.values
                                   .map(
                                     (c) => DropdownMenuItem(
                                       value: c,
-                                      child: Text(c.label),
+                                      child: Text(
+                                        '${c.emoji} ${c.display}',
+                                      ),
                                     ),
                                   )
                                   .toList(),
                               onChanged: (value) {
-                                if (value == null) {
-                                  return;
-                                }
-                                setSheetState(() => selectedCategory = value);
+                                if (value == null) return;
+                                setSheetState(
+                                  () => selectedCategory = value,
+                                );
                               },
                             ),
                             const SizedBox(height: 12),
@@ -387,70 +363,102 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
-                                onPressed: () {
-                                  final title = titleCtrl.text.trim();
-                                  final amount = double.tryParse(
-                                    amountCtrl.text.replaceAll(',', '.'),
-                                  );
+                                onPressed: _isSaving
+                                    ? null
+                                    : () async {
+                                        final title = titleCtrl.text.trim();
+                                        final amount = double.tryParse(
+                                          amountCtrl.text.replaceAll(',', '.'),
+                                        );
 
-                                  if (title.isEmpty ||
-                                      amount == null ||
-                                      amount <= 0) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Completa concepto y monto valido.',
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
+                                        if (title.isEmpty ||
+                                            amount == null ||
+                                            amount <= 0) {
+                                          _showErrorSnackbar(
+                                            'Completa concepto y monto válido.',
+                                          );
+                                          return;
+                                        }
 
-                                  final updatedEntry = _ExpenseEntry(
-                                    title: title,
-                                    amount: amount,
-                                    date: selectedDate,
-                                    category: selectedCategory,
-                                    note: noteCtrl.text.trim().isEmpty
-                                        ? null
-                                        : noteCtrl.text.trim(),
-                                  );
+                                        setSheetState(() => _isSaving = true);
 
-                                  final affectedMonth = DateTime(
-                                    selectedDate.year,
-                                    selectedDate.month,
-                                  );
-                                  final beforeSpent = _spentForMonth(
-                                    affectedMonth,
-                                  );
+                                        try {
+                                          if (isEditing) {
+                                            await _service.updateExpense(
+                                              editing.gastoId,
+                                              title: title,
+                                              amount: amount,
+                                              note: noteCtrl.text.trim()
+                                                      .isEmpty
+                                                  ? null
+                                                  : noteCtrl.text.trim(),
+                                            );
+                                          } else {
+                                            await _service.createExpense(
+                                              title: title,
+                                              amount: amount,
+                                              date: selectedDate,
+                                              category: selectedCategory,
+                                              createdBy:
+                                                  _coupleData?.user1.email ??
+                                                      '',
+                                              note: noteCtrl.text.trim()
+                                                      .isEmpty
+                                                  ? null
+                                                  : noteCtrl.text.trim(),
+                                            );
+                                          }
 
-                                  setState(() {
-                                    if (isEditing) {
-                                      _entries[sourceIndex!] = updatedEntry;
-                                    } else {
-                                      _entries.insert(0, updatedEntry);
-                                    }
-                                  });
+                                          if (mounted) {
+                                            await _loadData();
+                                            Navigator.pop(context);
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  isEditing
+                                                      ? '✅ Gasto actualizado'
+                                                      : '✅ Gasto guardado',
+                                                ),
+                                                backgroundColor:
+                                                    AppColors.success,
+                                              ),
+                                            );
+                                          }
+                                        } catch (e) {
+                                          if (mounted) {
+                                            _showErrorSnackbar(
+                                              e
+                                                  .toString()
+                                                  .replaceAll('Exception: ', ''),
+                                            );
+                                          }
+                                        }
 
-                                  final afterSpent = _spentForMonth(
-                                    affectedMonth,
-                                  );
-                                  _notifyBudgetIfExceeded(
-                                    month: affectedMonth,
-                                    before: beforeSpent,
-                                    after: afterSpent,
-                                  );
-
-                                  Navigator.pop(context);
-                                },
+                                        setSheetState(() => _isSaving = false);
+                                      },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.violeta,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 14,
                                   ),
+                                  disabledBackgroundColor:
+                                      Colors.grey.shade300,
                                 ),
-                                icon: const Icon(Icons.save_rounded),
+                                icon: _isSaving
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                            Colors.white,
+                                          ),
+                                        ),
+                                      )
+                                    : const Icon(Icons.save_rounded),
                                 label: Text(
                                   isEditing
                                       ? 'Guardar cambios'
@@ -476,17 +484,12 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
     noteCtrl.dispose();
   }
 
-  Future<void> _confirmDeleteEntry(_ExpenseEntry entry) async {
-    final sourceIndex = _entries.indexOf(entry);
-    if (sourceIndex < 0) {
-      return;
-    }
-
+  Future<void> _confirmDeleteExpense(Expense expense) async {
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar gasto'),
-        content: Text('¿Deseas eliminar "${entry.title}"?'),
+        content: Text('¿Deseas eliminar "${expense.title}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -505,7 +508,20 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
     );
 
     if (accepted == true) {
-      setState(() => _entries.removeAt(sourceIndex));
+      try {
+        await _service.deleteExpense(expense.gastoId);
+        await _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Gasto eliminado'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } catch (e) {
+        _showErrorSnackbar(e.toString().replaceAll('Exception: ', ''));
+      }
     }
   }
 
@@ -532,18 +548,18 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
           DropdownButtonFormField<ExpenseCategory?>(
             value: _selectedCategoryFilter,
             decoration: const InputDecoration(
-              labelText: 'Categoria',
+              labelText: 'Categoría',
               border: OutlineInputBorder(),
             ),
             items: [
               const DropdownMenuItem<ExpenseCategory?>(
                 value: null,
-                child: Text('Todas las categorias'),
+                child: Text('Todas las categorías'),
               ),
               ...ExpenseCategory.values.map(
                 (category) => DropdownMenuItem<ExpenseCategory?>(
                   value: category,
-                  child: Text(category.label),
+                  child: Text('${category.emoji} ${category.display}'),
                 ),
               ),
             ],
@@ -864,89 +880,126 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Anotar gasto'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
-        children: [
-          _SummaryCard(
-            totalSpent: _totalSpent,
-            weeklySpent: _weeklySpent,
-            currency: _currency,
-          ),
-          const SizedBox(height: 14),
-          _buildBudgetCard(),
-          const SizedBox(height: 14),
-          _buildFilterCard(),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: ExpenseCategory.values.map((category) {
-              final color = category.color;
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.14),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: color.withOpacity(0.30)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(category.icon, size: 18, color: color),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${category.label}: ${_currency.format(_totalByCategory(category))}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            'Movimientos',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.violeta,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (_visibleEntries.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(
-                _entries.isEmpty
-                    ? 'Aun no hay gastos. Toca "Anotar gasto" para empezar.'
-                    : 'No hay resultados para esos filtros.',
-              ),
+      body: _loading
+          ? const Center(
+              child: CircularProgressIndicator(),
             )
-          else
-            ..._visibleEntries.map(
-              (entry) => _ExpenseTile(
-                entry: entry,
-                currency: _currency,
-                onEdit: () {
-                  final sourceIndex = _entries.indexOf(entry);
-                  if (sourceIndex >= 0) {
-                    _showExpenseSheet(editing: entry, sourceIndex: sourceIndex);
-                  }
-                },
-                onDelete: () => _confirmDeleteEntry(entry),
-              ),
-            ),
-        ],
-      ),
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error: $_error',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadData,
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
+                    children: [
+                      _SummaryCard(
+                        totalSpent: _totalSpent,
+                        weeklySpent: _weeklySpent,
+                        currency: _currency,
+                      ),
+                      const SizedBox(height: 14),
+                      _buildBudgetCard(),
+                      const SizedBox(height: 14),
+                      _buildFilterCard(),
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: ExpenseCategory.values.map((category) {
+                          final colorValue = Color(category.colorValue);
+                          double total = 0;
+                          for (final expense in _expenses) {
+                            if (expense.category == category) {
+                              total += expense.amount;
+                            }
+                          }
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorValue.withOpacity(0.14),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: colorValue.withOpacity(0.30),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(category.emoji, style: const TextStyle(fontSize: 18)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${category.display}: ${_currency.format(total)}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: colorValue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        'Movimientos',
+                        style:
+                            Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  color: AppColors.violeta,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (_visibleExpenses.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            _expenses.isEmpty
+                                ? 'Aún no hay gastos. Toca "Anotar gasto" para empezar.'
+                                : 'No hay resultados para esos filtros.',
+                          ),
+                        )
+                      else
+                        ..._visibleExpenses.map(
+                          (expense) => _ExpenseTile(
+                            expense: expense,
+                            currency: _currency,
+                            onEdit: () {
+                              _showExpenseSheet(editing: expense);
+                            },
+                            onDelete: () => _confirmDeleteExpense(expense),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
     );
   }
 }
@@ -1019,13 +1072,13 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _ExpenseTile extends StatelessWidget {
-  final _ExpenseEntry entry;
+  final Expense expense;
   final NumberFormat currency;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _ExpenseTile({
-    required this.entry,
+    required this.expense,
     required this.currency,
     required this.onEdit,
     required this.onDelete,
@@ -1033,6 +1086,7 @@ class _ExpenseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorValue = Color(expense.category.colorValue);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -1043,8 +1097,11 @@ class _ExpenseTile extends StatelessWidget {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: entry.category.color.withOpacity(0.12),
-            child: Icon(entry.category.icon, color: entry.category.color),
+            backgroundColor: colorValue.withOpacity(0.12),
+            child: Text(
+              expense.category.emoji,
+              style: const TextStyle(fontSize: 20),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1052,13 +1109,13 @@ class _ExpenseTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  entry.title,
+                  expense.title,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat('dd/MM/yyyy').format(entry.date) +
-                      (entry.note != null ? ' · ${entry.note}' : ''),
+                  DateFormat('dd/MM/yyyy').format(expense.date) +
+                      (expense.note != null ? ' · ${expense.note}' : ''),
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                 ),
               ],
@@ -1069,10 +1126,10 @@ class _ExpenseTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                currency.format(entry.amount),
+                currency.format(expense.amount),
                 textAlign: TextAlign.end,
                 style: TextStyle(
-                  color: entry.category.color,
+                  color: colorValue,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -1095,111 +1152,6 @@ class _ExpenseTile extends StatelessWidget {
       ),
     );
   }
-}
-
-enum ExpenseCategory {
-  subscriptions(
-    'Suscripciones',
-    Icons.subscriptions_rounded,
-    Color(0xFF6A88D6),
-  ),
-  groceries('Supermercado', Icons.shopping_basket_rounded, Color(0xFF4CAF50)),
-  transport('Transporte', Icons.directions_car_rounded, Color(0xFF42A5F5)),
-  dateNights('Citas y salidas', Icons.wine_bar_rounded, Color(0xFFE57373)),
-  home('Casa', Icons.home_rounded, Color(0xFF8D6E63)),
-  health('Salud y bienestar', Icons.spa_rounded, Color(0xFF26A69A)),
-  vacations('Vacaciones', Icons.flight_takeoff_rounded, Color(0xFFFF8A65)),
-  gifts('Regalos', Icons.card_giftcard_rounded, Color(0xFFAB47BC)),
-  pets('Mascotas', Icons.pets_rounded, Color(0xFF8D6E63)),
-  hobbies('Gustos personales', Icons.favorite_rounded, Color(0xFFE91E63)),
-  savings('Ahorro', Icons.savings_rounded, Color(0xFF5C6BC0)),
-  others('Otros', Icons.receipt_long_rounded, Color(0xFF8D6E63));
-
-  const ExpenseCategory(this.label, this.icon, this.color);
-
-  final String label;
-  final IconData icon;
-  final Color color;
-
-  List<String> get conceptSuggestions {
-    switch (this) {
-      case ExpenseCategory.subscriptions:
-        return ['Netflix', 'Spotify Duo', 'Google One', 'Canva Pro'];
-      case ExpenseCategory.groceries:
-        return [
-          'Supermercado semanal',
-          'Mercado de frutas',
-          'Productos de limpieza',
-        ];
-      case ExpenseCategory.transport:
-        return ['Gasolina', 'Uber', 'Parqueadero', 'Peajes'];
-      case ExpenseCategory.dateNights:
-        return [
-          'Cena aniversario',
-          'Cine',
-          'Cafe y postres',
-          'Salida de fin de semana',
-        ];
-      case ExpenseCategory.home:
-        return ['Arriendo', 'Servicios', 'Internet hogar', 'Mantenimiento'];
-      case ExpenseCategory.health:
-        return ['Farmacia', 'Consulta medica', 'Gimnasio', 'Vitaminas'];
-      case ExpenseCategory.vacations:
-        return ['Reserva hotel', 'Tiquetes', 'Tour', 'Fondo viaje'];
-      case ExpenseCategory.gifts:
-        return ['Cumpleanos', 'Aniversario', 'Detalle sorpresa', 'Flores'];
-      case ExpenseCategory.pets:
-        return ['Concentrado', 'Veterinario', 'Bano y peluqueria', 'Juguetes'];
-      case ExpenseCategory.hobbies:
-        return ['Videojuego', 'Libro', 'Ropa', 'Curso online'];
-      case ExpenseCategory.savings:
-        return [
-          'Ahorro emergencia',
-          'Meta carro',
-          'Meta apartamento',
-          'Fondo boda',
-        ];
-      case ExpenseCategory.others:
-        return [
-          'Imprevisto',
-          'Comision bancaria',
-          'Pago pendiente',
-          'Otro gasto',
-        ];
-    }
-  }
-}
-
-class _ExpenseEntry {
-  final String title;
-  final double amount;
-  final DateTime date;
-  final ExpenseCategory category;
-  final String? note;
-
-  _ExpenseEntry({
-    required this.title,
-    required this.amount,
-    required this.date,
-    required this.category,
-    this.note,
-  });
-}
-
-class _HistoryMonthPreview {
-  final String monthLabel;
-  final double spent;
-  final double budget;
-  final String highlight;
-  final Color color;
-
-  const _HistoryMonthPreview({
-    required this.monthLabel,
-    required this.spent,
-    required this.budget,
-    required this.highlight,
-    required this.color,
-  });
 }
 
 class _HistoryMetric extends StatelessWidget {
