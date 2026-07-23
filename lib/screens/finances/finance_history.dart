@@ -1,166 +1,291 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../models/finances.dart';
+import '../../services/finances_service.dart';
 import '../../utils/colors.dart';
 
-class FinanceHistoryScreen extends StatelessWidget {
+class FinanceHistoryScreen extends StatefulWidget {
   const FinanceHistoryScreen({super.key});
 
-  static final List<_HistoryMonthPreview> _historyPreviews = const [
-    _HistoryMonthPreview(
-      monthLabel: 'Julio 2026',
-      spent: 284.40,
-      budget: 300.00,
-      highlight: 'Casi al limite',
-      color: Color(0xFF4CAF50),
-      tag: 'Control estable',
-    ),
-    _HistoryMonthPreview(
-      monthLabel: 'Junio 2026',
-      spent: 352.10,
-      budget: 320.00,
-      highlight: 'Se supero el presupuesto',
-      color: Color(0xFFE57373),
-      tag: 'Mes de exceso',
-    ),
-    _HistoryMonthPreview(
-      monthLabel: 'Mayo 2026',
-      spent: 218.75,
-      budget: 300.00,
-      highlight: 'Buen control',
-      color: Color(0xFF6A88D6),
-      tag: 'Ahorro',
-    ),
-    _HistoryMonthPreview(
-      monthLabel: 'Abril 2026',
-      spent: 267.90,
-      budget: 300.00,
-      highlight: 'En rango',
-      color: Color(0xFFE1A95F),
-      tag: 'Balanceado',
-    ),
-  ];
+  @override
+  State<FinanceHistoryScreen> createState() => _FinanceHistoryScreenState();
+}
+
+class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
+  final FinancesService _service = FinancesService();
+  List<FinancialHistory> _history = [];
+  bool _loading = true;
+  String? _error;
+
+  final NumberFormat _money = NumberFormat.currency(
+    locale: 'es_ES',
+    symbol: r'$',
+    decimalDigits: 2,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final history = await _service.getHistory(limit: 12);
+      if (mounted) {
+        setState(() {
+          _history = history;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString().replaceAll('Exception: ', '');
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  double get _avgSpent => _history.isEmpty
+      ? 0.0
+      : _history.fold<double>(0, (sum, item) => sum + item.totalSpent) /
+          _history.length;
+
+  int get _overBudgetCount =>
+      _history.where((item) => item.overBudget).length;
+
+  FinancialHistory? get _bestMonth =>
+      _history.isEmpty ? null : _history.reduce((a, b) => a.totalSpent < b.totalSpent ? a : b);
+
+  Color _getColorForMonth(FinancialHistory month) {
+    if (month.overBudget) {
+      return const Color(0xFFE57373);
+    }
+    final ratio = month.totalSpent / month.budgetAmount;
+    if (ratio > 0.8) {
+      return const Color(0xFFE1A95F);
+    }
+    if (ratio > 0.5) {
+      return const Color(0xFF4CAF50);
+    }
+    return const Color(0xFF6A88D6);
+  }
+
+  String _getHighlightForMonth(FinancialHistory month) {
+    if (month.overBudget) {
+      return 'Se superó el presupuesto';
+    }
+    final ratio = month.totalSpent / month.budgetAmount;
+    if (ratio > 0.8) {
+      return 'Casi al límite';
+    }
+    if (ratio > 0.5) {
+      return 'En rango';
+    }
+    return 'Buen control';
+  }
+
+  String _getTagForMonth(FinancialHistory month) {
+    if (month.overBudget) {
+      return 'Mes de exceso';
+    }
+    final ratio = month.totalSpent / month.budgetAmount;
+    if (ratio > 0.8) {
+      return 'Alerta';
+    }
+    if (ratio > 0.5) {
+      return 'Balanceado';
+    }
+    return 'Ahorro';
+  }
+
+  String _formatMonthYear(String monthYear) {
+    try {
+      final date = DateTime.parse('$monthYear-01');
+      return DateFormat('MMMM yyyy', 'es_ES').format(date);
+    } catch (_) {
+      return monthYear;
+    }
+  }
+
+  String _formatMonthShort(String monthYear) {
+    try {
+      final date = DateTime.parse('$monthYear-01');
+      return DateFormat('MMM', 'es_ES').format(date);
+    } catch (_) {
+      return monthYear;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final money = NumberFormat.currency(
-      locale: 'es_ES',
-      symbol: r'$',
-      decimalDigits: 2,
-    );
-
-    final avgSpent = _historyPreviews.isEmpty
-        ? 0.0
-        : _historyPreviews.fold<double>(0, (sum, item) => sum + item.spent) /
-            _historyPreviews.length;
-    final overBudgetCount =
-        _historyPreviews.where((item) => item.spent > item.budget).length;
-    final bestMonth = _historyPreviews.reduce(
-      (a, b) => a.spent < b.spent ? a : b,
-    );
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFF9),
       appBar: AppBar(
-        title: const Text('Historico de finanzas'),
+        title: const Text('Histórico de finanzas'),
         backgroundColor: Colors.transparent,
         foregroundColor: AppColors.violeta,
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF7F8FD7), Color(0xFF5D4A86)],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.violeta.withOpacity(0.22),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(16),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppColors.error,
                       ),
-                      child: const Icon(
-                        Icons.timeline_rounded,
-                        color: Colors.white,
-                        size: 28,
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error: $_error',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.error),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Historico mensual',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadHistory,
+                        child: const Text('Reintentar'),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Vista premium de la evolucion de gastos, con grafico y timeline visual. Luego aqui se conectara el back.',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.88),
-                    height: 1.35,
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadHistory,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    children: [
+                      _buildHeaderCard(),
+                      const SizedBox(height: 18),
+                      _buildTrendSection(),
+                      const SizedBox(height: 18),
+                      _buildTimelineSection(),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _HistoryMiniStat(
-                      label: 'Meses',
-                      value: '${_historyPreviews.length}',
-                      icon: Icons.calendar_month_rounded,
-                    ),
-                    _HistoryMiniStat(
-                      label: 'Promedio',
-                      value: money.format(avgSpent),
-                      icon: Icons.ssid_chart_rounded,
-                    ),
-                    _HistoryMiniStat(
-                      label: 'Excesos',
-                      value: '$overBudgetCount',
-                      icon: Icons.warning_amber_rounded,
-                    ),
-                  ],
-                ),
-              ],
-            ),
+    );
+  }
+
+  Widget _buildHeaderCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF7F8FD7), Color(0xFF5D4A86)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.violeta.withOpacity(0.22),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
-          const SizedBox(height: 18),
-          _SectionHeader(
-            title: 'Tendencia de gasto',
-            subtitle: 'Maquetacion visual sin datos reales',
-            trailing: Chip(
-              label: const Text('Barras'),
-              backgroundColor: AppColors.lavanda.withOpacity(0.45),
-              side: BorderSide(color: AppColors.violeta.withOpacity(0.12)),
-            ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.timeline_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Histórico mensual',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
+          Text(
+            'Evolución de gastos de los últimos ${_history.length} meses con análisis detallado.',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.88),
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _HistoryMiniStat(
+                label: 'Meses',
+                value: '${_history.length}',
+                icon: Icons.calendar_month_rounded,
+              ),
+              _HistoryMiniStat(
+                label: 'Promedio',
+                value: _money.format(_avgSpent),
+                icon: Icons.ssid_chart_rounded,
+              ),
+              _HistoryMiniStat(
+                label: 'Excesos',
+                value: '$_overBudgetCount',
+                icon: Icons.warning_amber_rounded,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrendSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: 'Tendencia de gasto',
+          subtitle: 'Visualización de gastos vs presupuesto',
+          trailing: Chip(
+            label: const Text('Barras'),
+            backgroundColor: AppColors.lavanda.withOpacity(0.45),
+            side: BorderSide(color: AppColors.violeta.withOpacity(0.12)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (_history.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: const Center(
+              child: Text('No hay datos disponibles'),
+            ),
+          )
+        else
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -180,10 +305,12 @@ class FinanceHistoryScreen extends StatelessWidget {
                   height: 210,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    children: _historyPreviews.map((item) {
-                      final progress = item.budget <= 0
+                    children: _history.map((item) {
+                      final progress = item.budgetAmount <= 0
                           ? 0.0
-                          : (item.spent / item.budget).clamp(0.0, 1.15);
+                          : (item.totalSpent / item.budgetAmount)
+                              .clamp(0.0, 1.15);
+                      final color = _getColorForMonth(item);
                       return Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -191,7 +318,7 @@ class FinanceHistoryScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               Text(
-                                money.format(item.spent),
+                                _money.format(item.totalSpent),
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -203,16 +330,18 @@ class FinanceHistoryScreen extends StatelessWidget {
                                 height: 150,
                                 alignment: Alignment.bottomCenter,
                                 child: FractionallySizedBox(
-                                  heightFactor: progress.clamp(0.10, 1.0),
+                                  heightFactor:
+                                      progress.clamp(0.10, 1.0),
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(14),
+                                      borderRadius:
+                                          BorderRadius.circular(14),
                                       gradient: LinearGradient(
                                         begin: Alignment.topCenter,
                                         end: Alignment.bottomCenter,
                                         colors: [
-                                          item.color.withOpacity(0.95),
-                                          item.color.withOpacity(0.65),
+                                          color.withOpacity(0.95),
+                                          color.withOpacity(0.65),
                                         ],
                                       ),
                                     ),
@@ -221,7 +350,7 @@ class FinanceHistoryScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                item.monthShort,
+                                _formatMonthShort(item.monthYear),
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.grey.shade700,
@@ -238,31 +367,58 @@ class FinanceHistoryScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    _LegendDot(color: AppColors.success, label: 'Dentro del presupuesto'),
+                    _LegendDot(
+                      color: AppColors.success,
+                      label: 'Dentro del presupuesto',
+                    ),
                     const SizedBox(width: 16),
-                    _LegendDot(color: AppColors.error, label: 'Excedido'),
+                    _LegendDot(
+                      color: AppColors.error,
+                      label: 'Excedido',
+                    ),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 18),
-          _SectionHeader(
-            title: 'Timeline mensual',
-            subtitle: 'Tarjetas premium para lectura rapida',
-            trailing: Chip(
-              label: const Text('Historial'),
-              backgroundColor: AppColors.celeste.withOpacity(0.22),
-              side: BorderSide(color: AppColors.celeste.withOpacity(0.35)),
-            ),
+      ],
+    );
+  }
+
+  Widget _buildTimelineSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: 'Timeline mensual',
+          subtitle: 'Detalle de cada período',
+          trailing: Chip(
+            label: const Text('Historial'),
+            backgroundColor: AppColors.celeste.withOpacity(0.22),
+            side: BorderSide(color: AppColors.celeste.withOpacity(0.35)),
           ),
-          const SizedBox(height: 12),
-          ..._historyPreviews.asMap().entries.map((entry) {
+        ),
+        const SizedBox(height: 12),
+        if (_history.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Center(
+              child: Text('No hay datos disponibles'),
+            ),
+          )
+        else
+          ..._history.asMap().entries.map((entry) {
             final index = entry.key;
             final item = entry.value;
-            final progress = item.budget <= 0 ? 0.0 : (item.spent / item.budget).clamp(0.0, 1.0);
-            final overBudget = item.spent > item.budget;
-            final isLast = index == _historyPreviews.length - 1;
+            final progress = item.budgetAmount <= 0
+                ? 0.0
+                : (item.totalSpent / item.budgetAmount).clamp(0.0, 1.0);
+            final color = _getColorForMonth(item);
+            final isLast = index == _history.length - 1;
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -275,11 +431,11 @@ class FinanceHistoryScreen extends StatelessWidget {
                         width: 16,
                         height: 16,
                         decoration: BoxDecoration(
-                          color: item.color,
+                          color: color,
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: item.color.withOpacity(0.30),
+                              color: color.withOpacity(0.30),
                               blurRadius: 12,
                             ),
                           ],
@@ -291,7 +447,7 @@ class FinanceHistoryScreen extends StatelessWidget {
                           height: 128,
                           margin: const EdgeInsets.only(top: 6),
                           decoration: BoxDecoration(
-                            color: item.color.withOpacity(0.22),
+                            color: color.withOpacity(0.22),
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -305,9 +461,9 @@ class FinanceHistoryScreen extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: overBudget
+                          color: item.overBudget
                               ? AppColors.error.withOpacity(0.18)
-                              : item.color.withOpacity(0.16),
+                              : color.withOpacity(0.16),
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -324,7 +480,7 @@ class FinanceHistoryScreen extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  item.monthLabel,
+                                  _formatMonthYear(item.monthYear),
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -333,15 +489,18 @@ class FinanceHistoryScreen extends StatelessWidget {
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: item.color.withOpacity(0.12),
+                                  color: color.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
-                                  item.tag,
+                                  _getTagForMonth(item),
                                   style: TextStyle(
-                                    color: item.color,
+                                    color: color,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -351,14 +510,14 @@ class FinanceHistoryScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            item.highlight,
+                            _getHighlightForMonth(item),
                             style: TextStyle(
                               color: Colors.grey.shade700,
                             ),
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '${money.format(item.spent)} gastado de ${money.format(item.budget)}',
+                            '${_money.format(item.totalSpent)} gastado de ${_money.format(item.budgetAmount)}',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                             ),
@@ -369,9 +528,12 @@ class FinanceHistoryScreen extends StatelessWidget {
                             child: LinearProgressIndicator(
                               minHeight: 10,
                               value: progress,
-                              backgroundColor: AppColors.grisCalido.withOpacity(0.8),
+                              backgroundColor:
+                                  AppColors.grisCalido.withOpacity(0.8),
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                overBudget ? AppColors.error : item.color,
+                                item.overBudget
+                                    ? AppColors.error
+                                    : color,
                               ),
                             ),
                           ),
@@ -379,17 +541,23 @@ class FinanceHistoryScreen extends StatelessWidget {
                           Row(
                             children: [
                               Icon(
-                                overBudget ? Icons.warning_amber_rounded : Icons.check_circle_rounded,
+                                item.overBudget
+                                    ? Icons.warning_amber_rounded
+                                    : Icons.check_circle_rounded,
                                 size: 18,
-                                color: overBudget ? AppColors.error : AppColors.success,
+                                color: item.overBudget
+                                    ? AppColors.error
+                                    : AppColors.success,
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                overBudget
-                                    ? 'Supero el presupuesto mensual'
+                                item.overBudget
+                                    ? 'Superó el presupuesto mensual'
                                     : 'Dentro del rango esperado',
                                 style: TextStyle(
-                                  color: overBudget ? AppColors.error : AppColors.success,
+                                  color: item.overBudget
+                                      ? AppColors.error
+                                      : AppColors.success,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -403,8 +571,7 @@ class FinanceHistoryScreen extends StatelessWidget {
               ),
             );
           }),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -537,31 +704,5 @@ class _LegendDot extends StatelessWidget {
         ),
       ],
     );
-  }
-}
-
-class _HistoryMonthPreview {
-  final String monthLabel;
-  final double spent;
-  final double budget;
-  final String highlight;
-  final Color color;
-  final String tag;
-
-  const _HistoryMonthPreview({
-    required this.monthLabel,
-    required this.spent,
-    required this.budget,
-    required this.highlight,
-    required this.color,
-    required this.tag,
-  });
-
-  String get monthShort {
-    final parts = monthLabel.split(' ');
-    if (parts.isEmpty) {
-      return monthLabel;
-    }
-    return parts.first.substring(0, parts.first.length.clamp(0, 3));
   }
 }
