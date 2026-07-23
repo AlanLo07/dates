@@ -23,7 +23,6 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
 
   List<Expense> _expenses = [];
   CoupleData? _coupleData;
-  Budget? _currentBudget;
   bool _loading = true;
   String? _error;
 
@@ -58,11 +57,9 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
           '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}';
       try {
         final budget = await _service.getBudget(monthYear);
-        _currentBudget = budget;
         _monthlyBudget = budget.amount;
       } catch (_) {
         // Budget no existe para este mes
-        _currentBudget = null;
       }
 
       if (mounted) {
@@ -153,10 +150,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
 
   void _showErrorSnackbar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-      ),
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
     );
   }
 
@@ -200,10 +194,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
         _showErrorSnackbar('Ingresa un presupuesto válido mayor a 0.');
       } else {
         try {
-          await _service.setBudget(
-            _currentMonthYear,
-            amount: value,
-          );
+          await _service.setBudget(_currentMonthYear, amount: value);
           setState(() => _monthlyBudget = value);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -234,9 +225,9 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
     ExpenseCategory selectedCategory =
         editing?.category ?? ExpenseCategory.groceries;
     DateTime selectedDate = editing?.date ?? DateTime.now();
-    bool _isSaving = false;
+    bool isSaving = false;
 
-    await showModalBottomSheet<void>(
+    final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -279,8 +270,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                             const SizedBox(height: 14),
                             TextField(
                               controller: titleCtrl,
-                              textCapitalization:
-                                  TextCapitalization.sentences,
+                              textCapitalization: TextCapitalization.sentences,
                               decoration: const InputDecoration(
                                 labelText: 'Concepto',
                                 border: OutlineInputBorder(),
@@ -300,7 +290,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                             ),
                             const SizedBox(height: 12),
                             DropdownButtonFormField<ExpenseCategory>(
-                              value: selectedCategory,
+                              initialValue: selectedCategory,
                               decoration: const InputDecoration(
                                 labelText: 'Categoría',
                                 border: OutlineInputBorder(),
@@ -309,17 +299,13 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                                   .map(
                                     (c) => DropdownMenuItem(
                                       value: c,
-                                      child: Text(
-                                        '${c.emoji} ${c.display}',
-                                      ),
+                                      child: Text('${c.emoji} ${c.display}'),
                                     ),
                                   )
                                   .toList(),
                               onChanged: (value) {
                                 if (value == null) return;
-                                setSheetState(
-                                  () => selectedCategory = value,
-                                );
+                                setSheetState(() => selectedCategory = value);
                               },
                             ),
                             const SizedBox(height: 12),
@@ -363,7 +349,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
-                                onPressed: _isSaving
+                                onPressed: isSaving
                                     ? null
                                     : () async {
                                         final title = titleCtrl.text.trim();
@@ -380,7 +366,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                                           return;
                                         }
 
-                                        setSheetState(() => _isSaving = true);
+                                        setSheetState(() => isSaving = true);
 
                                         try {
                                           if (isEditing) {
@@ -388,8 +374,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                                               editing.gastoId,
                                               title: title,
                                               amount: amount,
-                                              note: noteCtrl.text.trim()
-                                                      .isEmpty
+                                              note: noteCtrl.text.trim().isEmpty
                                                   ? null
                                                   : noteCtrl.text.trim(),
                                             );
@@ -401,41 +386,24 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                                               category: selectedCategory,
                                               createdBy:
                                                   _coupleData?.user1.email ??
-                                                      '',
-                                              note: noteCtrl.text.trim()
-                                                      .isEmpty
+                                                  '',
+                                              note: noteCtrl.text.trim().isEmpty
                                                   ? null
                                                   : noteCtrl.text.trim(),
                                             );
                                           }
 
-                                          if (mounted) {
-                                            await _loadData();
-                                            Navigator.pop(context);
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  isEditing
-                                                      ? '✅ Gasto actualizado'
-                                                      : '✅ Gasto guardado',
-                                                ),
-                                                backgroundColor:
-                                                    AppColors.success,
-                                              ),
-                                            );
-                                          }
+                                          if (!mounted) return;
+                                          Navigator.pop(context, true);
                                         } catch (e) {
-                                          if (mounted) {
-                                            _showErrorSnackbar(
-                                              e
-                                                  .toString()
-                                                  .replaceAll('Exception: ', ''),
-                                            );
-                                          }
+                                          _showErrorSnackbar(
+                                            e.toString().replaceAll(
+                                              'Exception: ',
+                                              '',
+                                            ),
+                                          );
+                                          setSheetState(() => isSaving = false);
                                         }
-
-                                        setSheetState(() => _isSaving = false);
                                       },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.violeta,
@@ -443,10 +411,9 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 14,
                                   ),
-                                  disabledBackgroundColor:
-                                      Colors.grey.shade300,
+                                  disabledBackgroundColor: Colors.grey.shade300,
                                 ),
-                                icon: _isSaving
+                                icon: isSaving
                                     ? const SizedBox(
                                         width: 18,
                                         height: 18,
@@ -454,8 +421,8 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                                           strokeWidth: 2,
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
-                                            Colors.white,
-                                          ),
+                                                Colors.white,
+                                              ),
                                         ),
                                       )
                                     : const Icon(Icons.save_rounded),
@@ -482,6 +449,17 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
     titleCtrl.dispose();
     amountCtrl.dispose();
     noteCtrl.dispose();
+
+    if (saved == true) {
+      await _loadData();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEditing ? '✅ Gasto actualizado' : '✅ Gasto guardado'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
   }
 
   Future<void> _confirmDeleteExpense(Expense expense) async {
@@ -546,7 +524,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<ExpenseCategory?>(
-            value: _selectedCategoryFilter,
+            initialValue: _selectedCategoryFilter,
             decoration: const InputDecoration(
               labelText: 'Categoría',
               border: OutlineInputBorder(),
@@ -568,7 +546,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<DateTime?>(
-            value: _selectedMonthFilter,
+            initialValue: _selectedMonthFilter,
             decoration: const InputDecoration(
               labelText: 'Mes',
               border: OutlineInputBorder(),
@@ -687,7 +665,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.violeta.withOpacity(0.12)),
+        border: Border.all(color: AppColors.violeta.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -711,10 +689,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
           const SizedBox(height: 10),
           Text(
             'Visualiza el histórico completo de 12 meses con gráficas y análisis detallado.',
-            style: TextStyle(
-              color: Colors.grey.shade700,
-              height: 1.4,
-            ),
+            style: TextStyle(color: Colors.grey.shade700, height: 1.4),
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -777,127 +752,123 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
         label: const Text('Anotar gasto'),
       ),
       body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 48,
-                        color: AppColors.error,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Error: $_error',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: AppColors.error),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadData,
-                        child: const Text('Reintentar'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error: $_error',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.error),
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadData,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
-                    children: [
-                      _SummaryCard(
-                        totalSpent: _totalSpent,
-                        weeklySpent: _weeklySpent,
-                        currency: _currency,
-                      ),
-                      const SizedBox(height: 14),
-                      _buildBudgetCard(),
-                      const SizedBox(height: 14),
-                      _buildFilterCard(),
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: ExpenseCategory.values.map((category) {
-                          final colorValue = Color(category.colorValue);
-                          double total = 0;
-                          for (final expense in _expenses) {
-                            if (expense.category == category) {
-                              total += expense.amount;
-                            }
-                          }
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colorValue.withOpacity(0.14),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: colorValue.withOpacity(0.30),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(category.emoji, style: const TextStyle(fontSize: 18)),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '${category.display}: ${_currency.format(total)}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: colorValue,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        'Movimientos',
-                        style:
-                            Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: AppColors.violeta,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                      ),
-                      const SizedBox(height: 10),
-                      if (_visibleExpenses.isEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text(
-                            _expenses.isEmpty
-                                ? 'Aún no hay gastos. Toca "Anotar gasto" para empezar.'
-                                : 'No hay resultados para esos filtros.',
-                          ),
-                        )
-                      else
-                        ..._visibleExpenses.map(
-                          (expense) => _ExpenseTile(
-                            expense: expense,
-                            currency: _currency,
-                            onEdit: () {
-                              _showExpenseSheet(editing: expense);
-                            },
-                            onDelete: () => _confirmDeleteExpense(expense),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadData,
+                    child: const Text('Reintentar'),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
+                children: [
+                  _SummaryCard(
+                    totalSpent: _totalSpent,
+                    weeklySpent: _weeklySpent,
+                    currency: _currency,
+                  ),
+                  const SizedBox(height: 14),
+                  _buildBudgetCard(),
+                  const SizedBox(height: 14),
+                  _buildFilterCard(),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: ExpenseCategory.values.map((category) {
+                      final colorValue = Color(category.colorValue);
+                      double total = 0;
+                      for (final expense in _expenses) {
+                        if (expense.category == category) {
+                          total += expense.amount;
+                        }
+                      }
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorValue.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: colorValue.withValues(alpha: 0.30),
                           ),
                         ),
-                      const SizedBox(height: 18),
-                      _buildHistorySection(),
-                    ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              category.emoji,
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${category.display}: ${_currency.format(total)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: colorValue,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
                   ),
-                ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Movimientos',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: AppColors.violeta,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  if (_visibleExpenses.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        _expenses.isEmpty
+                            ? 'Aún no hay gastos. Toca "Anotar gasto" para empezar.'
+                            : 'No hay resultados para esos filtros.',
+                      ),
+                    )
+                  else
+                    ..._visibleExpenses.map(
+                      (expense) => _ExpenseTile(
+                        expense: expense,
+                        currency: _currency,
+                        onEdit: () {
+                          _showExpenseSheet(editing: expense);
+                        },
+                        onDelete: () => _confirmDeleteExpense(expense),
+                      ),
+                    ),
+                  const SizedBox(height: 18),
+                  _buildHistorySection(),
+                ],
+              ),
+            ),
     );
   }
 }
@@ -995,7 +966,7 @@ class _ExpenseTile extends StatelessWidget {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: colorValue.withOpacity(0.12),
+            backgroundColor: colorValue.withValues(alpha: 0.12),
             child: Text(
               expense.category.emoji,
               style: const TextStyle(fontSize: 20),
@@ -1051,5 +1022,3 @@ class _ExpenseTile extends StatelessWidget {
     );
   }
 }
-
-
