@@ -73,6 +73,33 @@ class WeddingService {
     return WeddingMeta.fromJson(items.first);
   }
 
+  Future<WeddingMeta> updateWeddingMeta(
+    String bodaId, {
+    required String nombre,
+    String? mensajeBienvenida,
+    String? lugar,
+    String? fechaEvento,
+    String? direccion,
+    String? contacto,
+    String? dressCode,
+    String? instagramHashtag,
+  }) async {
+    final map = await _put(
+      '/bodas/$bodaId',
+      body: {
+        'nombre': nombre,
+        'mensajeBienvenida': mensajeBienvenida,
+        'lugar': lugar,
+        'fechaEvento': fechaEvento,
+        'direccion': direccion,
+        'contacto': contacto,
+        'dressCode': dressCode,
+        'instagramHashtag': instagramHashtag,
+      },
+    );
+    return WeddingMeta.fromJson(map);
+  }
+
   Future<List<Invitado>> getInvitados(String bodaId) async {
     final items = await _getItems('/bodas/$bodaId/invitados');
     return items.map(Invitado.fromJson).toList();
