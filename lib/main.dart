@@ -7,7 +7,6 @@ const Color lavandaPalida = Color(0xFFD8C9E7);
 const Color malvaSuave = Color(0xFFB0B6E8);
 const Color azulCelestePastel = Color(0xFFA9D1DF);
 const Color violetaProfundo = Color(0xFF796B9B);
-const Color grisClaroCalido = Color(0xFFF0F0F0);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
