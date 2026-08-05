@@ -455,9 +455,9 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
 
                       _service
                           .createProveedor(bodaId, nuevo)
-                          .then((creado) {
+                          .then((_) {
                             if (!mounted) return;
-                            setState(() => _proveedores.add(creado));
+                            _loadProveedores();
                           })
                           .catchError((_) {
                             if (!mounted) return;

@@ -587,9 +587,9 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
 
                     _service
                         .createLook(bodaId, nuevo)
-                        .then((creado) {
+                        .then((_) {
                           if (!mounted) return;
-                          setState(() => _items.add(creado));
+                          _loadLooks();
                         })
                         .catchError((_) {
                           if (!mounted) return;

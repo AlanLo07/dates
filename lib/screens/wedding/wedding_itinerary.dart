@@ -326,12 +326,9 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
                   );
                   _service
                       .createPaso(bodaId, nuevo)
-                      .then((creado) {
+                      .then((_) {
                         if (!mounted) return;
-                        setState(() {
-                          _pasos.add(creado);
-                          _pasos.sort((a, b) => a.hora.compareTo(b.hora));
-                        });
+                        _loadItinerario();
                       })
                       .catchError((_) {
                         if (!mounted) return;

@@ -499,9 +499,9 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
                   );
                   _service
                       .createGasto(bodaId, nuevo)
-                      .then((creado) {
+                      .then((_) {
                         if (!mounted) return;
-                        setState(() => _gastos.add(creado));
+                        _loadGastos();
                       })
                       .catchError((_) {
                         if (!mounted) return;
