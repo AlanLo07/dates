@@ -384,9 +384,9 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
                     );
                     _service
                         .createCancion(bodaId, nueva)
-                        .then((creada) {
+                        .then((_) {
                           if (!mounted) return;
-                          setState(() => _canciones.add(creada));
+                          _loadCanciones();
                         })
                         .catchError((_) {
                           if (!mounted) return;

@@ -566,9 +566,9 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
                     );
                     _service
                         .createInvitado(bodaId, nuevo)
-                        .then((creado) {
+                        .then((_) {
                           if (!mounted) return;
-                          setState(() => _invitados.add(creado));
+                          _loadInvitados();
                         })
                         .catchError((_) {
                           if (!mounted) return;

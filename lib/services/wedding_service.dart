@@ -519,9 +519,15 @@ class WeddingService {
     final decoded = json.decode(body);
 
     if (decoded is Map<String, dynamic>) {
-      final item = decoded['item'];
+      final item = decoded['item'] ?? decoded['data'] ?? decoded['result'];
       if (item is Map<String, dynamic>) return item;
       return decoded;
+    }
+
+    // Some backends return a single-element list for POST responses
+    if (decoded is List && decoded.isNotEmpty) {
+      final first = decoded.first;
+      if (first is Map<String, dynamic>) return first;
     }
 
     return <String, dynamic>{};

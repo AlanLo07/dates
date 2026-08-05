@@ -275,9 +275,9 @@ class _WeddingChecklistScreenState extends State<WeddingChecklistScreen> {
                   );
                   _service
                       .createTarea(bodaId, nueva)
-                      .then((creada) {
+                      .then((_) {
                         if (!mounted) return;
-                        setState(() => _tareas.add(creada));
+                        _loadTareas();
                       })
                       .catchError((_) {
                         if (!mounted) return;
