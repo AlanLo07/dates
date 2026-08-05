@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'models/wedding_option.dart';
@@ -22,9 +23,6 @@ import '../../services/wedding_service.dart';
 import '../../services/wedding_pdf_export_service.dart';
 import '../../widgets/motion/ambient_orbs_background.dart';
 import '../../widgets/motion/motion_section_reveal.dart';
-
-// ── Fecha de la boda — ajusta según corresponda ──────────────────────────
-DateTime kWeddingDate = DateTime(2027, 2, 14);
 
 // ── Colores temáticos boda ────────────────────────────────────────────────
 const Color _rose = Color(0xFFE91E63);
@@ -139,9 +137,39 @@ class WeddingScreen extends StatefulWidget {
 class _WeddingScreenState extends State<WeddingScreen> {
   final WeddingService _service = WeddingService();
   final MapController _mapController = MapController();
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
   WeddingMeta? _meta;
   LatLng? _eventPoint;
   bool _locationLoading = true;
+  bool _saving = false;
+
+  // Falls back to a fixed date if the server date hasn't loaded yet
+  DateTime get _weddingDate {
+    final raw = _meta?.fechaEvento;
+    if (raw != null) {
+      final parsed = _parseFechaEvento(raw);
+      if (parsed != null) return parsed;
+    }
+    return DateTime(2027, 2, 14);
+  }
+
+  DateTime? _parseFechaEvento(String raw) {
+    for (final fmt in [
+      DateFormat('dd/MM/yyyy'),
+      DateFormat('dd-MM-yyyy'),
+      DateFormat('yyyy-MM-dd'),
+    ]) {
+      try {
+        return fmt.parseStrict(raw.trim());
+      } catch (_) {}
+    }
+    return DateTime.tryParse(raw.trim());
+  }
+
+  String? _nullIfEmpty(String v) {
+    final t = v.trim();
+    return t.isEmpty ? null : t;
+  }
 
   @override
   void initState() {
@@ -227,6 +255,11 @@ class _WeddingScreenState extends State<WeddingScreen> {
         iconTheme: const IconThemeData(color: _rose),
         elevation: 1,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, color: _rose),
+            tooltip: 'Editar boda',
+            onPressed: () => _showEditBoda(context),
+          ),
           PopupMenuButton<_WeddingMenuAction>(
             color: Colors.white,
             onSelected: (value) => _handleMenuAction(context, value),
@@ -246,7 +279,7 @@ class _WeddingScreenState extends State<WeddingScreen> {
             SliverToBoxAdapter(
               child: MotionSectionReveal(
                 child: WeddingCountdownHeader(
-                  weddingDate: kWeddingDate,
+                  weddingDate: _weddingDate,
                   accentColor: _rose,
                 ),
               ),
@@ -402,12 +435,13 @@ class _WeddingScreenState extends State<WeddingScreen> {
                 ),
               ),
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).push(
+                onPressed: () async {
+                  await Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => const WeddingInvitationScreen(),
                     ),
                   );
+                  if (mounted) _loadLocationSummary();
                 },
                 child: const Text('Ver detalle'),
               ),
@@ -474,6 +508,207 @@ class _WeddingScreenState extends State<WeddingScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showEditBoda(BuildContext context) async {
+    final meta = _meta;
+    if (meta == null || meta.id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay boda activa para editar.')),
+      );
+      return;
+    }
+
+    final nombreCtrl = TextEditingController(text: meta.nombre);
+    final mensajeCtrl = TextEditingController(text: meta.mensajeBienvenida ?? '');
+    final fechaCtrl = TextEditingController(text: meta.fechaEvento ?? '');
+    final lugarCtrl = TextEditingController(text: meta.lugar ?? '');
+    final direccionCtrl = TextEditingController(text: meta.direccion ?? '');
+    final dressCodeCtrl = TextEditingController(text: meta.dressCode ?? '');
+    final contactoCtrl = TextEditingController(text: meta.contacto ?? '');
+    final hashtagCtrl = TextEditingController(text: meta.instagramHashtag ?? '');
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          bool saving = false;
+
+          Future<void> pickFecha() async {
+            final now = DateTime.now();
+            final parsed = _parseFechaEvento(fechaCtrl.text);
+            final picked = await showDatePicker(
+              context: ctx,
+              initialDate: parsed ?? now,
+              firstDate: DateTime(now.year - 3),
+              lastDate: DateTime(now.year + 8),
+              locale: const Locale('es', 'ES'),
+              helpText: 'Fecha del evento',
+              cancelText: 'Cancelar',
+              confirmText: 'Aceptar',
+            );
+            if (picked == null) return;
+            fechaCtrl.text = _dateFormat.format(picked);
+          }
+
+          Widget field(TextEditingController ctrl, String label, {int maxLines = 1}) =>
+              TextField(
+                controller: ctrl,
+                maxLines: maxLines,
+                decoration: InputDecoration(
+                  labelText: label,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+
+          Widget dateField() => TextField(
+                controller: fechaCtrl,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Fecha del evento',
+                  hintText: 'Seleccionar fecha',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    onPressed: pickFecha,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onTap: pickFecha,
+              );
+
+          return Container(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              20,
+              20,
+              20 + MediaQuery.of(sheetCtx).viewInsets.bottom,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Editar boda',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _rose,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    field(nombreCtrl, 'Nombre de la boda *'),
+                    const SizedBox(height: 10),
+                    field(mensajeCtrl, 'Mensaje de bienvenida', maxLines: 3),
+                    const SizedBox(height: 10),
+                    dateField(),
+                    const SizedBox(height: 10),
+                    field(lugarCtrl, 'Lugar'),
+                    const SizedBox(height: 10),
+                    field(direccionCtrl, 'Dirección'),
+                    const SizedBox(height: 10),
+                    field(dressCodeCtrl, 'Dress code'),
+                    const SizedBox(height: 10),
+                    field(contactoCtrl, 'Contacto'),
+                    const SizedBox(height: 10),
+                    field(hashtagCtrl, 'Hashtag de Instagram'),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _rose,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: saving
+                            ? null
+                            : () async {
+                                final nombre = nombreCtrl.text.trim();
+                                if (nombre.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('El nombre es obligatorio.'),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                final hashtagRaw = hashtagCtrl.text.trim();
+                                final hashtag = hashtagRaw.isEmpty
+                                    ? null
+                                    : (hashtagRaw.startsWith('#')
+                                        ? hashtagRaw
+                                        : '#$hashtagRaw');
+                                setLocal(() => saving = true);
+                                try {
+                                  final updated = await _service.updateWeddingMeta(
+                                    meta.id,
+                                    nombre: nombre,
+                                    mensajeBienvenida: _nullIfEmpty(mensajeCtrl.text),
+                                    fechaEvento: _nullIfEmpty(fechaCtrl.text),
+                                    lugar: _nullIfEmpty(lugarCtrl.text),
+                                    direccion: _nullIfEmpty(direccionCtrl.text),
+                                    dressCode: _nullIfEmpty(dressCodeCtrl.text),
+                                    contacto: _nullIfEmpty(contactoCtrl.text),
+                                    instagramHashtag: hashtag,
+                                  );
+                                  if (!mounted) return;
+                                  final pt = await _resolvePoint(updated);
+                                  if (!mounted) return;
+                                  setState(() {
+                                    _meta = updated;
+                                    _eventPoint = pt;
+                                  });
+                                  if (!mounted) return;
+                                  Navigator.of(sheetCtx).pop();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Boda actualizada ✓')),
+                                  );
+                                } catch (_) {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('No se pudo guardar.'),
+                                    ),
+                                  );
+                                  setLocal(() => saving = false);
+                                }
+                              },
+                        icon: saving
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor:
+                                      AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.save_outlined),
+                        label: Text(saving ? 'Guardando...' : 'Guardar cambios'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
