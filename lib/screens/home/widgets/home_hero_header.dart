@@ -5,8 +5,13 @@ import '../../../utils/colors.dart';
 
 class HomeHeroHeader extends StatelessWidget {
   final String imageUrl;
+  final String? greetingName;
 
-  const HomeHeroHeader({super.key, required this.imageUrl});
+  const HomeHeroHeader({
+    super.key,
+    required this.imageUrl,
+    this.greetingName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +42,7 @@ class HomeHeroHeader extends StatelessWidget {
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             left: 18,
             bottom: 16,
             child: Column(
@@ -45,7 +50,7 @@ class HomeHeroHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Hola, Nati 💌',
+                  'Hola, ${_safeName(greetingName)} 💌',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -63,5 +68,13 @@ class HomeHeroHeader extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _safeName(String? value) {
+    final name = value?.trim() ?? '';
+    if (name.isEmpty) {
+      return 'Nati';
+    }
+    return name;
   }
 }

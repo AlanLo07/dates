@@ -5,10 +5,12 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/phrase.dart';
 import '../models/song_of_week.dart';
+import '../services/auth_service.dart';
 import '../services/events.dart';
 import '../services/phrases_service.dart';
 import '../utils/colors.dart';
 import '../widgets/motion/ambient_orbs_background.dart';
+import 'auth/login_screen.dart';
 import 'calendar/calendar.dart';
 import 'finances/couple_finances.dart';
 import 'games/games_menu.dart';
@@ -50,8 +52,11 @@ class _HomeScreenState extends State<HomeScreen> {
   SongOfWeek? _songOfWeek;
   bool _songLoading = true;
   bool _weeklyLoading = true;
+  bool _loggingOut = false;
+  String? _displayName;
   Map<PhraseType, LovePhrase> _weeklyPhrases = {};
 
+  final AuthService _authService = AuthService();
   final EventService _eventService = EventService();
 
   @override
@@ -64,6 +69,50 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     _loadSong();
     _loadWeeklyPhrases();
+    _loadDisplayName();
+  }
+
+  Future<void> _loadDisplayName() async {
+    final displayName = await _authService.getDisplayName();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _displayName = displayName;
+    });
+  }
+
+  Future<void> _logout() async {
+    if (_loggingOut) {
+      return;
+    }
+
+    setState(() => _loggingOut = true);
+    try {
+      await _authService.signOut();
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => LoginScreen(
+            onLoginSuccess: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                (route) => false,
+              );
+            },
+          ),
+        ),
+        (route) => false,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _loggingOut = false);
+      }
+    }
   }
 
   Duration _calcDuration() {
@@ -296,7 +345,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const HomeHeroHeader(imageUrl: _heroImageUrl),
+                    HomeHeroHeader(
+                      imageUrl: _heroImageUrl,
+                      greetingName: _displayName,
+                    ),
                     HomeCounterStrip(stream: _counterStream, initial: _together)
                         .animate()
                         .fadeIn(duration: _kFadeDuration)
@@ -461,6 +513,32 @@ class _HomeScreenState extends State<HomeScreen> {
             right: 16,
             bottom: 16,
             child: HomeMascotBubble(),
+          ),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: SafeArea(
+              child: Material(
+                color: Colors.black38,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  tooltip: 'Cerrar sesión',
+                  onPressed: _loggingOut ? null : _logout,
+                  icon: _loggingOut
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Icon(Icons.logout_rounded, color: Colors.white),
+                ),
+              ),
+            ),
           ),
         ],
       ),
