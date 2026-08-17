@@ -14,5 +14,6 @@ class ApiConfig {
   static const String mascotImagesPath = '/images/home-mascot-images';
   static const String uploadPath = '/images/upload-url';
   static const String financesPath = '/finances';
+  static const String spotifyPath = '/spotify';
   // Agrega aquí las rutas que necesites en el futuro
 }

@@ -2,7 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/boda.dart';
+import '../../models/spotify.dart';
+import '../../services/spotify_service.dart';
 import '../../services/wedding_service.dart';
+import '../../widgets/spotify/spotify_track_shelf.dart';
 
 const Color _rose = Color(0xFFE91E63);
 const List<String> _momentos = ['Entrada', 'Primer baile', 'Vals', 'Fiesta'];
@@ -16,14 +19,42 @@ class WeddingPlaylistScreen extends StatefulWidget {
 class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
   final WeddingService _service = WeddingService();
   final List<CancionBoda> _canciones = [];
+  final List<SpotifyMoodOption> _moods = [];
   String? _bodaId;
   bool _loading = true;
   String? _error;
+  bool _spotifyLoading = false;
+  List<SpotifyTrack> _spotifyTracks = [];
+  String _selectedMood = 'romantico';
+  bool _fallbackUsed = false;
 
   @override
   void initState() {
     super.initState();
     _loadCanciones();
+    _loadMoods();
+  }
+
+  Future<void> _loadMoods() async {
+    try {
+      final moods = await SpotifyService.instance.getMoods();
+      if (!mounted) return;
+      setState(() {
+        _moods
+          ..clear()
+          ..addAll(moods);
+        if (_moods.isNotEmpty && !_moods.any((m) => m.id == _selectedMood)) {
+          _selectedMood = _moods.first.id;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _moods.clear());
+    }
+
+    if (mounted) {
+      await _loadSpotifySuggestions();
+    }
   }
 
   Future<void> _loadCanciones() async {
@@ -71,6 +102,62 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
     }
   }
 
+  String _queryForMood(String mood) {
+    switch (mood) {
+      case 'fiesta':
+        return 'party';
+      case 'chill':
+        return 'lofi';
+      case 'focus':
+        return 'instrumental';
+      default:
+        return 'love';
+    }
+  }
+
+  String _labelForMood(String mood) {
+    for (final moodOption in _moods) {
+      if (moodOption.id == mood) {
+        return moodOption.label;
+      }
+    }
+
+    switch (mood) {
+      case 'fiesta':
+        return 'Fiesta';
+      case 'chill':
+        return 'Chill';
+      case 'focus':
+        return 'Focus';
+      default:
+        return 'Romántico';
+    }
+  }
+
+  Future<void> _loadSpotifySuggestions() async {
+    if (_spotifyLoading) return;
+    setState(() => _spotifyLoading = true);
+    try {
+      final result = await SpotifyService.instance.getRecommendations(
+        query: _queryForMood(_selectedMood),
+        limit: 6,
+        mood: _selectedMood,
+      );
+      if (!mounted) return;
+      setState(() {
+        _spotifyTracks = result.tracks;
+        _fallbackUsed = result.fallbackUsed;
+        _spotifyLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _spotifyTracks = [];
+        _spotifyLoading = false;
+      });
+    }
+  }
+
   Map<String, List<CancionBoda>> get _grouped {
     final m = <String, List<CancionBoda>>{};
     for (final momento in _momentos) {
@@ -112,39 +199,140 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
           ? _buildEmpty()
           : ListView(
               padding: const EdgeInsets.all(16),
-              children: _grouped.entries.where((e) => e.value.isNotEmpty).map((
-                entry,
-              ) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _iconoMomento(entry.key),
-                            size: 16,
-                            color: _rose,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            entry.key,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
+              children: [
+                _buildSpotifyMoodSelector(),
+                SpotifyTrackShelf(
+                  title: 'Sugerencias para la boda',
+                  subtitle: _fallbackUsed
+                      ? 'Se usó fallback para no quedarse sin ideas'
+                      : 'Cambia el mood para generar otra energía',
+                  loading: _spotifyLoading,
+                  fallbackUsed: _fallbackUsed,
+                  heroImageUrl: _spotifyTracks.isNotEmpty
+                      ? _spotifyTracks.first.imageUrl
+                      : '',
+                  heroTitle: 'Mood ${_labelForMood(_selectedMood)}',
+                  heroSubtitle: _fallbackUsed
+                    ? 'Fallback activo, pero la vibra sigue alineada al mood'
+                      : 'Portada y sugerencias ajustadas a ${_labelForMood(_selectedMood)}',
+                  tracks: _spotifyTracks,
+                  onRetry: _loadSpotifySuggestions,
+                  onTapTrack: (track) => _abrirSpotify(track.spotifyUrl),
+                ),
+                const SizedBox(height: 8),
+                ..._grouped.entries.where((e) => e.value.isNotEmpty).map((
+                  entry,
+                ) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _iconoMomento(entry.key),
+                              size: 16,
                               color: _rose,
-                              fontSize: 13,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 6),
+                            Text(
+                              entry.key,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: _rose,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    ...entry.value.map((c) => _buildCancionCard(c)),
-                    const SizedBox(height: 8),
-                  ],
-                );
-              }).toList(),
+                      ...entry.value.map((c) => _buildCancionCard(c)),
+                      const SizedBox(height: 8),
+                    ],
+                  );
+                }).toList(),
+              ],
             ),
+    );
+  }
+
+  Widget _buildSpotifyMoodSelector() {
+    final moods = _moods.isEmpty
+        ? const <SpotifyMoodOption>[]
+        : _moods;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Mood Spotify',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: _rose,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: moods.isEmpty
+                ? [
+                    ChoiceChip(
+                      selected: _selectedMood == 'romantico',
+                      label: const Text('Romántico'),
+                      onSelected: (_) {
+                        setState(() => _selectedMood = 'romantico');
+                        _loadSpotifySuggestions();
+                      },
+                    ),
+                    ChoiceChip(
+                      selected: _selectedMood == 'fiesta',
+                      label: const Text('Fiesta'),
+                      onSelected: (_) {
+                        setState(() => _selectedMood = 'fiesta');
+                        _loadSpotifySuggestions();
+                      },
+                    ),
+                    ChoiceChip(
+                      selected: _selectedMood == 'chill',
+                      label: const Text('Chill'),
+                      onSelected: (_) {
+                        setState(() => _selectedMood = 'chill');
+                        _loadSpotifySuggestions();
+                      },
+                    ),
+                    ChoiceChip(
+                      selected: _selectedMood == 'focus',
+                      label: const Text('Focus'),
+                      onSelected: (_) {
+                        setState(() => _selectedMood = 'focus');
+                        _loadSpotifySuggestions();
+                      },
+                    ),
+                  ]
+                : moods.map((mood) {
+                    final selected = _selectedMood == mood.id;
+                    return ChoiceChip(
+                      selected: selected,
+                      label: Text(mood.label),
+                      onSelected: (_) {
+                        setState(() => _selectedMood = mood.id);
+                        _loadSpotifySuggestions();
+                      },
+                    );
+                  }).toList(),
+          ),
+        ],
+      ),
     );
   }
 

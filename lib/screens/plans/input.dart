@@ -1,4 +1,5 @@
 // lib/screens/input.dart
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,9 @@ import '../../utils/animations.dart';
 import '../../utils/cita_search.dart';
 import '../../utils/colors.dart';
 import '../../services/cita_service.dart';
+import '../../services/spotify_service.dart';
+import '../../widgets/spotify/spotify_track_shelf.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ── Colores de la ruleta (paleta base + extras) ────────────────────────────
 const List<Color> _ruletaColors = [
@@ -73,7 +77,10 @@ class _InputScreenState extends State<InputScreen> {
   List<Cita> _filteredCitas = []; // citas filtradas para mostrar
   List<Cita> _ruletaItems = []; // items seleccionados para la ruleta
   String _rouletteSearchQuery = '';
-    String? _selectedTypeLocation;
+  String? _selectedTypeLocation;
+  bool _spotifyLoading = false;
+  List<SpotifyTrack> _spotifyTracks = [];
+  bool _spotifyFallbackUsed = false;
 
     CitaQuickFilters get _rouletteQuickFilters => CitaQuickFilters(
       categoria:
@@ -202,6 +209,81 @@ class _InputScreenState extends State<InputScreen> {
     );
   }
 
+  String _spotifyQueryFromFilters() {
+    return [
+      _selectedCategory,
+      _selectedBudget,
+      _selectedTypeLocation,
+      '${_selectedTimeHours.round()} horas',
+    ]
+        .where((value) => value != null && value!.trim().isNotEmpty)
+        .map((value) => value!.trim())
+        .join(' ');
+  }
+
+  String? _spotifyMoodFromFilters() {
+    switch (_selectedCategory) {
+      case 'Romántico':
+        return 'romantico';
+      case 'Relajante':
+        return 'chill';
+      case 'Aventura':
+      case 'Compras':
+      case 'Comida':
+        return 'fiesta';
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _loadSpotifyInspiration() async {
+    final query = _spotifyQueryFromFilters();
+    if (query.isEmpty) return;
+
+    setState(() => _spotifyLoading = true);
+    try {
+      final result = await SpotifyService.instance.getRecommendations(
+        query: query,
+        limit: 4,
+        mood: _spotifyMoodFromFilters(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _spotifyTracks = result.tracks;
+        _spotifyFallbackUsed = result.fallbackUsed;
+        _spotifyLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _spotifyTracks = [];
+        _spotifyFallbackUsed = false;
+        _spotifyLoading = false;
+      });
+      _mostrarSnackBar('No se pudo cargar Spotify ahora mismo');
+    }
+  }
+
+  void _setCategory(String? value) {
+    setState(() => _selectedCategory = value);
+    unawaited(_loadSpotifyInspiration());
+  }
+
+  void _setBudget(String? value) {
+    setState(() => _selectedBudget = value);
+    unawaited(_loadSpotifyInspiration());
+  }
+
+  void _setTimeHours(double value) {
+    setState(() => _selectedTimeHours = value);
+    unawaited(_loadSpotifyInspiration());
+  }
+
+  Future<void> _openSpotify(String url) async {
+    if (url.isEmpty) return;
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
@@ -326,7 +408,7 @@ class _InputScreenState extends State<InputScreen> {
             options: categories,
             selected: _selectedCategory,
             emojiMap: _categoryEmoji,
-            onSelected: (v) => setState(() => _selectedCategory = v),
+            onSelected: _setCategory,
           ),
           const SizedBox(height: 20),
           _buildSectionLabel('Presupuesto'),
@@ -335,17 +417,45 @@ class _InputScreenState extends State<InputScreen> {
             options: budgets,
             selected: _selectedBudget,
             emojiMap: _budgetEmoji,
-            onSelected: (v) => setState(() => _selectedBudget = v),
+            onSelected: _setBudget,
           ),
           const SizedBox(height: 20),
           _buildSectionLabel('Tiempo disponible'),
           const SizedBox(height: 10),
-          _buildTimeSlider(),
+          _buildTimeSlider(onChanged: _setTimeHours),
           const SizedBox(height: 32),
           _GenerateButton(
             isLoading: _isLoading,
             onPressed: _isLoading ? null : _obtenerYGenerarCita,
           ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: _spotifyLoading ? null : _loadSpotifyInspiration,
+            icon: const Icon(Icons.music_note_rounded, size: 18),
+            label: const Text('Sugerir soundtrack con Spotify'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.violeta,
+              side: const BorderSide(color: AppColors.violeta, width: 1.5),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              textStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+          if (_spotifyLoading || _spotifyTracks.isNotEmpty)
+            SpotifyTrackShelf(
+              title: 'Soundtrack sugerido',
+              subtitle: 'La música que le va a este plan',
+              loading: _spotifyLoading,
+              fallbackUsed: _spotifyFallbackUsed,
+              tracks: _spotifyTracks,
+              onRetry: _loadSpotifyInspiration,
+              onTapTrack: (track) => _openSpotify(track.spotifyUrl),
+            ),
           const SizedBox(height: 24),
         ],
       ),

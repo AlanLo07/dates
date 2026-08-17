@@ -1,13 +1,16 @@
 // lib/screens/plans/result.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/cita.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lottie/lottie.dart';
 import '../../services/cita_service.dart';
+import '../../services/spotify_service.dart';
 import '../../utils/colors.dart';
 import '../memories/location_picker.dart';
 import '../../services/upload_service.dart';
+import '../../widgets/spotify/spotify_track_shelf.dart';
 
 // ── Título con fade-in ────────────────────────────────────────────────────────
 class FadingTitle extends StatefulWidget {
@@ -72,11 +75,15 @@ class ResultScreen extends StatefulWidget {
 class _ResultScreenState extends State<ResultScreen> {
   // Usamos una copia mutable para reflejar ediciones sin romper el widget padre
   late Cita _cita;
+  bool _spotifyLoading = true;
+  List<SpotifyTrack> _spotifyTracks = [];
+  bool _spotifyFallbackUsed = false;
 
   @override
   void initState() {
     super.initState();
     _cita = widget.cita;
+    _loadSpotifySuggestions();
   }
 
   Future<void> _launchUrl(String url) async {
@@ -147,9 +154,55 @@ class _ResultScreenState extends State<ResultScreen> {
         cita: _cita,
         onGuardado: (citaActualizada) {
           setState(() => _cita = citaActualizada);
+          unawaited(_loadSpotifySuggestions());
         },
       ),
     );
+  }
+
+  String _spotifyMoodForCita() {
+    switch (_cita.categoria.toLowerCase()) {
+      case 'romántico':
+        return 'romantico';
+      case 'relajante':
+        return 'chill';
+      case 'aventura':
+      case 'compras':
+      case 'comida':
+        return 'fiesta';
+      default:
+        return 'romantico';
+    }
+  }
+
+  Future<void> _loadSpotifySuggestions() async {
+    if (mounted) {
+      setState(() => _spotifyLoading = true);
+    }
+
+    try {
+      final query = [_cita.nombre, _cita.categoria, _cita.descripcion]
+          .where((value) => value.trim().isNotEmpty)
+          .join(' ');
+      final result = await SpotifyService.instance.getRecommendations(
+        query: query,
+        limit: 4,
+        mood: _spotifyMoodForCita(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _spotifyTracks = result.tracks;
+        _spotifyFallbackUsed = result.fallbackUsed;
+        _spotifyLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _spotifyTracks = [];
+        _spotifyFallbackUsed = false;
+        _spotifyLoading = false;
+      });
+    }
   }
 
   @override
@@ -216,6 +269,17 @@ class _ResultScreenState extends State<ResultScreen> {
               ],
             ),
             const SizedBox(height: 24),
+
+            SpotifyTrackShelf(
+              title: 'Escuchar algo parecido',
+              subtitle: 'Ideas musicales para esta cita',
+              loading: _spotifyLoading,
+              fallbackUsed: _spotifyFallbackUsed,
+              tracks: _spotifyTracks,
+              onRetry: _loadSpotifySuggestions,
+              onTapTrack: (track) => _launchUrl(track.spotifyUrl),
+            ),
+            const SizedBox(height: 8),
 
             // ── Rating ───────────────────────────────────────────────────
             if (_cita.rating > 0) ...[

@@ -8,6 +8,7 @@ import '../models/song_of_week.dart';
 import '../services/auth_service.dart';
 import '../services/events.dart';
 import '../services/phrases_service.dart';
+import '../services/spotify_service.dart';
 import '../utils/colors.dart';
 import '../widgets/motion/ambient_orbs_background.dart';
 import 'auth/login_screen.dart';
@@ -27,6 +28,7 @@ import 'plans/input.dart';
 import 'wedding/wedding.dart';
 
 import 'home/widgets/home_mascot_bubble.dart';
+import '../widgets/spotify/spotify_track_shelf.dart';
 
 const String _heroImageUrl =
     'https://planes-crud-stack-images-052869941322.s3.us-east-2.amazonaws.com/assets/beso.jpeg';
@@ -52,9 +54,12 @@ class _HomeScreenState extends State<HomeScreen> {
   SongOfWeek? _songOfWeek;
   bool _songLoading = true;
   bool _weeklyLoading = true;
+  bool _spotifyLoading = true;
   bool _loggingOut = false;
   String? _displayName;
   Map<PhraseType, LovePhrase> _weeklyPhrases = {};
+  List<SpotifyTrack> _spotifyTracks = [];
+  bool _spotifyFallbackUsed = false;
 
   final AuthService _authService = AuthService();
   final EventService _eventService = EventService();
@@ -134,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _songLoading = false;
         });
       }
+      await _loadSpotifyHighlight();
       if (song == null) {
         await _setRandomSong(notify: false);
       }
@@ -162,6 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _weeklyLoading = false;
         });
       }
+      await _loadSpotifyHighlight();
     } catch (_) {
       if (mounted) {
         setState(() => _weeklyLoading = false);
@@ -240,6 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         setState(() => _songOfWeek = saved);
+        await _loadSpotifyHighlight();
         if (notify) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -320,6 +328,52 @@ class _HomeScreenState extends State<HomeScreen> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
+  Future<void> _loadSpotifyHighlight() async {
+    final sourceTitle = _songOfWeek?.title ??
+        _weeklyPhrases[PhraseType.cancion]?.title;
+    final sourceArtist = _songOfWeek?.artista ??
+        _weeklyPhrases[PhraseType.cancion]?.credits;
+    final query = [sourceTitle, sourceArtist]
+        .where((value) => value != null && value.trim().isNotEmpty)
+        .map((value) => value!.trim())
+        .join(' ');
+
+    if (query.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _spotifyTracks = [];
+          _spotifyLoading = false;
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _spotifyLoading = true);
+    }
+
+    try {
+      final result = await SpotifyService.instance.getRecommendations(
+        query: query,
+        limit: 4,
+        mood: 'romantico',
+      );
+      if (!mounted) return;
+      setState(() {
+        _spotifyTracks = result.tracks;
+        _spotifyFallbackUsed = result.fallbackUsed;
+        _spotifyLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _spotifyTracks = [];
+        _spotifyFallbackUsed = false;
+        _spotifyLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(
@@ -353,6 +407,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         .animate()
                         .fadeIn(duration: _kFadeDuration)
                         .slideY(begin: 0.06, duration: _kSlideDuration),
+                    if (_spotifyLoading || _spotifyTracks.isNotEmpty)
+                      SpotifyTrackShelf(
+                        title: 'Playlist Spotify de la semana',
+                        subtitle: 'Sugerencias inspiradas en su canción actual',
+                        loading: _spotifyLoading,
+                        fallbackUsed: _spotifyFallbackUsed,
+                        heroImageUrl: _spotifyTracks.isNotEmpty
+                            ? _spotifyTracks.first.imageUrl
+                            : '',
+                        tracks: _spotifyTracks,
+                        onRetry: _loadSpotifyHighlight,
+                        onTapTrack: (track) => _launchUrl(track.spotifyUrl),
+                      ),
                       HomeWeeklyHighlightsStrip(
                         items: _buildWeeklyItems(),
                         isLoading: _songLoading || _weeklyLoading,
