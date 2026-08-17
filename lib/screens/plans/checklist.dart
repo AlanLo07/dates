@@ -31,6 +31,7 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
   late final ConfettiController _confettiController;
   final TextEditingController _searchController = TextEditingController();
   CitaQuickFilters _quickFilters = const CitaQuickFilters();
+  bool _showSearchFilters = false;
 
   String? _achievementText;
   int _achievementTick = 0;
@@ -290,14 +291,48 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
                       onChanged: (value) =>
                           setState(() => _searchQuery = value),
                     ),
-                    const SizedBox(height: 12),
-                    CitaQuickFilterChips(
-                      citas: _lugares,
-                      filters: _quickFilters,
-                      query: _searchQuery,
-                      onChanged: (filters) =>
-                          setState(() => _quickFilters = filters),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ActionChip(
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        avatar: Icon(
+                          _showSearchFilters
+                              ? Icons.expand_less_rounded
+                              : Icons.tune_rounded,
+                          size: 16,
+                          color: AppColors.violeta,
+                        ),
+                        label: Text(
+                          _showSearchFilters
+                              ? 'Ocultar'
+                              : 'Filtros',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.violeta,
+                          ),
+                        ),
+                        backgroundColor: Colors.white,
+                        side: BorderSide(color: Colors.grey.shade300),
+                        onPressed: () {
+                          setState(() {
+                            _showSearchFilters = !_showSearchFilters;
+                          });
+                        },
+                      ),
                     ),
+                    if (_showSearchFilters) ...[
+                      const SizedBox(height: 12),
+                      CitaQuickFilterChips(
+                        citas: _lugares,
+                        filters: _quickFilters,
+                        query: _searchQuery,
+                        onChanged: (filters) =>
+                            setState(() => _quickFilters = filters),
+                      ),
+                    ],
                   ],
                 ),
               ),
