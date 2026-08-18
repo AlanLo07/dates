@@ -13,6 +13,8 @@ import '../../services/spotify_service.dart';
 import '../../widgets/spotify/spotify_track_shelf.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../models/spotify.dart';
+
 // ── Colores de la ruleta (paleta base + extras) ────────────────────────────
 const List<Color> _ruletaColors = [
   Color(0xFF796B9B), // violeta
@@ -82,17 +84,15 @@ class _InputScreenState extends State<InputScreen> {
   List<SpotifyTrack> _spotifyTracks = [];
   bool _spotifyFallbackUsed = false;
 
-    CitaQuickFilters get _rouletteQuickFilters => CitaQuickFilters(
-      categoria:
-        _selectedCategory == null || _selectedCategory == 'Cualquiera'
-          ? null
-          : _selectedCategory,
-      presupuesto:
-        _selectedBudget == null || _selectedBudget == 'Cualquiera'
-          ? null
-          : _selectedBudget,
-      typeLocation: _selectedTypeLocation,
-      );
+  CitaQuickFilters get _rouletteQuickFilters => CitaQuickFilters(
+    categoria: _selectedCategory == null || _selectedCategory == 'Cualquiera'
+        ? null
+        : _selectedCategory,
+    presupuesto: _selectedBudget == null || _selectedBudget == 'Cualquiera'
+        ? null
+        : _selectedBudget,
+    typeLocation: _selectedTypeLocation,
+  );
 
   @override
   void dispose() {
@@ -211,11 +211,11 @@ class _InputScreenState extends State<InputScreen> {
 
   String _spotifyQueryFromFilters() {
     return [
-      _selectedCategory,
-      _selectedBudget,
-      _selectedTypeLocation,
-      '${_selectedTimeHours.round()} horas',
-    ]
+          _selectedCategory,
+          _selectedBudget,
+          _selectedTypeLocation,
+          '${_selectedTimeHours.round()} horas',
+        ]
         .where((value) => value != null && value!.trim().isNotEmpty)
         .map((value) => value!.trim())
         .join(' ');
@@ -641,31 +641,31 @@ class _InputScreenState extends State<InputScreen> {
                           ),
                         )
                       : _filteredCitas.isEmpty
-                          ? Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(20),
-                                child: Text(
-                                  'Cambia los filtros para ver citas 🔍',
-                                  style: TextStyle(color: Colors.grey.shade500),
-                                ),
-                              ),
-                            )
-                          : Column(
-                              children: _filteredCitas.map((cita) {
-                                final inRuleta = _ruletaItems.any(
-                                  (c) => c.nombre == cita.nombre,
-                                );
-                                return _CitaSelectableCard(
-                                  cita: cita,
-                                  searchQuery: _rouletteSearchQuery,
-                                  isSelected: inRuleta,
-                                  ruletaFull: _ruletaItems.length >= 10,
-                                  onTap: () => inRuleta
-                                      ? _removeFromRuleta(cita)
-                                      : _addToRuleta(cita),
-                                );
-                              }).toList(),
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Text(
+                              'Cambia los filtros para ver citas 🔍',
+                              style: TextStyle(color: Colors.grey.shade500),
                             ),
+                          ),
+                        )
+                      : Column(
+                          children: _filteredCitas.map((cita) {
+                            final inRuleta = _ruletaItems.any(
+                              (c) => c.nombre == cita.nombre,
+                            );
+                            return _CitaSelectableCard(
+                              cita: cita,
+                              searchQuery: _rouletteSearchQuery,
+                              isSelected: inRuleta,
+                              ruletaFull: _ruletaItems.length >= 10,
+                              onTap: () => inRuleta
+                                  ? _removeFromRuleta(cita)
+                                  : _addToRuleta(cita),
+                            );
+                          }).toList(),
+                        ),
                 ),
 
                 const SizedBox(height: 80),
@@ -910,8 +910,10 @@ class _CitaSelectableCard extends StatelessWidget {
     final disabled = ruletaFull && !isSelected;
     final summary = citaSearchSummary(cita);
     final showDescription = shouldShowCitaDescription(cita, searchQuery);
-    final descriptionPrimaryMatch =
-        isDescriptionPrimaryMatch(cita, searchQuery);
+    final descriptionPrimaryMatch = isDescriptionPrimaryMatch(
+      cita,
+      searchQuery,
+    );
     final titleStyle = TextStyle(
       fontWeight: FontWeight.w600,
       color: disabled ? Colors.grey.shade400 : AppColors.violeta,

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'screens/auth/login_screen.dart';
 import 'screens/home.dart';
-import 'services/auth_service.dart';
+// import 'screens/auth/login_screen.dart';
+import 'screens/home.dart';
+// import 'services/auth_service.dart';
 
 const Color lavandaPalida = Color(0xFFD8C9E7);
 const Color malvaSuave = Color(0xFFB0B6E8);
@@ -48,52 +49,52 @@ class MyApp extends StatelessWidget {
             ),
         useMaterial3: true,
       ),
-      home: const AuthGate(),
+      home: const HomeScreen(),
     );
   }
 }
 
-class AuthGate extends StatefulWidget {
-  const AuthGate({super.key});
-
-  @override
-  State<AuthGate> createState() => _AuthGateState();
-}
-
-class _AuthGateState extends State<AuthGate> {
-  final AuthService _authService = AuthService();
-  late Future<bool> _sessionFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _sessionFuture = _authService.isSessionValid();
-  }
-
-  void _refreshSession() {
-    setState(() {
-      _sessionFuture = _authService.isSessionValid();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _sessionFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        final isAuthenticated = snapshot.data ?? false;
-        if (isAuthenticated) {
-          return const HomeScreen();
-        }
-
-        return LoginScreen(onLoginSuccess: _refreshSession);
-      },
-    );
-  }
-}
+// class AuthGate extends StatefulWidget {
+//   const AuthGate({super.key});
+//
+//   @override
+//   State<AuthGate> createState() => _AuthGateState();
+// }
+//
+// class _AuthGateState extends State<AuthGate> {
+//   final AuthService _authService = AuthService();
+//   late Future<bool> _sessionFuture;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _sessionFuture = _authService.isSessionValid();
+//   }
+//
+//   void _refreshSession() {
+//     setState(() {
+//       _sessionFuture = _authService.isSessionValid();
+//     });
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return FutureBuilder<bool>(
+//       future: _sessionFuture,
+//       builder: (context, snapshot) {
+//         if (snapshot.connectionState == ConnectionState.waiting) {
+//           return const Scaffold(
+//             body: Center(child: CircularProgressIndicator()),
+//           );
+//         }
+//
+//         final isAuthenticated = snapshot.data ?? false;
+//         if (isAuthenticated) {
+//           return const HomeScreen();
+//         }
+//
+//         return LoginScreen(onLoginSuccess: _refreshSession);
+//       },
+//     );
+//   }
+// }

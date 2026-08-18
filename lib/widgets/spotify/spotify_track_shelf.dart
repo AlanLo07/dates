@@ -92,7 +92,9 @@ class SpotifyTrackShelf extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          heroTitle.isEmpty ? 'Playlist inspirada en tu semana' : heroTitle,
+                          heroTitle.isEmpty
+                              ? 'Playlist inspirada en tu semana'
+                              : heroTitle,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -397,20 +399,14 @@ class _TrackCard extends StatelessWidget {
                     track.artist,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     track.albumName.isNotEmpty ? track.albumName : 'Spotify',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                   ),
                 ],
               ),

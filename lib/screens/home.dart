@@ -5,13 +5,14 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/phrase.dart';
 import '../models/song_of_week.dart';
-import '../services/auth_service.dart';
+import '../models/spotify.dart';
+// import '../services/auth_service.dart';
 import '../services/events.dart';
 import '../services/phrases_service.dart';
 import '../services/spotify_service.dart';
 import '../utils/colors.dart';
 import '../widgets/motion/ambient_orbs_background.dart';
-import 'auth/login_screen.dart';
+// import 'auth/login_screen.dart';
 import 'calendar/calendar.dart';
 import 'finances/couple_finances.dart';
 import 'games/games_menu.dart';
@@ -61,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<SpotifyTrack> _spotifyTracks = [];
   bool _spotifyFallbackUsed = false;
 
-  final AuthService _authService = AuthService();
+  // final AuthService _authService = AuthService();
   final EventService _eventService = EventService();
 
   @override
@@ -74,51 +75,51 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     _loadSong();
     _loadWeeklyPhrases();
-    _loadDisplayName();
+    // _loadDisplayName(); // Login disabled
   }
 
-  Future<void> _loadDisplayName() async {
-    final displayName = await _authService.getDisplayName();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _displayName = displayName;
-    });
-  }
+  // Future<void> _loadDisplayName() async {
+  //   final displayName = await _authService.getDisplayName();
+  //   if (!mounted) {
+  //     return;
+  //   }
+  //   setState(() {
+  //     _displayName = displayName;
+  //   });
+  // }
 
-  Future<void> _logout() async {
-    if (_loggingOut) {
-      return;
-    }
-
-    setState(() => _loggingOut = true);
-    try {
-      await _authService.signOut();
-
-      if (!mounted) {
-        return;
-      }
-
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => LoginScreen(
-            onLoginSuccess: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const HomeScreen()),
-                (route) => false,
-              );
-            },
-          ),
-        ),
-        (route) => false,
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _loggingOut = false);
-      }
-    }
-  }
+  // Future<void> _logout() async {
+  //   if (_loggingOut) {
+  //     return;
+  //   }
+  //
+  //   setState(() => _loggingOut = true);
+  //   try {
+  //     await _authService.signOut();
+  //
+  //     if (!mounted) {
+  //       return;
+  //     }
+  //
+  //     Navigator.of(context).pushAndRemoveUntil(
+  //       MaterialPageRoute(
+  //         builder: (_) => LoginScreen(
+  //           onLoginSuccess: () {
+  //             Navigator.of(context).pushAndRemoveUntil(
+  //               MaterialPageRoute(builder: (_) => const HomeScreen()),
+  //               (route) => false,
+  //             );
+  //           },
+  //         ),
+  //       ),
+  //       (route) => false,
+  //     );
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() => _loggingOut = false);
+  //     }
+  //   }
+  // }
 
   Duration _calcDuration() {
     final start = DateTime(
@@ -186,9 +187,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final items = <WeeklyHighlightItem>[];
 
     final cancionFromPhrases = _weeklyPhrases[PhraseType.cancion];
-    final songTitle = _songOfWeek?.title ?? cancionFromPhrases?.title ?? 'Sin canción';
+    final songTitle =
+        _songOfWeek?.title ?? cancionFromPhrases?.title ?? 'Sin canción';
     final songSubtitle =
-        _songOfWeek?.artista ?? cancionFromPhrases?.credits ?? 'Toca ✏️ para elegir';
+        _songOfWeek?.artista ??
+        cancionFromPhrases?.credits ??
+        'Toca ✏️ para elegir';
     final songUrl = _songOfWeek?.link ?? cancionFromPhrases?.link ?? '';
 
     items.add(
@@ -201,7 +205,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    for (final type in PhraseType.values.where((t) => t != PhraseType.cancion)) {
+    for (final type in PhraseType.values.where(
+      (t) => t != PhraseType.cancion,
+    )) {
       final phrase = _weeklyPhrases[type];
       if (phrase == null) {
         continue;
@@ -329,10 +335,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadSpotifyHighlight() async {
-    final sourceTitle = _songOfWeek?.title ??
-        _weeklyPhrases[PhraseType.cancion]?.title;
-    final sourceArtist = _songOfWeek?.artista ??
-        _weeklyPhrases[PhraseType.cancion]?.credits;
+    final sourceTitle =
+        _songOfWeek?.title ?? _weeklyPhrases[PhraseType.cancion]?.title;
+    final sourceArtist =
+        _songOfWeek?.artista ?? _weeklyPhrases[PhraseType.cancion]?.credits;
     final query = [sourceTitle, sourceArtist]
         .where((value) => value != null && value.trim().isNotEmpty)
         .map((value) => value!.trim())
@@ -420,11 +426,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         onRetry: _loadSpotifyHighlight,
                         onTapTrack: (track) => _launchUrl(track.spotifyUrl),
                       ),
-                      HomeWeeklyHighlightsStrip(
-                        items: _buildWeeklyItems(),
-                        isLoading: _songLoading || _weeklyLoading,
-                        onTapItem: (item) => _launchUrl(item.url),
-                        onSongEdit: _mostrarEditorCancion,
+                    HomeWeeklyHighlightsStrip(
+                          items: _buildWeeklyItems(),
+                          isLoading: _songLoading || _weeklyLoading,
+                          onTapItem: (item) => _launchUrl(item.url),
+                          onSongEdit: _mostrarEditorCancion,
                         )
                         .animate()
                         .fadeIn(delay: 100.ms, duration: _kFadeDuration)
@@ -501,7 +507,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             emoji: '🗺️',
                             icon: Icons.explore_rounded,
                             title: 'Nuestras Aventuras',
-                            subtitle: 'Checklist de todos los lugares que fuimos',
+                            subtitle:
+                                'Checklist de todos los lugares que fuimos',
                             destination: ExperienceMenuScreen(),
                             gradientColors: const [
                               Color(0xFFFFCDD2),
@@ -576,37 +583,33 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          const Positioned(
-            right: 16,
-            bottom: 16,
-            child: HomeMascotBubble(),
-          ),
-          Positioned(
-            top: 12,
-            right: 12,
-            child: SafeArea(
-              child: Material(
-                color: Colors.black38,
-                shape: const CircleBorder(),
-                child: IconButton(
-                  tooltip: 'Cerrar sesión',
-                  onPressed: _loggingOut ? null : _logout,
-                  icon: _loggingOut
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                      : const Icon(Icons.logout_rounded, color: Colors.white),
-                ),
-              ),
-            ),
-          ),
+          const Positioned(right: 16, bottom: 16, child: HomeMascotBubble()),
+          // Positioned(
+          //   top: 12,
+          //   right: 12,
+          //   child: SafeArea(
+          //     child: Material(
+          //       color: Colors.black38,
+          //       shape: const CircleBorder(),
+          //       child: IconButton(
+          //         tooltip: 'Cerrar sesión',
+          //         onPressed: _loggingOut ? null : _logout,
+          //         icon: _loggingOut
+          //             ? const SizedBox(
+          //                 height: 18,
+          //                 width: 18,
+          //                 child: CircularProgressIndicator(
+          //                   strokeWidth: 2,
+          //                   valueColor: AlwaysStoppedAnimation<Color>(
+          //                     Colors.white,
+          //                   ),
+          //                 ),
+          //               )
+          //             : const Icon(Icons.logout_rounded, color: Colors.white),
+          //       ),
+          //     ),
+          //   ),
+          // ),
         ],
       ),
     );

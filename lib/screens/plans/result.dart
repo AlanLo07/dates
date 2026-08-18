@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/cita.dart';
+import '../../models/spotify.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lottie/lottie.dart';
 import '../../services/cita_service.dart';
@@ -181,9 +182,11 @@ class _ResultScreenState extends State<ResultScreen> {
     }
 
     try {
-      final query = [_cita.nombre, _cita.categoria, _cita.descripcion]
-          .where((value) => value.trim().isNotEmpty)
-          .join(' ');
+      final query = [
+        _cita.nombre,
+        _cita.categoria,
+        _cita.descripcion,
+      ].where((value) => value.trim().isNotEmpty).join(' ');
       final result = await SpotifyService.instance.getRecommendations(
         query: query,
         limit: 4,
