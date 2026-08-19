@@ -13,6 +13,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:confetti/confetti.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
 import '../../utils/colors.dart';
 import '../../models/recuerdos.dart';
 import '../../models/carta.dart';
@@ -79,10 +80,29 @@ class _DayData {
   final List<Recuerdo> recuerdos;
   final CartaSorpresa? carta;
   final EventoImportante? evento;
+  // Cita cuyo itinerario tiene una actividad programada este día (sin ser su fecha principal).
+  final EventoImportante? eventoItinerario;
 
-  const _DayData({this.recuerdos = const [], this.carta, this.evento});
+  const _DayData({
+    this.recuerdos = const [],
+    this.carta,
+    this.evento,
+    this.eventoItinerario,
+  });
 
-  bool get isEmpty => recuerdos.isEmpty && carta == null && evento == null;
+  bool get isEmpty =>
+      recuerdos.isEmpty &&
+      carta == null &&
+      evento == null &&
+      eventoItinerario == null;
+}
+
+// Envoltorio para distinguir en el marcador del calendario una actividad de
+// itinerario de la cita principal del día (misma clase EventoImportante).
+class _ItinerarioMarker {
+  final EventoImportante evento;
+
+  const _ItinerarioMarker(this.evento);
 }
 
 class CalendarScreen extends StatefulWidget {
@@ -189,14 +209,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
 
     EventoImportante? evento;
+    EventoImportante? eventoItinerario;
     if (_mostrarCitas) {
       final key = _toApiDateKey(day);
       try {
         evento = _eventos.firstWhere((e) => e.date == key);
       } catch (_) {}
+
+      // Si el día no es la fecha principal de una cita, revisamos si alguna
+      // cita tiene una actividad de itinerario programada para este día.
+      if (evento == null) {
+        try {
+          eventoItinerario = _eventos.firstWhere(
+            (e) => e.itinerario.actividades.any((a) => a.fecha == key),
+          );
+        } catch (_) {}
+      }
     }
 
-    return _DayData(recuerdos: recuerdos, carta: carta, evento: evento);
+    return _DayData(
+      recuerdos: recuerdos,
+      carta: carta,
+      evento: evento,
+      eventoItinerario: eventoItinerario,
+    );
   }
 
   // eventLoader para TableCalendar — devuelve lista de objetos para los dots
@@ -206,6 +242,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ...d.recuerdos,
       if (d.carta != null) d.carta!,
       if (d.evento != null) d.evento!,
+      if (d.eventoItinerario != null) _ItinerarioMarker(d.eventoItinerario!),
     ];
   }
 
@@ -785,6 +822,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       );
                                     }
 
+                                    if (first is _ItinerarioMarker &&
+                                        _mostrarCitas) {
+                                      return Positioned(
+                                        bottom: 1,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.celeste
+                                                .withValues(alpha: 0.25),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: const Icon(
+                                            Icons.route_outlined,
+                                            size: 16,
+                                            color: AppColors.celeste,
+                                          ),
+                                        ),
+                                      );
+                                    }
+
                                     if (first is CartaSorpresa &&
                                         _mostrarCartas) {
                                       final now = DateTime.now();
@@ -861,6 +919,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                   }
                                   if (data.evento != null && _mostrarCitas) {
                                     _showEventoDialog(data.evento!);
+                                    return;
+                                  }
+                                  if (data.eventoItinerario != null &&
+                                      _mostrarCitas) {
+                                    _showEventoDialog(data.eventoItinerario!);
                                     return;
                                   }
 
@@ -1164,6 +1227,7 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
   final List<TextEditingController> _conceptoMontoCtrls = [];
   final List<TextEditingController> _documentoCtrls = [];
   final List<TextEditingController> _checklistItemCtrls = [];
+  final List<bool> _checklistItemIncluido = [];
 
   bool _isSaving = false;
   bool _mostrarDetallesOpcionales = false;
@@ -1198,6 +1262,7 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
 
     for (final item in widget.evento.checklist.items) {
       _checklistItemCtrls.add(TextEditingController(text: item.nombre));
+      _checklistItemIncluido.add(item.incluido);
     }
   }
 
@@ -1294,12 +1359,14 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
   void _agregarItemChecklist() {
     setState(() {
       _checklistItemCtrls.add(TextEditingController());
+      _checklistItemIncluido.add(false);
     });
   }
 
   void _eliminarItemChecklist(int index) {
     setState(() {
       _checklistItemCtrls.removeAt(index).dispose();
+      _checklistItemIncluido.removeAt(index);
     });
   }
 
@@ -1349,7 +1416,9 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
     for (var i = 0; i < _checklistItemCtrls.length; i++) {
       final nombre = _checklistItemCtrls[i].text.trim();
       if (nombre.isNotEmpty) {
-        items.add(ItemChecklist(nombre: nombre, incluido: false));
+        items.add(
+          ItemChecklist(nombre: nombre, incluido: _checklistItemIncluido[i]),
+        );
       }
     }
     return ChecklistEvento(items: items);
@@ -1450,6 +1519,63 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
     );
   }
 
+  Future<void> _seleccionarFechaItinerario(TextEditingController ctrl) async {
+    final actual = ctrl.text.trim().isEmpty
+        ? _fechaSeleccionada
+        : _parseFecha(ctrl.text.trim());
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: actual,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.violeta,
+            onPrimary: Colors.white,
+            onSurface: AppColors.violeta,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => ctrl.text = _formatFecha(picked));
+  }
+
+  Widget _buildItinerarioFechaField(TextEditingController ctrl) {
+    return GestureDetector(
+      onTap: () => _seleccionarFechaItinerario(ctrl),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'Fecha',
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.calendar_today,
+              size: 16,
+              color: AppColors.violeta,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              ctrl.text.isEmpty ? 'dd-MM-yyyy' : ctrl.text,
+              style: TextStyle(
+                color: ctrl.text.isEmpty
+                    ? Colors.grey.shade500
+                    : AppColors.violeta,
+                fontWeight: ctrl.text.isEmpty
+                    ? FontWeight.normal
+                    : FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -1534,10 +1660,8 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
                         Row(
                           children: [
                             Expanded(
-                              child: _buildTextField(
+                              child: _buildItinerarioFechaField(
                                 _itinerarioFechaCtrls[i],
-                                'Fecha',
-                                'dd-MM-yyyy',
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -1700,6 +1824,16 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: [
+                      Tooltip(
+                        message: 'Marcar como listo',
+                        child: Checkbox(
+                          value: _checklistItemIncluido[i],
+                          activeColor: AppColors.violeta,
+                          onChanged: (v) => setState(
+                            () => _checklistItemIncluido[i] = v ?? false,
+                          ),
+                        ),
+                      ),
                       Expanded(
                         child: _buildTextField(
                           _checklistItemCtrls[i],
@@ -1831,6 +1965,12 @@ class _EventoDetallesDialog extends StatelessWidget {
 
   const _EventoDetallesDialog({required this.evento});
 
+  static final NumberFormat _currency = NumberFormat.currency(
+    locale: 'es_MX',
+    symbol: r'$',
+    decimalDigits: 2,
+  );
+
   @override
   Widget build(BuildContext context) {
     final presupuesto = evento.presupuesto;
@@ -1894,12 +2034,9 @@ class _EventoDetallesDialog extends StatelessWidget {
                 ),
               const SizedBox(height: 12),
               _detailsSectionTitle('Presupuesto'),
-              _budgetLine('Gastado', presupuesto.gastado),
-              _budgetLine('Límite', presupuesto.limite),
-              const SizedBox(height: 6),
-              if (presupuesto.conceptos.isEmpty)
-                _emptyLabel('Sin conceptos de gasto')
-              else
+              _buildPresupuestoAmigable(presupuesto),
+              if (presupuesto.conceptos.isNotEmpty) ...[
+                const SizedBox(height: 8),
                 ...presupuesto.conceptos.map(
                   (gasto) => Padding(
                     padding: const EdgeInsets.only(bottom: 6),
@@ -1912,7 +2049,7 @@ class _EventoDetallesDialog extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          gasto.monto.toStringAsFixed(2),
+                          _currency.format(gasto.monto),
                           style: const TextStyle(
                             color: AppColors.violeta,
                             fontWeight: FontWeight.w600,
@@ -1922,6 +2059,7 @@ class _EventoDetallesDialog extends StatelessWidget {
                     ),
                   ),
                 ),
+              ],
               const SizedBox(height: 12),
               _detailsSectionTitle('Documentos'),
               if (evento.documentos.isEmpty)
@@ -2028,21 +2166,75 @@ class _EventoDetallesDialog extends StatelessWidget {
     );
   }
 
-  Widget _budgetLine(String label, double value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
+  Widget _buildPresupuestoAmigable(PresupuestoEvento presupuesto) {
+    final tieneLimite = presupuesto.limite > 0;
+    final progreso = tieneLimite
+        ? (presupuesto.gastado / presupuesto.limite).clamp(0.0, 1.0)
+        : 0.0;
+    final excedido = tieneLimite && presupuesto.gastado > presupuesto.limite;
+    final disponible = presupuesto.limite - presupuesto.gastado;
+    final colorEstado = excedido ? AppColors.error : AppColors.success;
+
+    if (!tieneLimite && presupuesto.gastado == 0) {
+      return _emptyLabel('Sin presupuesto registrado');
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F0FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorEstado.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(label, style: TextStyle(color: Colors.grey.shade700)),
+          Row(
+            children: [
+              Icon(
+                excedido
+                    ? Icons.warning_amber_rounded
+                    : Icons.savings_outlined,
+                color: colorEstado,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  tieneLimite
+                      ? '${_currency.format(presupuesto.gastado)} de ${_currency.format(presupuesto.limite)}'
+                      : 'Gastado: ${_currency.format(presupuesto.gastado)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.violeta,
+                  ),
+                ),
+              ),
+            ],
           ),
-          Text(
-            value.toStringAsFixed(2),
-            style: const TextStyle(
-              color: AppColors.violeta,
-              fontWeight: FontWeight.w600,
+          if (tieneLimite) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                minHeight: 8,
+                value: progreso,
+                backgroundColor: Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(colorEstado),
+              ),
             ),
-          ),
+            const SizedBox(height: 6),
+            Text(
+              excedido
+                  ? 'Excedido por ${_currency.format(disponible.abs())}'
+                  : 'Disponible: ${_currency.format(disponible)}',
+              style: TextStyle(
+                color: colorEstado,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -2112,6 +2304,7 @@ class _AgendarDesdeCalendarioSheetState
   final List<TextEditingController> _conceptoMontoCtrls = [];
   final List<TextEditingController> _documentoCtrls = [];
   final List<TextEditingController> _checklistItemCtrls = [];
+  final List<bool> _checklistItemIncluido = [];
 
   @override
   void initState() {
@@ -2197,12 +2390,14 @@ class _AgendarDesdeCalendarioSheetState
   void _agregarItemChecklist() {
     setState(() {
       _checklistItemCtrls.add(TextEditingController());
+      _checklistItemIncluido.add(false);
     });
   }
 
   void _eliminarItemChecklist(int index) {
     setState(() {
       _checklistItemCtrls.removeAt(index).dispose();
+      _checklistItemIncluido.removeAt(index);
     });
   }
 
@@ -2254,7 +2449,9 @@ class _AgendarDesdeCalendarioSheetState
     for (var i = 0; i < _checklistItemCtrls.length; i++) {
       final nombre = _checklistItemCtrls[i].text.trim();
       if (nombre.isNotEmpty) {
-        items.add(ItemChecklist(nombre: nombre, incluido: false));
+        items.add(
+          ItemChecklist(nombre: nombre, incluido: _checklistItemIncluido[i]),
+        );
       }
     }
     return ChecklistEvento(items: items);
@@ -2311,6 +2508,74 @@ class _AgendarDesdeCalendarioSheetState
       ),
     );
     if (picked != null) setState(() => _fechaSeleccionada = picked);
+  }
+
+  DateTime _parseFechaItinerario(String value) {
+    final parts = value.split('-');
+    if (parts.length != 3) return _fechaSeleccionada;
+    final day = int.tryParse(parts[0]) ?? _fechaSeleccionada.day;
+    final month = int.tryParse(parts[1]) ?? _fechaSeleccionada.month;
+    final year = int.tryParse(parts[2]) ?? _fechaSeleccionada.year;
+    return DateTime(year, month, day);
+  }
+
+  Future<void> _seleccionarFechaItinerario(TextEditingController ctrl) async {
+    final actual = ctrl.text.trim().isEmpty
+        ? _fechaSeleccionada
+        : _parseFechaItinerario(ctrl.text.trim());
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: actual,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.violeta,
+            onPrimary: Colors.white,
+            onSurface: AppColors.violeta,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() => ctrl.text = widget.formatearFecha(picked));
+    }
+  }
+
+  Widget _buildItinerarioFechaField(TextEditingController ctrl) {
+    return GestureDetector(
+      onTap: () => _seleccionarFechaItinerario(ctrl),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'Fecha',
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.calendar_today,
+              size: 16,
+              color: AppColors.violeta,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              ctrl.text.isEmpty ? 'dd-MM-yyyy' : ctrl.text,
+              style: TextStyle(
+                color: ctrl.text.isEmpty
+                    ? Colors.grey.shade500
+                    : AppColors.violeta,
+                fontWeight: ctrl.text.isEmpty
+                    ? FontWeight.normal
+                    : FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _abrirSelectorCitas() {
@@ -2938,10 +3203,8 @@ class _AgendarDesdeCalendarioSheetState
                         Row(
                           children: [
                             Expanded(
-                              child: _buildTextField(
+                              child: _buildItinerarioFechaField(
                                 _itinerarioFechaCtrls[i],
-                                'Fecha',
-                                'dd-MM-yyyy',
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -3104,6 +3367,16 @@ class _AgendarDesdeCalendarioSheetState
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: [
+                      Tooltip(
+                        message: 'Marcar como listo',
+                        child: Checkbox(
+                          value: _checklistItemIncluido[i],
+                          activeColor: AppColors.violeta,
+                          onChanged: (v) => setState(
+                            () => _checklistItemIncluido[i] = v ?? false,
+                          ),
+                        ),
+                      ),
                       Expanded(
                         child: _buildTextField(
                           _checklistItemCtrls[i],
