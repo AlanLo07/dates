@@ -48,9 +48,18 @@ class WeddingService {
   factory WeddingService() => _instance;
   WeddingService._internal();
 
+  static const Duration _cacheTtl = Duration(seconds: 45);
+
   static const _jsonHeaders = {
     'Content-Type': 'application/json; charset=UTF-8',
   };
+
+  WeddingMeta? _primaryWeddingCache;
+  DateTime? _primaryWeddingCacheAt;
+  Future<WeddingMeta?>? _primaryWeddingInFlight;
+
+  final Map<String, _ListCacheEntry> _listCache = {};
+  final Map<String, Future<List<Map<String, dynamic>>>> _itemsInFlight = {};
 
   String get _base => ApiConfig.baseUrl.endsWith('/')
       ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
@@ -58,19 +67,54 @@ class WeddingService {
 
   Uri _uri(String path) => Uri.parse('$_base$path');
 
+  bool get _isPrimaryWeddingCacheValid =>
+      _primaryWeddingCacheAt != null &&
+      DateTime.now().difference(_primaryWeddingCacheAt!) < _cacheTtl;
+
+  bool _isListCacheValid(_ListCacheEntry entry) =>
+      DateTime.now().difference(entry.cachedAt) < _cacheTtl;
+
+  void _invalidateCaches() {
+    _primaryWeddingCache = null;
+    _primaryWeddingCacheAt = null;
+    _listCache.clear();
+  }
+
   Future<WeddingMeta?> getPrimaryWedding() async {
-    final response = await http
-        .get(_uri('/bodas'))
-        .timeout(const Duration(seconds: 12));
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Error al obtener boda: ${response.statusCode}');
+    if (_primaryWeddingCache != null && _isPrimaryWeddingCacheValid) {
+      return _primaryWeddingCache;
     }
+    if (_primaryWeddingInFlight != null) return _primaryWeddingInFlight!;
 
-    final decoded = json.decode(response.body);
-    final items = _extractItems(decoded);
-    if (items.isEmpty) return null;
-    return WeddingMeta.fromJson(items.first);
+    final future = () async {
+      final response = await http
+          .get(_uri('/bodas'))
+          .timeout(const Duration(seconds: 12));
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Error al obtener boda: ${response.statusCode}');
+      }
+
+      final decoded = json.decode(response.body);
+      final items = _extractItems(decoded);
+      if (items.isEmpty) {
+        _primaryWeddingCache = null;
+        _primaryWeddingCacheAt = DateTime.now();
+        return null;
+      }
+
+      final meta = WeddingMeta.fromJson(items.first);
+      _primaryWeddingCache = meta;
+      _primaryWeddingCacheAt = DateTime.now();
+      return meta;
+    }();
+
+    _primaryWeddingInFlight = future;
+    try {
+      return await future;
+    } finally {
+      _primaryWeddingInFlight = null;
+    }
   }
 
   Future<WeddingMeta> updateWeddingMeta(
@@ -97,7 +141,10 @@ class WeddingService {
         'instagramHashtag': instagramHashtag,
       },
     );
-    return WeddingMeta.fromJson(map);
+    final meta = WeddingMeta.fromJson(map);
+    _primaryWeddingCache = meta;
+    _primaryWeddingCacheAt = DateTime.now();
+    return meta;
   }
 
   Future<List<Invitado>> getInvitados(String bodaId) async {
@@ -452,15 +499,32 @@ class WeddingService {
   }
 
   Future<List<Map<String, dynamic>>> _getItems(String path) async {
-    final response = await http
-        .get(_uri(path))
-        .timeout(const Duration(seconds: 12));
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Error al consultar $path: ${response.statusCode}');
-    }
+    final cached = _listCache[path];
+    if (cached != null && _isListCacheValid(cached)) return cached.items;
 
-    final decoded = json.decode(response.body);
-    return _extractItems(decoded);
+    final inFlight = _itemsInFlight[path];
+    if (inFlight != null) return inFlight;
+
+    final future = () async {
+      final response = await http
+          .get(_uri(path))
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Error al consultar $path: ${response.statusCode}');
+      }
+
+      final decoded = json.decode(response.body);
+      final items = _extractItems(decoded);
+      _listCache[path] = _ListCacheEntry(items: items, cachedAt: DateTime.now());
+      return items;
+    }();
+
+    _itemsInFlight[path] = future;
+    try {
+      return await future;
+    } finally {
+      _itemsInFlight.remove(path);
+    }
   }
 
   Future<Map<String, dynamic>> _post(
@@ -476,6 +540,8 @@ class WeddingService {
         'Error al crear en $path: ${response.statusCode} - ${response.body}',
       );
     }
+
+    _invalidateCaches();
 
     return _extractSingleItem(response.body);
   }
@@ -494,6 +560,8 @@ class WeddingService {
       );
     }
 
+    _invalidateCaches();
+
     return _extractSingleItem(response.body);
   }
 
@@ -510,6 +578,8 @@ class WeddingService {
         'Error al actualizar en $path: ${response.statusCode} - ${response.body}',
       );
     }
+
+    _invalidateCaches();
 
     return _extractSingleItem(response.body);
   }
@@ -554,4 +624,11 @@ class WeddingService {
 
     return const [];
   }
+}
+
+class _ListCacheEntry {
+  final List<Map<String, dynamic>> items;
+  final DateTime cachedAt;
+
+  const _ListCacheEntry({required this.items, required this.cachedAt});
 }

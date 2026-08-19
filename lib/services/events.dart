@@ -8,26 +8,56 @@ import '../models/song_of_week.dart';
 
 class EventService {
   final String _baseUrl = ApiConfig.baseUrl + ApiConfig.eventosPath;
+  static const Duration _cacheTtl = Duration(seconds: 45);
+
+  List<Map<String, dynamic>>? _allCache;
+  DateTime? _allCacheAt;
+  Future<List<Map<String, dynamic>>>? _allInFlight;
 
   Uri _uri([String extra = '']) => Uri.parse('$_baseUrl$extra');
+
+  bool get _isAllCacheValid =>
+      _allCache != null &&
+      _allCacheAt != null &&
+      DateTime.now().difference(_allCacheAt!) < _cacheTtl;
+
+  void _invalidateAllCache() {
+    _allCache = null;
+    _allCacheAt = null;
+  }
 
   // ── GET todos y filtra por type en cliente ────────────────────────────────
   // Un solo GET es más confiable que 3 calls con ?type= cuando la Lambda
   // puede ignorar query params en ciertas configuraciones.
-  Future<List<Map<String, dynamic>>> _getAll() async {
-    final response = await http.get(_uri());
-    if (response.statusCode == 200) {
-      final dynamic body = json.decode(response.body);
-      // La API puede devolver {"items": [...]} o directamente [...]
-      final List<dynamic> list = body is List ? body : (body['items'] ?? []);
-      return list.cast<Map<String, dynamic>>();
+  Future<List<Map<String, dynamic>>> _getAll({bool forceRefresh = false}) async {
+    if (!forceRefresh && _isAllCacheValid) return _allCache!;
+    if (!forceRefresh && _allInFlight != null) return _allInFlight!;
+
+    final future = () async {
+      final response = await http.get(_uri());
+      if (response.statusCode == 200) {
+        final dynamic body = json.decode(response.body);
+        // La API puede devolver {"items": [...]} o directamente [...]
+        final List<dynamic> list = body is List ? body : (body['items'] ?? []);
+        final parsed = list.cast<Map<String, dynamic>>();
+        _allCache = parsed;
+        _allCacheAt = DateTime.now();
+        return parsed;
+      }
+      throw Exception('Error al obtener eventos: ${response.statusCode}');
+    }();
+
+    _allInFlight = future;
+    try {
+      return await future;
+    } finally {
+      _allInFlight = null;
     }
-    throw Exception('Error al obtener eventos: ${response.statusCode}');
   }
 
   // ── Carga combinada — filtra por type en el cliente ───────────────────────
-  Future<CalendarData> getCalendarData() async {
-    final all = await _getAll();
+  Future<CalendarData> getCalendarData({bool forceRefresh = false}) async {
+    final all = await _getAll(forceRefresh: forceRefresh);
 
     final recuerdos = all
         .where((i) => i['type'] == 'recuerdo')
@@ -49,8 +79,8 @@ class EventService {
 
   // ── Recuerdos ─────────────────────────────────────────────────────────────
 
-  Future<List<Recuerdo>> getRecuerdos() async {
-    final all = await _getAll();
+  Future<List<Recuerdo>> getRecuerdos({bool forceRefresh = false}) async {
+    final all = await _getAll(forceRefresh: forceRefresh);
     return all
         .where((i) => i['type'] == 'recuerdo')
         .map(Recuerdo.fromJson)
@@ -65,6 +95,7 @@ class EventService {
     );
     if (response.statusCode == 201) {
       final body = json.decode(response.body);
+      _invalidateAllCache();
       return Recuerdo(
         id: body['id'],
         title: recuerdo.title,
@@ -85,6 +116,7 @@ class EventService {
     if (response.statusCode != 200) {
       throw Exception('Error al actualizar recuerdo: ${response.body}');
     }
+    _invalidateAllCache();
   }
 
   Future<void> deleteRecuerdo(String id) async {
@@ -92,12 +124,13 @@ class EventService {
     if (response.statusCode != 200) {
       throw Exception('Error al eliminar recuerdo: ${response.body}');
     }
+    _invalidateAllCache();
   }
 
   // ── Cartas ────────────────────────────────────────────────────────────────
 
-  Future<List<CartaSorpresa>> getCartas() async {
-    final all = await _getAll();
+  Future<List<CartaSorpresa>> getCartas({bool forceRefresh = false}) async {
+    final all = await _getAll(forceRefresh: forceRefresh);
     return all
         .where((i) => i['type'] == 'carta')
         .map(CartaSorpresa.fromJson)
@@ -112,6 +145,7 @@ class EventService {
     );
     if (response.statusCode == 201) {
       final body = json.decode(response.body);
+      _invalidateAllCache();
       return CartaSorpresa(
         id: body['id'],
         title: carta.title,
@@ -129,6 +163,7 @@ class EventService {
     final response = await http.patch(_uri('/$id/abrir'));
     if (response.statusCode == 200) {
       final body = json.decode(response.body);
+      _invalidateAllCache();
       return CartaSorpresa.fromJson(body['item']);
     }
     final body = json.decode(response.body);
@@ -140,12 +175,13 @@ class EventService {
     if (response.statusCode != 200) {
       throw Exception('Error al eliminar carta: ${response.body}');
     }
+    _invalidateAllCache();
   }
 
   // ── Eventos ───────────────────────────────────────────────────────────────
 
-  Future<List<EventoImportante>> getEventos() async {
-    final all = await _getAll();
+  Future<List<EventoImportante>> getEventos({bool forceRefresh = false}) async {
+    final all = await _getAll(forceRefresh: forceRefresh);
     return all
         .where((i) => i['type'] == 'evento')
         .map(EventoImportante.fromJson)
@@ -160,6 +196,7 @@ class EventService {
     );
     if (response.statusCode == 201) {
       final body = json.decode(response.body);
+      _invalidateAllCache();
       return EventoImportante(
         id: body['id'] ?? evento.id,
         title: evento.title,
@@ -182,6 +219,7 @@ class EventService {
     );
     if (response.statusCode == 200) {
       final body = json.decode(response.body);
+      _invalidateAllCache();
       return EventoImportante.fromJson(body['item'] ?? body);
     }
     throw Exception('Error al actualizar evento: ${response.body}');
@@ -192,12 +230,13 @@ class EventService {
     if (response.statusCode != 200) {
       throw Exception('Error al eliminar evento: ${response.body}');
     }
+    _invalidateAllCache();
   }
 
   // ── Canción de la semana ──────────────────────────────────────────────────
 
-  Future<SongOfWeek?> getSongOfWeek() async {
-    final all = await _getAll();
+  Future<SongOfWeek?> getSongOfWeek({bool forceRefresh = false}) async {
+    final all = await _getAll(forceRefresh: forceRefresh);
     final weekKey = SongOfWeek.currentWeekKey();
 
     print("Number week: ${weekKey}");
@@ -218,6 +257,7 @@ class EventService {
     );
     if (response.statusCode == 201 || response.statusCode == 200) {
       final body = json.decode(response.body);
+      _invalidateAllCache();
       return SongOfWeek.fromJson({
         ...song.toJson(),
         'id': body['id'] ?? song.id,
@@ -233,6 +273,7 @@ class EventService {
       body: json.encode(song.toJson()),
     );
     if (response.statusCode == 200) {
+      _invalidateAllCache();
       return song;
     }
     throw Exception('Error al actualizar canción: ${response.body}');
