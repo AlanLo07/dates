@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/recuerdos.dart';
 import '../models/carta.dart';
@@ -30,11 +31,19 @@ class EventService {
   // Un solo GET es más confiable que 3 calls con ?type= cuando la Lambda
   // puede ignorar query params en ciertas configuraciones.
   Future<List<Map<String, dynamic>>> _getAll({bool forceRefresh = false}) async {
-    if (!forceRefresh && _isAllCacheValid) return _allCache!;
-    if (!forceRefresh && _allInFlight != null) return _allInFlight!;
+    if (!forceRefresh && _isAllCacheValid) {
+      debugPrint('🟢 [EventService] getAll: usando cache (${_allCache!.length} items)');
+      return _allCache!;
+    }
+    if (!forceRefresh && _allInFlight != null) {
+      debugPrint('🟡 [EventService] getAll: reutilizando solicitud en curso');
+      return _allInFlight!;
+    }
 
     final future = () async {
+      debugPrint('🔵 [EventService] getAll: GET de eventos iniciado');
       final response = await http.get(_uri());
+      debugPrint('⚪️ [EventService] getAll: respuesta HTTP ${response.statusCode}');
       if (response.statusCode == 200) {
         final dynamic body = json.decode(response.body);
         // La API puede devolver {"items": [...]} o directamente [...]
@@ -42,14 +51,19 @@ class EventService {
         final parsed = list.cast<Map<String, dynamic>>();
         _allCache = parsed;
         _allCacheAt = DateTime.now();
+        debugPrint('🟢 [EventService] getAll: parseados ${parsed.length} items');
         return parsed;
       }
+      debugPrint('🔴 [EventService] getAll: HTTP no exitoso');
       throw Exception('Error al obtener eventos: ${response.statusCode}');
     }();
 
     _allInFlight = future;
     try {
       return await future;
+    } catch (e) {
+      debugPrint('🔴 [EventService] getAll: excepción (${e.runtimeType}): $e');
+      rethrow;
     } finally {
       _allInFlight = null;
     }
@@ -57,6 +71,9 @@ class EventService {
 
   // ── Carga combinada — filtra por type en el cliente ───────────────────────
   Future<CalendarData> getCalendarData({bool forceRefresh = false}) async {
+    debugPrint(
+      '🔵 [EventService] getCalendarData: iniciando (forceRefresh=$forceRefresh)',
+    );
     final all = await _getAll(forceRefresh: forceRefresh);
 
     final recuerdos = all
@@ -74,6 +91,10 @@ class EventService {
         .map(EventoImportante.fromJson)
         .toList();
 
+    debugPrint(
+      '🟢 [EventService] getCalendarData: recuerdos=${recuerdos.length}, '
+      'cartas=${cartas.length}, eventos=${eventos.length}',
+    );
     return CalendarData(recuerdos: recuerdos, cartas: cartas, eventos: eventos);
   }
 
@@ -160,12 +181,16 @@ class EventService {
   }
 
   Future<CartaSorpresa> abrirCarta(String id) async {
+    debugPrint('🔵 [EventService] abrirCarta: PATCH iniciado');
     final response = await http.patch(_uri('/$id/abrir'));
+    debugPrint('⚪️ [EventService] abrirCarta: respuesta HTTP ${response.statusCode}');
     if (response.statusCode == 200) {
       final body = json.decode(response.body);
       _invalidateAllCache();
+      debugPrint('🟢 [EventService] abrirCarta: completado');
       return CartaSorpresa.fromJson(body['item']);
     }
+    debugPrint('🔴 [EventService] abrirCarta: HTTP no exitoso');
     final body = json.decode(response.body);
     throw Exception(body['message'] ?? 'Error al abrir carta');
   }
@@ -189,14 +214,17 @@ class EventService {
   }
 
   Future<EventoImportante> createEvento(EventoImportante evento) async {
+    debugPrint('🔵 [EventService] createEvento: POST iniciado');
     final response = await http.post(
       _uri(),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(evento.toJson()),
     );
+    debugPrint('⚪️ [EventService] createEvento: respuesta HTTP ${response.statusCode}');
     if (response.statusCode == 201) {
       final body = json.decode(response.body);
       _invalidateAllCache();
+      debugPrint('🟢 [EventService] createEvento: completado');
       return EventoImportante(
         id: body['id'] ?? evento.id,
         title: evento.title,
@@ -208,29 +236,38 @@ class EventService {
         documentos: evento.documentos,
       );
     }
+    debugPrint('🔴 [EventService] createEvento: HTTP no exitoso');
     throw Exception('Error al crear evento: ${response.body}');
   }
 
   Future<EventoImportante> updateEvento(EventoImportante evento) async {
+    debugPrint('🔵 [EventService] updateEvento: PUT iniciado');
     final response = await http.put(
       _uri('/${evento.id}'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(evento.toJson()),
     );
+    debugPrint('⚪️ [EventService] updateEvento: respuesta HTTP ${response.statusCode}');
     if (response.statusCode == 200) {
       final body = json.decode(response.body);
       _invalidateAllCache();
+      debugPrint('🟢 [EventService] updateEvento: completado');
       return EventoImportante.fromJson(body['item'] ?? body);
     }
+    debugPrint('🔴 [EventService] updateEvento: HTTP no exitoso');
     throw Exception('Error al actualizar evento: ${response.body}');
   }
 
   Future<void> deleteEvento(String id) async {
+    debugPrint('🔵 [EventService] deleteEvento: DELETE iniciado');
     final response = await http.delete(_uri('/$id'));
+    debugPrint('⚪️ [EventService] deleteEvento: respuesta HTTP ${response.statusCode}');
     if (response.statusCode != 200) {
+      debugPrint('🔴 [EventService] deleteEvento: HTTP no exitoso');
       throw Exception('Error al eliminar evento: ${response.body}');
     }
     _invalidateAllCache();
+    debugPrint('🟢 [EventService] deleteEvento: completado');
   }
 
   // ── Canción de la semana ──────────────────────────────────────────────────

@@ -135,6 +135,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint('⚪️ [Calendar] initState: iniciando calendario');
     _calendarConfettiController = ConfettiController(
       duration: const Duration(milliseconds: 1200),
     );
@@ -148,6 +149,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _loadData() async {
+    debugPrint('🔵 [Calendar] loadData: solicitando datos del calendario');
     setState(() {
       _isLoading = true;
       _error = null;
@@ -160,7 +162,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
         _eventos = data.eventos;
         _isLoading = false;
       });
+      debugPrint(
+        '🟢 [Calendar] loadData: cargados recuerdos=${data.recuerdos.length}, '
+        'cartas=${data.cartas.length}, eventos=${data.eventos.length}',
+      );
     } catch (e) {
+      debugPrint('🔴 [Calendar] loadData: fallo (${e.runtimeType}): $e');
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -469,18 +476,32 @@ class _CalendarScreenState extends State<CalendarScreen> {
               evento: evento,
               iconFromString: _iconFromString,
               onDelete: (id) async {
-                await _service.deleteEvento(id);
-                setState(() => _eventos.removeWhere((e) => e.id == id));
+                debugPrint('🔵 [Calendar] deleteEvento: iniciando');
+                try {
+                  await _service.deleteEvento(id);
+                  setState(() => _eventos.removeWhere((e) => e.id == id));
+                  debugPrint('🟢 [Calendar] deleteEvento: completado');
+                } catch (e) {
+                  debugPrint('🔴 [Calendar] deleteEvento: fallo (${e.runtimeType}): $e');
+                  rethrow;
+                }
               },
               onEdit: (actualizado) async {
-                final guardado = await _service.updateEvento(actualizado);
-                if (!mounted) return;
-                setState(() {
-                  final index = _eventos.indexWhere((e) => e.id == guardado.id);
-                  if (index >= 0) {
-                    _eventos[index] = guardado;
-                  }
-                });
+                debugPrint('🔵 [Calendar] updateEvento: iniciando');
+                try {
+                  final guardado = await _service.updateEvento(actualizado);
+                  if (!mounted) return;
+                  setState(() {
+                    final index = _eventos.indexWhere((e) => e.id == guardado.id);
+                    if (index >= 0) {
+                      _eventos[index] = guardado;
+                    }
+                  });
+                  debugPrint('🟢 [Calendar] updateEvento: completado');
+                } catch (e) {
+                  debugPrint('🔴 [Calendar] updateEvento: fallo (${e.runtimeType}): $e');
+                  rethrow;
+                }
               },
             ),
           ),
@@ -492,6 +513,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   // ── Lógica de carta ────────────────────────────────────────────────────────
 
   Future<void> _verificarCarta(DateTime day, CartaSorpresa carta) async {
+    debugPrint(
+      '🔵 [Calendar] verificarCarta: fecha=${_toApiDateKey(day)}, '
+      'abierta=${carta.abierta}',
+    );
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final localDay = DateTime(day.year, day.month, day.day);
@@ -515,6 +540,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     try {
       final cartaAbierta = await _service.abrirCarta(carta.id);
+      debugPrint('🟢 [Calendar] verificarCarta: carta abierta correctamente');
       setState(() {
         final idx = _cartas.indexWhere((c) => c.id == carta.id);
         if (idx >= 0) _cartas[idx] = cartaAbierta;
@@ -524,6 +550,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         MaterialPageRoute(builder: (_) => LetterScreen(carta: cartaAbierta)),
       );
     } catch (e) {
+      debugPrint(
+        '🟡 [Calendar] verificarCarta: no se pudo abrir, mostrando carta '
+        'original (${e.runtimeType}): $e',
+      );
       if (!mounted) return;
       Navigator.of(
         context,
@@ -900,12 +930,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                   },
                                 ),
                                 onDaySelected: (selectedDay, focusedDay) async {
+                                  debugPrint(
+                                    '⚪️ [Calendar] onDaySelected: '
+                                    '${_toApiDateKey(selectedDay)}',
+                                  );
                                   setState(() => _focusedDay = focusedDay);
 
                                   // Una sola llamada — sin triple lookup
                                   final data = _getDayData(selectedDay);
 
                                   if (data.carta != null && _mostrarCartas) {
+                                    debugPrint('🟢 [Calendar] onDaySelected: mostrando carta');
                                     await _verificarCarta(
                                       selectedDay,
                                       data.carta!,
@@ -914,19 +949,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                   }
                                   if (data.recuerdos.isNotEmpty &&
                                       _mostrarRecuerdos) {
+                                    debugPrint('🟢 [Calendar] onDaySelected: mostrando recuerdo');
                                     _showRecuerdoDialog(data.recuerdos.first);
                                     return;
                                   }
                                   if (data.evento != null && _mostrarCitas) {
+                                    debugPrint('🟢 [Calendar] onDaySelected: mostrando evento');
                                     _showEventoDialog(data.evento!);
                                     return;
                                   }
                                   if (data.eventoItinerario != null &&
                                       _mostrarCitas) {
+                                    debugPrint(
+                                      '🟢 [Calendar] onDaySelected: mostrando actividad de itinerario',
+                                    );
                                     _showEventoDialog(data.eventoItinerario!);
                                     return;
                                   }
 
+                                  debugPrint(
+                                    '⚪️ [Calendar] onDaySelected: día vacío, abriendo formulario',
+                                  );
                                   _mostrarAgendarDesdeCalendario(selectedDay);
                                 },
                                 selectedDayPredicate: (day) =>
