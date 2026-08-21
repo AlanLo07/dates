@@ -188,7 +188,7 @@ class _ProximaCitaCounterState extends State<ProximaCitaCounter>
       margin: const EdgeInsets.symmetric(horizontal: 4),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.violeta.withOpacity(0.1),
+        color: AppColors.violeta.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(

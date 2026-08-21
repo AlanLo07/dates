@@ -297,7 +297,7 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: p.estado.color.withOpacity(0.12),
+              color: p.estado.color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(Icons.business_center_outlined, color: p.estado.color),
@@ -340,7 +340,7 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
                 p.estado.label,
                 style: TextStyle(color: p.estado.color),
               ),
-              backgroundColor: p.estado.color.withOpacity(0.1),
+              backgroundColor: p.estado.color.withValues(alpha: 0.1),
             ),
           ),
           IconButton(

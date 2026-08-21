@@ -270,7 +270,7 @@ class _WheelScreenState extends State<WheelScreen>
                             ? []
                             : [
                                 BoxShadow(
-                                  color: AppColors.violeta.withOpacity(0.35),
+                                  color: AppColors.violeta.withValues(alpha: 0.35),
                                   blurRadius: 16,
                                   offset: const Offset(0, 6),
                                 ),
@@ -374,7 +374,7 @@ class _WheelScreenState extends State<WheelScreen>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : Colors.white,
+          color: isSelected ? color.withValues(alpha: 0.15) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: isSelected ? color : Colors.grey.shade300, width: 1.5),
         ),
@@ -409,10 +409,10 @@ class _WheelScreenState extends State<WheelScreen>
       decoration: BoxDecoration(
         color: item.level.bg,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: item.level.color.withOpacity(0.5), width: 1.5),
+        border: Border.all(color: item.level.color.withValues(alpha: 0.5), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: item.level.color.withOpacity(0.25),
+            color: item.level.color.withValues(alpha: 0.25),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),

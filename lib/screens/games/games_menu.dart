@@ -71,7 +71,7 @@ class GamesMenuScreen extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.violeta.withOpacity(0.15)),
+              border: Border.all(color: AppColors.violeta.withValues(alpha: 0.15)),
             ),
             child: Row(
               children: [
@@ -123,7 +123,7 @@ class GamesMenuScreen extends StatelessWidget {
               'Más juegos próximamente 💌',
               style: TextStyle(
                 fontSize: 12,
-                color: AppColors.violeta.withOpacity(0.45),
+                color: AppColors.violeta.withValues(alpha: 0.45),
                 letterSpacing: 0.3,
               ),
             ),
@@ -223,7 +223,7 @@ class _AnimatedGameCardState extends State<_AnimatedGameCard> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: game.shadowColor.withOpacity(isEnabled ? 0.30 : 0.15),
+                  color: game.shadowColor.withValues(alpha: isEnabled ? 0.30 : 0.15),
                   blurRadius: 14,
                   offset: const Offset(0, 5),
                 ),
@@ -239,7 +239,7 @@ class _AnimatedGameCardState extends State<_AnimatedGameCard> {
                     game.emoji,
                     style: TextStyle(
                       fontSize: 70,
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                     ),
                   ),
                 ),
@@ -257,7 +257,7 @@ class _AnimatedGameCardState extends State<_AnimatedGameCard> {
                             width: 52,
                             height: 52,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.22),
+                              color: Colors.white.withValues(alpha: 0.22),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: Center(
@@ -293,7 +293,7 @@ class _AnimatedGameCardState extends State<_AnimatedGameCard> {
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.25),
+                                          color: Colors.white.withValues(alpha: 0.25),
                                           borderRadius: BorderRadius.circular(
                                             10,
                                           ),
@@ -314,7 +314,7 @@ class _AnimatedGameCardState extends State<_AnimatedGameCard> {
                                 Text(
                                   game.subtitle,
                                   style: TextStyle(
-                                    color: Colors.white.withOpacity(0.80),
+                                    color: Colors.white.withValues(alpha: 0.80),
                                     fontSize: 12,
                                   ),
                                   maxLines: 2,
@@ -329,7 +329,7 @@ class _AnimatedGameCardState extends State<_AnimatedGameCard> {
                             isEnabled
                                 ? Icons.arrow_forward_ios_rounded
                                 : Icons.lock_outline_rounded,
-                            color: Colors.white.withOpacity(0.60),
+                            color: Colors.white.withValues(alpha: 0.60),
                             size: 15,
                           ),
                         ],

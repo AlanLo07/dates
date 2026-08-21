@@ -72,7 +72,7 @@ class _MotionPressableState extends State<MotionPressable> {
               borderRadius: widget.borderRadius,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05 * shadowScale),
+                  color: Colors.black.withValues(alpha: 0.05 * shadowScale),
                   blurRadius: 12 * shadowScale,
                   offset: Offset(0, 4 * shadowScale),
                 ),

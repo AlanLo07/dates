@@ -82,7 +82,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: AppColors.violeta.withOpacity(0.1),
+                        color: AppColors.violeta.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
@@ -167,7 +167,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.55),
+                          color: Colors.black.withValues(alpha: 0.55),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
@@ -209,7 +209,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.12),
+                              color: Colors.black.withValues(alpha: 0.12),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -309,7 +309,7 @@ class _PinMarker extends StatelessWidget {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppColors.violeta.withOpacity(0.4),
+                color: AppColors.violeta.withValues(alpha: 0.4),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),

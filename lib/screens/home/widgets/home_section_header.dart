@@ -16,7 +16,7 @@ class HomeSectionHeader extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: AppColors.violeta.withOpacity(0.12),
+              color: AppColors.violeta.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Center(child: Text('💌', style: TextStyle(fontSize: 22))),
@@ -38,7 +38,7 @@ class HomeSectionHeader extends StatelessWidget {
                 Text(
                   '¿Qué hacemos hoy?',
                   style: TextStyle(
-                    color: AppColors.violeta.withOpacity(0.55),
+                    color: AppColors.violeta.withValues(alpha: 0.55),
                     fontSize: 12,
                   ),
                 ),

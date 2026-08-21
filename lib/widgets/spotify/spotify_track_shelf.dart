@@ -42,7 +42,7 @@ class SpotifyTrackShelf extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [
                   const Color(0xFF101114),
-                  const Color(0xFF101114).withOpacity(0.92),
+                  const Color(0xFF101114).withValues(alpha: 0.92),
                 ],
               ),
         color: heroImageUrl.isEmpty ? Colors.white : null,
@@ -50,7 +50,7 @@ class SpotifyTrackShelf extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE6E0F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -77,8 +77,8 @@ class SpotifyTrackShelf extends StatelessWidget {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.18),
-                            Colors.black.withOpacity(0.72),
+                            Colors.black.withValues(alpha: 0.18),
+                            Colors.black.withValues(alpha: 0.72),
                           ],
                         ),
                       ),
@@ -105,7 +105,7 @@ class SpotifyTrackShelf extends StatelessWidget {
                         Text(
                           heroSubtitle.isEmpty ? subtitle : heroSubtitle,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.88),
+                            color: Colors.white.withValues(alpha: 0.88),
                             fontSize: 12,
                           ),
                         ),
@@ -118,7 +118,7 @@ class SpotifyTrackShelf extends StatelessWidget {
                                 vertical: 5,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.16),
+                                color: Colors.white.withValues(alpha: 0.16),
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: Text(
@@ -137,7 +137,7 @@ class SpotifyTrackShelf extends StatelessWidget {
                                 vertical: 5,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.16),
+                                color: Colors.white.withValues(alpha: 0.16),
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: const Text(
@@ -165,7 +165,7 @@ class SpotifyTrackShelf extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1DB954).withOpacity(0.12),
+                  color: const Color(0xFF1DB954).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -297,7 +297,7 @@ class _TrackCard extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE7ECE7)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -347,7 +347,7 @@ class _TrackCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.45),
+                      color: Colors.black.withValues(alpha: 0.45),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: const Text(
@@ -367,7 +367,7 @@ class _TrackCard extends StatelessWidget {
                     width: 34,
                     height: 34,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.92),
+                      color: Colors.white.withValues(alpha: 0.92),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: const Icon(

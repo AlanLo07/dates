@@ -18,7 +18,7 @@ class HomeLockedWeddingCard extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF796B9B).withOpacity(0.25),
+            color: const Color(0xFF796B9B).withValues(alpha: 0.25),
             blurRadius: 14,
             offset: const Offset(0, 5),
           ),
@@ -31,7 +31,7 @@ class HomeLockedWeddingCard extends StatelessWidget {
             bottom: -8,
             child: Text(
               '💍',
-              style: TextStyle(fontSize: 64, color: Colors.white.withOpacity(0.15)),
+              style: TextStyle(fontSize: 64, color: Colors.white.withValues(alpha: 0.15)),
             ),
           ),
           Padding(
@@ -42,7 +42,7 @@ class HomeLockedWeddingCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(13),
                   ),
                   child: const Icon(Icons.lock_outline, color: Colors.white, size: 24),
@@ -66,7 +66,7 @@ class HomeLockedWeddingCard extends StatelessWidget {
                       Text(
                         daysLeft > 0 ? 'Se desbloquea en ? días' : 'Próximamente...',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.75),
+                          color: Colors.white.withValues(alpha: 0.75),
                           fontSize: 12,
                         ),
                       ),
@@ -76,7 +76,7 @@ class HomeLockedWeddingCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Text(

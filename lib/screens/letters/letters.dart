@@ -296,14 +296,14 @@ class _LetterScreenState extends State<LetterScreen>
                     _isOpened
                         ? Icons.keyboard_arrow_up_rounded
                         : Icons.keyboard_arrow_up_rounded,
-                    color: AppColors.violeta.withOpacity(0.3),
+                    color: AppColors.violeta.withValues(alpha: 0.3),
                     size: 20,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     _isOpened ? 'Toca para cerrar' : 'Toca para abrir 💌',
                     style: TextStyle(
-                      color: AppColors.violeta.withOpacity(0.45),
+                      color: AppColors.violeta.withValues(alpha: 0.45),
                       fontSize: 12,
                       letterSpacing: 0.5,
                     ),
@@ -370,13 +370,13 @@ class _LetterScreenState extends State<LetterScreen>
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Colors.pinkAccent.withOpacity(0.18),
+              color: Colors.pinkAccent.withValues(alpha: 0.18),
               blurRadius: 28,
               spreadRadius: 2,
               offset: const Offset(0, 10),
             ),
             BoxShadow(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               blurRadius: 4,
               offset: const Offset(0, -2),
             ),
@@ -561,7 +561,7 @@ class _LetterScreenState extends State<LetterScreen>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.pinkAccent.withOpacity(0.15),
+                color: Colors.pinkAccent.withValues(alpha: 0.15),
                 blurRadius: 32,
                 spreadRadius: 2,
                 offset: const Offset(0, 12),
@@ -653,9 +653,9 @@ class _LetterScreenState extends State<LetterScreen>
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withOpacity(0.30),
-                Colors.black.withOpacity(0.55),
-                Colors.black.withOpacity(0.72),
+                Colors.black.withValues(alpha: 0.30),
+                Colors.black.withValues(alpha: 0.55),
+                Colors.black.withValues(alpha: 0.72),
               ],
             ),
           ),
@@ -669,7 +669,7 @@ class _LetterScreenState extends State<LetterScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
       decoration: BoxDecoration(
-        color: onImage ? Colors.black.withOpacity(0.22) : Colors.pink.shade50,
+        color: onImage ? Colors.black.withValues(alpha: 0.22) : Colors.pink.shade50,
       ),
       child: Row(
         children: [
@@ -696,7 +696,7 @@ class _LetterScreenState extends State<LetterScreen>
               height: 32,
               decoration: BoxDecoration(
                 color: onImage
-                    ? Colors.white.withOpacity(0.15)
+                    ? Colors.white.withValues(alpha: 0.15)
                     : Colors.pink.shade100,
                 shape: BoxShape.circle,
               ),
@@ -742,10 +742,10 @@ class _LetterScreenState extends State<LetterScreen>
   Widget _buildAudioPlayer() {
     final onImage = _hasImage;
     final bgColor = onImage
-        ? Colors.black.withOpacity(0.32)
+        ? Colors.black.withValues(alpha: 0.32)
         : Colors.pink.shade50;
     final borderColor = onImage
-        ? Colors.white.withOpacity(0.12)
+        ? Colors.white.withValues(alpha: 0.12)
         : Colors.pink.shade100;
 
     return Container(
@@ -810,7 +810,7 @@ class _LetterScreenState extends State<LetterScreen>
                 boxShadow: [
                   if (!isError && !isLoading)
                     BoxShadow(
-                      color: Colors.pinkAccent.withOpacity(0.40),
+                      color: Colors.pinkAccent.withValues(alpha: 0.40),
                       blurRadius: 10,
                       offset: const Offset(0, 3),
                     ),
@@ -848,7 +848,7 @@ class _LetterScreenState extends State<LetterScreen>
     final labelColor = onImage ? Colors.white70 : AppColors.violeta;
     final timeColor = onImage ? Colors.white54 : Colors.grey.shade500;
     final trackBg = onImage
-        ? Colors.white.withOpacity(0.18)
+        ? Colors.white.withValues(alpha: 0.18)
         : Colors.pink.shade100;
 
     final progress = _total.inMilliseconds > 0
@@ -1059,7 +1059,7 @@ class _WaveRing extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: Colors.pinkAccent.withOpacity(opacity),
+              color: Colors.pinkAccent.withValues(alpha: opacity),
               width: 1.5,
             ),
           ),
@@ -1082,7 +1082,7 @@ class _ScrollFadeWrapper extends StatelessWidget {
         return LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.white, Colors.white, Colors.white.withOpacity(0.0)],
+          colors: [Colors.white, Colors.white, Colors.white.withValues(alpha: 0.0)],
           stops: const [0.0, 0.88, 1.0],
         ).createShader(rect);
       },
@@ -1117,7 +1117,7 @@ class _HeartPatternPainter extends CustomPainter {
     const symbols = ['♥', '✿', '❀', '♡', '✦'];
     final style = TextStyle(
       fontSize: 20,
-      color: Colors.pinkAccent.withOpacity(0.06),
+      color: Colors.pinkAccent.withValues(alpha: 0.06),
     );
     for (int row = 0; row < 9; row++) {
       for (int col = 0; col < 6; col++) {

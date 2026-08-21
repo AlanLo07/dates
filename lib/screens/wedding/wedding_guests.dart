@@ -233,7 +233,7 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
             ),
             Text(
               label,
-              style: TextStyle(fontSize: 10, color: textColor.withOpacity(.7)),
+              style: TextStyle(fontSize: 10, color: textColor.withValues(alpha: .7)),
             ),
           ],
         ),
@@ -317,7 +317,7 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: colors[inv.rsvp]!.withOpacity(0.12),
+                color: colors[inv.rsvp]!.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(

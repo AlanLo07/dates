@@ -297,7 +297,7 @@ class _ResultScreenState extends State<ResultScreen> {
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.violeta.withOpacity(0.1),
+                        color: AppColors.violeta.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -397,7 +397,7 @@ class _ResultScreenState extends State<ResultScreen> {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: AppColors.violeta.withOpacity(0.08),
+            color: AppColors.violeta.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -662,7 +662,7 @@ class _EditarCitaSheetState extends State<_EditarCitaSheet> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.violeta.withOpacity(0.12),
+                    color: AppColors.violeta.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
@@ -785,7 +785,7 @@ class _EditarCitaSheetState extends State<_EditarCitaSheet> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.violeta.withOpacity(0.1),
+                    color: AppColors.violeta.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -802,9 +802,9 @@ class _EditarCitaSheetState extends State<_EditarCitaSheet> {
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
                 activeTrackColor: AppColors.violeta,
-                inactiveTrackColor: AppColors.violeta.withOpacity(0.15),
+                inactiveTrackColor: AppColors.violeta.withValues(alpha: 0.15),
                 thumbColor: AppColors.violeta,
-                overlayColor: AppColors.violeta.withOpacity(0.1),
+                overlayColor: AppColors.violeta.withValues(alpha: 0.1),
                 trackHeight: 4,
               ),
               child: Slider(
@@ -898,7 +898,7 @@ class _EditarCitaSheetState extends State<_EditarCitaSheet> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
           color: hasLink
-              ? AppColors.violeta.withOpacity(0.06)
+              ? AppColors.violeta.withValues(alpha: 0.06)
               : Colors.grey.shade50,
           border: Border.all(
             color: hasLink ? AppColors.violeta : Colors.grey.shade300,
@@ -1046,7 +1046,7 @@ class _EditarCitaSheetState extends State<_EditarCitaSheet> {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.55),
+                  color: Colors.black.withValues(alpha: 0.55),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -1066,10 +1066,10 @@ class _EditarCitaSheetState extends State<_EditarCitaSheet> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.violeta.withOpacity(0.06),
+          color: AppColors.violeta.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: AppColors.violeta.withOpacity(0.3),
+            color: AppColors.violeta.withValues(alpha: 0.3),
             width: 1.5,
           ),
         ),
@@ -1090,7 +1090,7 @@ class _EditarCitaSheetState extends State<_EditarCitaSheet> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: AppColors.violeta.withOpacity(0.8),
+                color: AppColors.violeta.withValues(alpha: 0.8),
               ),
               textAlign: TextAlign.center,
             ),
@@ -1185,12 +1185,12 @@ class _EditarCitaSheetState extends State<_EditarCitaSheet> {
         decoration: BoxDecoration(
           color: isRetry
               ? Colors.red.shade50
-              : AppColors.violeta.withOpacity(0.05),
+              : AppColors.violeta.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isRetry
                 ? Colors.red.shade200
-                : AppColors.violeta.withOpacity(0.25),
+                : AppColors.violeta.withValues(alpha: 0.25),
             width: 1.5,
             style: BorderStyle.solid,
           ),
@@ -1205,7 +1205,7 @@ class _EditarCitaSheetState extends State<_EditarCitaSheet> {
               size: 32,
               color: isRetry
                   ? Colors.red.shade400
-                  : AppColors.violeta.withOpacity(0.6),
+                  : AppColors.violeta.withValues(alpha: 0.6),
             ),
             const SizedBox(height: 8),
             Text(
@@ -1215,7 +1215,7 @@ class _EditarCitaSheetState extends State<_EditarCitaSheet> {
                 fontWeight: FontWeight.w600,
                 color: isRetry
                     ? Colors.red.shade600
-                    : AppColors.violeta.withOpacity(0.7),
+                    : AppColors.violeta.withValues(alpha: 0.7),
               ),
             ),
             if (!isRetry) ...[

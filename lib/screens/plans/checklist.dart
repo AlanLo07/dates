@@ -427,10 +427,10 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50).withOpacity(0.12),
+                  color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xFF4CAF50).withOpacity(0.6),
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.6),
                   ),
                 ),
                 child: Text(
@@ -537,7 +537,7 @@ class _ProgressHeader extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.violeta.withOpacity(0.10),
+            color: AppColors.violeta.withValues(alpha: 0.10),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
@@ -571,8 +571,8 @@ class _ProgressHeader extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: completado
-                      ? const Color(0xFF2E7D32).withOpacity(0.1)
-                      : AppColors.violeta.withOpacity(0.1),
+                      ? const Color(0xFF2E7D32).withValues(alpha: 0.1)
+                      : AppColors.violeta.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -697,15 +697,15 @@ class _LugarCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: lugar.isVisited
-              ? AppColors.celeste.withOpacity(0.6)
+              ? AppColors.celeste.withValues(alpha: 0.6)
               : Colors.grey.shade200,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
             color: lugar.isVisited
-                ? AppColors.celeste.withOpacity(0.15)
-                : AppColors.violeta.withOpacity(0.06),
+                ? AppColors.celeste.withValues(alpha: 0.15)
+                : AppColors.violeta.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -723,7 +723,7 @@ class _LugarCard extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: lugar.isVisited
-                      ? AppColors.celeste.withOpacity(0.2)
+                      ? AppColors.celeste.withValues(alpha: 0.2)
                       : Colors.grey.shade100,
                   shape: BoxShape.circle,
                 ),
@@ -746,7 +746,7 @@ class _LugarCard extends StatelessWidget {
               style: titleStyle,
               highlightStyle: titleStyle.copyWith(
                 fontWeight: FontWeight.w800,
-                backgroundColor: AppColors.malva.withOpacity(0.32),
+                backgroundColor: AppColors.malva.withValues(alpha: 0.32),
               ),
             ),
             subtitle: Padding(
@@ -767,7 +767,7 @@ class _LugarCard extends StatelessWidget {
                     style: descriptionStyle,
                     highlightStyle: descriptionStyle.copyWith(
                       fontWeight: FontWeight.w700,
-                      backgroundColor: AppColors.celeste.withOpacity(0.38),
+                      backgroundColor: AppColors.celeste.withValues(alpha: 0.38),
                     ),
                   ),
                   if (citaSearchSummary(lugar).isNotEmpty) ...[
@@ -805,7 +805,7 @@ class _LugarCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.violeta.withOpacity(0.10),
+                    color: AppColors.violeta.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(

@@ -67,7 +67,7 @@ class _OwlHelperWidgetState extends State<OwlHelperWidget>
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF796B9B).withOpacity(0.14),
+                        color: const Color(0xFF796B9B).withValues(alpha: 0.14),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),

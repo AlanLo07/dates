@@ -54,7 +54,7 @@ class HomeMenuCard extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: gradientColors.last.withOpacity(0.30),
+                color: gradientColors.last.withValues(alpha: 0.30),
                 blurRadius: 14,
                 offset: const Offset(0, 5),
               ),
@@ -69,7 +69,7 @@ class HomeMenuCard extends StatelessWidget {
                   emoji,
                   style: TextStyle(
                     fontSize: 64,
-                    color: Colors.white.withOpacity(0.18),
+                    color: Colors.white.withValues(alpha: 0.18),
                   ),
                 ),
               ),
@@ -81,7 +81,7 @@ class HomeMenuCard extends StatelessWidget {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
+                        color: Colors.white.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(13),
                       ),
                       child: Icon(icon, color: Colors.white, size: 26),
@@ -105,7 +105,7 @@ class HomeMenuCard extends StatelessWidget {
                           Text(
                             subtitle,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.80),
+                              color: Colors.white.withValues(alpha: 0.80),
                               fontSize: 12,
                             ),
                           ),
@@ -114,7 +114,7 @@ class HomeMenuCard extends StatelessWidget {
                     ),
                     Icon(
                       Icons.arrow_forward_ios_rounded,
-                      color: Colors.white.withOpacity(0.65),
+                      color: Colors.white.withValues(alpha: 0.65),
                       size: 15,
                     ),
                   ],

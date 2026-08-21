@@ -87,8 +87,8 @@ class _Orb extends StatelessWidget {
           shape: BoxShape.circle,
           gradient: RadialGradient(
             colors: [
-              color.withOpacity(0.18),
-              color.withOpacity(0.03),
+              color.withValues(alpha: 0.18),
+              color.withValues(alpha: 0.03),
             ],
           ),
         ),

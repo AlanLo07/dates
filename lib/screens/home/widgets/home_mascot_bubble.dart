@@ -121,7 +121,7 @@ class _HomeMascotBubbleState extends State<HomeMascotBubble>
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.violeta.withOpacity(0.18),
+                      color: AppColors.violeta.withValues(alpha: 0.18),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -169,7 +169,7 @@ class _HomeMascotBubbleState extends State<HomeMascotBubble>
                     border: Border.all(color: Colors.white, width: 2),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.violeta.withOpacity(0.25),
+                        color: AppColors.violeta.withValues(alpha: 0.25),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),

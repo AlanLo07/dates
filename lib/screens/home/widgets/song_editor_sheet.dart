@@ -83,7 +83,7 @@ class _SongEditorSheetState extends State<SongEditorSheet> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1DB954).withOpacity(0.1),
+                    color: const Color(0xFF1DB954).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Center(child: Text('🎵', style: TextStyle(fontSize: 20))),
@@ -106,7 +106,7 @@ class _SongEditorSheetState extends State<SongEditorSheet> {
               label: const Text('Elegir una canción aleatoria'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.violeta,
-                side: BorderSide(color: AppColors.violeta.withOpacity(0.4), width: 1.5),
+                side: BorderSide(color: AppColors.violeta.withValues(alpha: 0.4), width: 1.5),
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),

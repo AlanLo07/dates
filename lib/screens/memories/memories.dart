@@ -222,7 +222,7 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: color.withOpacity(0.25),
+                  color: color.withValues(alpha: 0.25),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -235,7 +235,7 @@ class _ExperienceMenuScreenState extends State<ExperienceMenuScreen> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
+                    color: color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Center(
@@ -561,7 +561,7 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.violeta.withOpacity(0.12),
+                    color: AppColors.violeta.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
@@ -684,7 +684,7 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.violeta.withOpacity(0.1),
+                    color: AppColors.violeta.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -701,9 +701,9 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
                 activeTrackColor: AppColors.violeta,
-                inactiveTrackColor: AppColors.violeta.withOpacity(0.15),
+                inactiveTrackColor: AppColors.violeta.withValues(alpha: 0.15),
                 thumbColor: AppColors.violeta,
-                overlayColor: AppColors.violeta.withOpacity(0.1),
+                overlayColor: AppColors.violeta.withValues(alpha: 0.1),
                 trackHeight: 4,
               ),
               child: Slider(
@@ -779,7 +779,7 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
           color: hasLink
-              ? AppColors.violeta.withOpacity(0.06)
+              ? AppColors.violeta.withValues(alpha: 0.06)
               : Colors.grey.shade50,
           border: Border.all(
             color: hasLink ? AppColors.violeta : Colors.grey.shade300,
@@ -927,7 +927,7 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.55),
+                  color: Colors.black.withValues(alpha: 0.55),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -947,10 +947,10 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.violeta.withOpacity(0.06),
+          color: AppColors.violeta.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: AppColors.violeta.withOpacity(0.3),
+            color: AppColors.violeta.withValues(alpha: 0.3),
             width: 1.5,
           ),
         ),
@@ -971,7 +971,7 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: AppColors.violeta.withOpacity(0.8),
+                color: AppColors.violeta.withValues(alpha: 0.8),
               ),
               textAlign: TextAlign.center,
             ),
@@ -1066,12 +1066,12 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
         decoration: BoxDecoration(
           color: isRetry
               ? Colors.red.shade50
-              : AppColors.violeta.withOpacity(0.05),
+              : AppColors.violeta.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isRetry
                 ? Colors.red.shade200
-                : AppColors.violeta.withOpacity(0.25),
+                : AppColors.violeta.withValues(alpha: 0.25),
             width: 1.5,
             style: BorderStyle.solid,
           ),
@@ -1086,7 +1086,7 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
               size: 32,
               color: isRetry
                   ? Colors.red.shade400
-                  : AppColors.violeta.withOpacity(0.6),
+                  : AppColors.violeta.withValues(alpha: 0.6),
             ),
             const SizedBox(height: 8),
             Text(
@@ -1096,7 +1096,7 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
                 fontWeight: FontWeight.w600,
                 color: isRetry
                     ? Colors.red.shade600
-                    : AppColors.violeta.withOpacity(0.7),
+                    : AppColors.violeta.withValues(alpha: 0.7),
               ),
             ),
             if (!isRetry) ...[

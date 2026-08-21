@@ -188,12 +188,12 @@ class _DiceScreenState extends State<DiceScreen> with TickerProviderStateMixin {
                   color: level.bg,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: level.color.withOpacity(0.5),
+                    color: level.color.withValues(alpha: 0.5),
                     width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: level.color.withOpacity(0.25),
+                      color: level.color.withValues(alpha: 0.25),
                       blurRadius: 18,
                       offset: const Offset(0, 6),
                     ),
@@ -317,7 +317,7 @@ class _DiceScreenState extends State<DiceScreen> with TickerProviderStateMixin {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFCE6D8B).withOpacity(0.4),
+                        color: const Color(0xFFCE6D8B).withValues(alpha: 0.4),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -381,7 +381,7 @@ class _DiceScreenState extends State<DiceScreen> with TickerProviderStateMixin {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : Colors.white,
+          color: isSelected ? color.withValues(alpha: 0.15) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? color : Colors.grey.shade300,
@@ -450,7 +450,7 @@ class _DiceTile extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.10),
+            color: color.withValues(alpha: 0.10),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

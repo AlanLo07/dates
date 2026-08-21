@@ -66,7 +66,7 @@ class _HomeWeeklyHighlightsStripState extends State<HomeWeeklyHighlightsStrip> {
         boxShadow: [
           BoxShadow(
             color: _accentForType(current?.type ?? PhraseType.cancion)
-                .withOpacity(0.30),
+                .withValues(alpha: 0.30),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -88,7 +88,7 @@ class _HomeWeeklyHighlightsStripState extends State<HomeWeeklyHighlightsStrip> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: Colors.white.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Center(
@@ -146,8 +146,8 @@ class _HomeWeeklyHighlightsStripState extends State<HomeWeeklyHighlightsStrip> {
                               width: 6,
                               height: isActive ? 12 : 6,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(
-                                  isActive ? 0.95 : 0.45,
+                                color: Colors.white.withValues(
+                                  alpha: isActive ? 0.95 : 0.45,
                                 ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
@@ -172,7 +172,7 @@ class _HomeWeeklyHighlightsStripState extends State<HomeWeeklyHighlightsStrip> {
                             width: 28,
                             height: 28,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.20),
+                              color: Colors.white.withValues(alpha: 0.20),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
@@ -262,7 +262,7 @@ class _WeeklyItemView extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
@@ -280,7 +280,7 @@ class _WeeklyItemView extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white.withOpacity(0.72),
+                        color: Colors.white.withValues(alpha: 0.72),
                         letterSpacing: 1.1,
                       ),
                     ),
@@ -300,7 +300,7 @@ class _WeeklyItemView extends StatelessWidget {
                         item.subtitle,
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.white.withOpacity(0.80),
+                          color: Colors.white.withValues(alpha: 0.80),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -337,7 +337,7 @@ class _WeeklySkeleton extends StatelessWidget {
           width: 140,
           height: 8,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(4),
           ),
         ),
@@ -346,7 +346,7 @@ class _WeeklySkeleton extends StatelessWidget {
           width: 90,
           height: 8,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(4),
           ),
         ),

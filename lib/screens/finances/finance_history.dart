@@ -188,7 +188,7 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.violeta.withOpacity(0.22),
+            color: AppColors.violeta.withValues(alpha: 0.22),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -203,7 +203,7 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
@@ -229,7 +229,7 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
           Text(
             'Evolución de gastos de los últimos ${_history.length} meses con análisis detallado.',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.88),
+              color: Colors.white.withValues(alpha: 0.88),
               height: 1.35,
             ),
           ),
@@ -269,8 +269,8 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
           subtitle: 'Visualización de gastos vs presupuesto',
           trailing: Chip(
             label: const Text('Barras'),
-            backgroundColor: AppColors.lavanda.withOpacity(0.45),
-            side: BorderSide(color: AppColors.violeta.withOpacity(0.12)),
+            backgroundColor: AppColors.lavanda.withValues(alpha: 0.45),
+            side: BorderSide(color: AppColors.violeta.withValues(alpha: 0.12)),
           ),
         ),
         const SizedBox(height: 12),
@@ -293,7 +293,7 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
               borderRadius: BorderRadius.circular(22),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 16,
                   offset: const Offset(0, 8),
                 ),
@@ -340,8 +340,8 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
                                         begin: Alignment.topCenter,
                                         end: Alignment.bottomCenter,
                                         colors: [
-                                          color.withOpacity(0.95),
-                                          color.withOpacity(0.65),
+                                          color.withValues(alpha: 0.95),
+                                          color.withValues(alpha: 0.65),
                                         ],
                                       ),
                                     ),
@@ -394,8 +394,8 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
           subtitle: 'Detalle de cada período',
           trailing: Chip(
             label: const Text('Historial'),
-            backgroundColor: AppColors.celeste.withOpacity(0.22),
-            side: BorderSide(color: AppColors.celeste.withOpacity(0.35)),
+            backgroundColor: AppColors.celeste.withValues(alpha: 0.22),
+            side: BorderSide(color: AppColors.celeste.withValues(alpha: 0.35)),
           ),
         ),
         const SizedBox(height: 12),
@@ -435,7 +435,7 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: color.withOpacity(0.30),
+                              color: color.withValues(alpha: 0.30),
                               blurRadius: 12,
                             ),
                           ],
@@ -447,7 +447,7 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
                           height: 128,
                           margin: const EdgeInsets.only(top: 6),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.22),
+                            color: color.withValues(alpha: 0.22),
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -462,12 +462,12 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: item.overBudget
-                              ? AppColors.error.withOpacity(0.18)
-                              : color.withOpacity(0.16),
+                              ? AppColors.error.withValues(alpha: 0.18)
+                              : color.withValues(alpha: 0.16),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.03),
+                            color: Colors.black.withValues(alpha: 0.03),
                             blurRadius: 12,
                             offset: const Offset(0, 6),
                           ),
@@ -494,7 +494,7 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: color.withOpacity(0.12),
+                                  color: color.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
@@ -529,7 +529,7 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
                               minHeight: 10,
                               value: progress,
                               backgroundColor:
-                                  AppColors.grisCalido.withOpacity(0.8),
+                                  AppColors.grisCalido.withValues(alpha: 0.8),
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 item.overBudget
                                     ? AppColors.error
@@ -638,9 +638,9 @@ class _HistoryMiniStat extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.14),
+        color: Colors.white.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.16)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -653,7 +653,7 @@ class _HistoryMiniStat extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.82),
+                  color: Colors.white.withValues(alpha: 0.82),
                   fontSize: 11,
                 ),
               ),

@@ -348,7 +348,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: _violeta.withOpacity(0.12),
+              color: _violeta.withValues(alpha: 0.12),
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),
@@ -428,7 +428,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
                           Text(
                             'Arrastra el personaje para mover la cuerda',
                             style: TextStyle(
-                              color: _violeta.withOpacity(0.75),
+                              color: _violeta.withValues(alpha: 0.75),
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -448,13 +448,13 @@ class _PhrasesScreenState extends State<PhrasesScreen>
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: _rojo.withOpacity(0.15),
+                                    color: _rojo.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     l,
                                     style: TextStyle(
-                                      color: _rojo.withOpacity(0.8),
+                                      color: _rojo.withValues(alpha: 0.8),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),
@@ -537,7 +537,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _verde.withOpacity(0.15),
+            color: _verde.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: _verde, width: 1.5),
           ),
@@ -589,9 +589,9 @@ class _PhrasesScreenState extends State<PhrasesScreen>
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _rojo.withOpacity(0.1),
+            color: _rojo.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: _rojo.withOpacity(0.4), width: 1.5),
+            border: Border.all(color: _rojo.withValues(alpha: 0.4), width: 1.5),
           ),
           child: Column(
             children: [
@@ -712,11 +712,11 @@ class _PhrasesScreenState extends State<PhrasesScreen>
             height: 44,
             decoration: BoxDecoration(
               color: latestCorrect
-                  ? _verde.withOpacity(0.42)
+                  ? _verde.withValues(alpha: 0.42)
                   : latestWrong
-                  ? _rojo.withOpacity(0.25)
+                  ? _rojo.withValues(alpha: 0.25)
                   : isCorrect
-                  ? _verde.withOpacity(0.3)
+                  ? _verde.withValues(alpha: 0.3)
                   : isWrong
                   ? Colors.grey.shade200
                   : Colors.white,
@@ -737,7 +737,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
                   ? []
                   : [
                       BoxShadow(
-                        color: _violeta.withOpacity(0.08),
+                        color: _violeta.withValues(alpha: 0.08),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -797,9 +797,9 @@ class _PhrasesScreenState extends State<PhrasesScreen>
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: color.withOpacity(0.6), width: 1.2),
+          border: Border.all(color: color.withValues(alpha: 0.6), width: 1.2),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

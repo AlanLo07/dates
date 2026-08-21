@@ -320,7 +320,7 @@ class _InputScreenState extends State<InputScreen> {
                 decoration: BoxDecoration(
                   color: _isRouletteMode
                       ? AppColors.violeta
-                      : AppColors.violeta.withOpacity(0.1),
+                      : AppColors.violeta.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: AppColors.violeta, width: 1.5),
                 ),
@@ -376,7 +376,7 @@ class _InputScreenState extends State<InputScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.violeta.withOpacity(0.10),
+                  color: AppColors.violeta.withValues(alpha: 0.10),
                   blurRadius: 14,
                   offset: const Offset(0, 4),
                 ),
@@ -483,7 +483,7 @@ class _InputScreenState extends State<InputScreen> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.violeta.withOpacity(0.1),
+                        color: AppColors.violeta.withValues(alpha: 0.1),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -724,7 +724,7 @@ class _InputScreenState extends State<InputScreen> {
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: AppColors.violeta.withOpacity(0.25),
+                        color: AppColors.violeta.withValues(alpha: 0.25),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -765,7 +765,7 @@ class _InputScreenState extends State<InputScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.violeta.withOpacity(0.08),
+            color: AppColors.violeta.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -786,7 +786,7 @@ class _InputScreenState extends State<InputScreen> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.violeta.withOpacity(0.1),
+                  color: AppColors.violeta.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -803,9 +803,9 @@ class _InputScreenState extends State<InputScreen> {
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: AppColors.violeta,
-              inactiveTrackColor: AppColors.violeta.withOpacity(0.15),
+              inactiveTrackColor: AppColors.violeta.withValues(alpha: 0.15),
               thumbColor: AppColors.violeta,
-              overlayColor: AppColors.violeta.withOpacity(0.1),
+              overlayColor: AppColors.violeta.withValues(alpha: 0.1),
               trackHeight: 4,
             ),
             child: Slider(
@@ -856,7 +856,7 @@ class _RuletaSelectedItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color, width: 1.5),
       ),
@@ -932,7 +932,7 @@ class _CitaSelectableCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.violeta.withOpacity(0.08)
+              ? AppColors.violeta.withValues(alpha: 0.08)
               : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -969,7 +969,7 @@ class _CitaSelectableCard extends StatelessWidget {
                     style: titleStyle,
                     highlightStyle: titleStyle.copyWith(
                       fontWeight: FontWeight.w800,
-                      backgroundColor: AppColors.malva.withOpacity(0.32),
+                      backgroundColor: AppColors.malva.withValues(alpha: 0.32),
                     ),
                   ),
                   Row(
@@ -1004,7 +1004,7 @@ class _CitaSelectableCard extends StatelessWidget {
                       style: descriptionStyle,
                       highlightStyle: descriptionStyle.copyWith(
                         fontWeight: FontWeight.w700,
-                        backgroundColor: AppColors.celeste.withOpacity(0.38),
+                        backgroundColor: AppColors.celeste.withValues(alpha: 0.38),
                       ),
                     ),
                   ],
@@ -1045,7 +1045,7 @@ class _SpinButton extends StatelessWidget {
           boxShadow: enabled
               ? [
                   BoxShadow(
-                    color: AppColors.violeta.withOpacity(0.35),
+                    color: AppColors.violeta.withValues(alpha: 0.35),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -1135,7 +1135,7 @@ class _GenerateButtonState extends State<_GenerateButton>
                 ? []
                 : [
                     BoxShadow(
-                      color: AppColors.violeta.withOpacity(0.35),
+                      color: AppColors.violeta.withValues(alpha: 0.35),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
@@ -1308,7 +1308,7 @@ class _RouletteScreenState extends State<_RouletteScreen>
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: color, width: 1),
                   ),
@@ -1385,7 +1385,7 @@ class _RouletteScreenState extends State<_RouletteScreen>
                       ? []
                       : [
                           BoxShadow(
-                            color: AppColors.violeta.withOpacity(0.35),
+                            color: AppColors.violeta.withValues(alpha: 0.35),
                             blurRadius: 16,
                             offset: const Offset(0, 6),
                           ),
@@ -1454,7 +1454,7 @@ class _RouletteScreenState extends State<_RouletteScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.violeta.withOpacity(0.2),
+            color: AppColors.violeta.withValues(alpha: 0.2),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),

@@ -186,7 +186,7 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _rose.withOpacity(0.12),
+            color: _rose.withValues(alpha: 0.12),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),

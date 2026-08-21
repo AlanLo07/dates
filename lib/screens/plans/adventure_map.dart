@@ -204,7 +204,7 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
                   '${_markers.length} lugares',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.violeta.withOpacity(0.7),
+                    color: AppColors.violeta.withValues(alpha: 0.7),
                   ),
                 ),
               ),
@@ -347,7 +347,7 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.violeta.withOpacity(isSelected ? 0.5 : 0.2),
+                    color: AppColors.violeta.withValues(alpha: isSelected ? 0.5 : 0.2),
                     blurRadius: isSelected ? 16 : 6,
                     offset: Offset(0, isSelected ? 4 : 2),
                     spreadRadius: isSelected ? 2 : 0,
@@ -384,14 +384,14 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
     return Material(
       elevation: 8,
       borderRadius: BorderRadius.circular(20),
-      shadowColor: AppColors.violeta.withOpacity(0.3),
+      shadowColor: AppColors.violeta.withValues(alpha: 0.3),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: AppColors.violeta.withOpacity(0.2),
+            color: AppColors.violeta.withValues(alpha: 0.2),
             width: 1.5,
           ),
         ),
@@ -503,7 +503,7 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: AppColors.violeta.withOpacity(0.08),
+                            color: AppColors.violeta.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(

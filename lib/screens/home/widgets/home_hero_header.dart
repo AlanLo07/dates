@@ -24,9 +24,9 @@ class HomeHeroHeader extends StatelessWidget {
             imageUrl: imageUrl,
             fit: BoxFit.cover,
             placeholder: (_, __) =>
-                Container(color: AppColors.violeta.withOpacity(0.4)),
+                Container(color: AppColors.violeta.withValues(alpha: 0.4)),
             errorWidget: (_, __, ___) => Container(
-              color: AppColors.violeta.withOpacity(0.4),
+              color: AppColors.violeta.withValues(alpha: 0.4),
               child: const Icon(Icons.favorite, size: 48, color: Colors.white54),
             ),
           ),
@@ -36,8 +36,8 @@ class HomeHeroHeader extends StatelessWidget {
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
                 colors: [
-                  Colors.black.withOpacity(0.65),
-                  Colors.black.withOpacity(0.05),
+                  Colors.black.withValues(alpha: 0.65),
+                  Colors.black.withValues(alpha: 0.05),
                 ],
               ),
             ),

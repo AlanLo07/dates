@@ -758,9 +758,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                                     end: Alignment.bottomRight,
                                                     colors: [
                                                       AppColors.violeta
-                                                          .withOpacity(0.3),
+                                                          .withValues(alpha: 0.3),
                                                       AppColors.violeta
-                                                          .withOpacity(0.15),
+                                                          .withValues(alpha: 0.15),
                                                     ],
                                                   ),
                                                   border: Border.all(
@@ -770,7 +770,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                                   boxShadow: [
                                                     BoxShadow(
                                                       color: AppColors.violeta
-                                                          .withOpacity(0.4),
+                                                          .withValues(alpha: 0.4),
                                                       blurRadius: 8,
                                                       offset: const Offset(
                                                         0,
@@ -796,8 +796,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: AppColors.violeta.withOpacity(
-                                          0.5,
+                                        color: AppColors.violeta.withValues(
+                                          alpha: 0.5,
                                         ),
                                         width: 1.5,
                                       ),
@@ -3816,7 +3816,7 @@ class _CitaSelectorSheetState extends State<_CitaSelectorSheet> {
                                   highlightStyle: descriptionStyle.copyWith(
                                     fontWeight: FontWeight.w700,
                                     backgroundColor: AppColors.celeste
-                                        .withOpacity(0.38),
+                                        .withValues(alpha: 0.38),
                                   ),
                                 ),
                               ],

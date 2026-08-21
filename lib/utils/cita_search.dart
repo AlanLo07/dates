@@ -293,7 +293,7 @@ class CitaHighlightedText extends StatelessWidget {
         baseStyle.copyWith(
           fontWeight: FontWeight.w800,
           color: baseStyle.color,
-          backgroundColor: AppColors.celeste.withOpacity(0.35),
+          backgroundColor: AppColors.celeste.withValues(alpha: 0.35),
         );
 
     return Text.rich(
@@ -356,9 +356,9 @@ class CitaDescriptionMatchBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.celeste.withOpacity(0.18),
+        color: AppColors.celeste.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.celeste.withOpacity(0.55)),
+        border: Border.all(color: AppColors.celeste.withValues(alpha: 0.55)),
       ),
       child: Text(
         label,
@@ -372,12 +372,15 @@ class CitaDescriptionMatchBadge extends StatelessWidget {
   }
 }
 
-class CitaQuickFilterChips extends StatelessWidget {
+class CitaQuickFilterChips extends StatefulWidget {
   final List<Cita> citas;
   final CitaQuickFilters filters;
   final String query;
   final bool Function(Cita cita)? extraPredicate;
   final ValueChanged<CitaQuickFilters> onChanged;
+  // Estado inicial del panel: colapsado por defecto para dejar más espacio
+  // a los resultados en pantallas pequeñas.
+  final bool initiallyExpanded;
 
   const CitaQuickFilterChips({
     super.key,
@@ -386,7 +389,15 @@ class CitaQuickFilterChips extends StatelessWidget {
     this.query = '',
     this.extraPredicate,
     required this.onChanged,
+    this.initiallyExpanded = false,
   });
+
+  @override
+  State<CitaQuickFilterChips> createState() => _CitaQuickFilterChipsState();
+}
+
+class _CitaQuickFilterChipsState extends State<CitaQuickFilterChips> {
+  late bool _expanded = widget.initiallyExpanded;
 
   int _countFor({
     String? categoria,
@@ -399,16 +410,20 @@ class CitaQuickFilterChips extends StatelessWidget {
       typeLocation: typeLocation,
     );
 
-    return citas.where((cita) {
-      final matchesExtra = extraPredicate?.call(cita) ?? true;
+    return widget.citas.where((cita) {
+      final matchesExtra = widget.extraPredicate?.call(cita) ?? true;
       return matchesExtra &&
-          matchesCitaFilters(cita, query: query, filters: scopedFilters);
+          matchesCitaFilters(
+            cita,
+            query: widget.query,
+            filters: scopedFilters,
+          );
     }).length;
   }
 
   @override
   Widget build(BuildContext context) {
-    final options = buildCitaQuickFilterOptions(citas);
+    final options = buildCitaQuickFilterOptions(widget.citas);
     final hasFilters = options.categorias.length > 1 ||
         options.presupuestos.isNotEmpty ||
         options.typeLocations.length > 1;
@@ -417,90 +432,133 @@ class CitaQuickFilterChips extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final filters = widget.filters;
+    final activeCount = [
+      filters.categoria,
+      filters.presupuesto,
+      filters.typeLocation,
+    ].where((value) => value != null).length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Filtros rápidos',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.2,
-            color: Colors.grey.shade700,
+        InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Text(
+                  activeCount > 0
+                      ? 'Filtros rápidos ($activeCount)'
+                      : 'Filtros rápidos',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  _expanded ? Icons.expand_less : Icons.expand_more,
+                  size: 18,
+                  color: Colors.grey.shade700,
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 10),
-        if (options.categorias.length > 1)
-          _FilterGroup(
-            label: 'Categoría',
-            values: options.categorias,
-            selectedValue: filters.categoria,
-            activeColor: AppColors.violeta,
-            allCount: _countFor(
-              presupuesto: filters.presupuesto,
-              typeLocation: filters.typeLocation,
-            ),
-            valueCount: (value) => _countFor(
-              categoria: value,
-              presupuesto: filters.presupuesto,
-              typeLocation: filters.typeLocation,
-            ),
-            onSelected: (value) => onChanged(
-              filters.copyWith(
-                categoria: value,
-                clearCategoria: value == null,
-              ),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 200),
+          sizeCurve: Curves.easeInOut,
+          crossFadeState: _expanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          firstChild: const SizedBox(width: double.infinity, height: 0),
+          secondChild: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (options.categorias.length > 1)
+                  _FilterGroup(
+                    label: 'Categoría',
+                    values: options.categorias,
+                    selectedValue: filters.categoria,
+                    activeColor: AppColors.violeta,
+                    allCount: _countFor(
+                      presupuesto: filters.presupuesto,
+                      typeLocation: filters.typeLocation,
+                    ),
+                    valueCount: (value) => _countFor(
+                      categoria: value,
+                      presupuesto: filters.presupuesto,
+                      typeLocation: filters.typeLocation,
+                    ),
+                    onSelected: (value) => widget.onChanged(
+                      filters.copyWith(
+                        categoria: value,
+                        clearCategoria: value == null,
+                      ),
+                    ),
+                  ),
+                if (options.presupuestos.isNotEmpty) ...[
+                  if (options.categorias.length > 1)
+                    const SizedBox(height: 10),
+                  _FilterGroup(
+                    label: 'Presupuesto',
+                    values: options.presupuestos,
+                    selectedValue: filters.presupuesto,
+                    activeColor: AppColors.celeste,
+                    allCount: _countFor(
+                      categoria: filters.categoria,
+                      typeLocation: filters.typeLocation,
+                    ),
+                    valueCount: (value) => _countFor(
+                      categoria: filters.categoria,
+                      presupuesto: value,
+                      typeLocation: filters.typeLocation,
+                    ),
+                    onSelected: (value) => widget.onChanged(
+                      filters.copyWith(
+                        presupuesto: value,
+                        clearPresupuesto: value == null,
+                      ),
+                    ),
+                  ),
+                ],
+                if (options.typeLocations.length > 1) ...[
+                  if (options.categorias.length > 1 ||
+                      options.presupuestos.isNotEmpty)
+                    const SizedBox(height: 10),
+                  _FilterGroup(
+                    label: 'Locación',
+                    values: options.typeLocations,
+                    selectedValue: filters.typeLocation,
+                    activeColor: AppColors.malva,
+                    allCount: _countFor(
+                      categoria: filters.categoria,
+                      presupuesto: filters.presupuesto,
+                    ),
+                    valueCount: (value) => _countFor(
+                      categoria: filters.categoria,
+                      presupuesto: filters.presupuesto,
+                      typeLocation: value,
+                    ),
+                    onSelected: (value) => widget.onChanged(
+                      filters.copyWith(
+                        typeLocation: value,
+                        clearTypeLocation: value == null,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-        if (options.presupuestos.isNotEmpty) ...[
-          if (options.categorias.length > 1) const SizedBox(height: 10),
-          _FilterGroup(
-            label: 'Presupuesto',
-            values: options.presupuestos,
-            selectedValue: filters.presupuesto,
-            activeColor: AppColors.celeste,
-            allCount: _countFor(
-              categoria: filters.categoria,
-              typeLocation: filters.typeLocation,
-            ),
-            valueCount: (value) => _countFor(
-              categoria: filters.categoria,
-              presupuesto: value,
-              typeLocation: filters.typeLocation,
-            ),
-            onSelected: (value) => onChanged(
-              filters.copyWith(
-                presupuesto: value,
-                clearPresupuesto: value == null,
-              ),
-            ),
-          ),
-        ],
-        if (options.typeLocations.length > 1) ...[
-          if (options.categorias.length > 1 || options.presupuestos.isNotEmpty)
-            const SizedBox(height: 10),
-          _FilterGroup(
-            label: 'Locación',
-            values: options.typeLocations,
-            selectedValue: filters.typeLocation,
-            activeColor: AppColors.malva,
-            allCount: _countFor(
-              categoria: filters.categoria,
-              presupuesto: filters.presupuesto,
-            ),
-            valueCount: (value) => _countFor(
-              categoria: filters.categoria,
-              presupuesto: filters.presupuesto,
-              typeLocation: value,
-            ),
-            onSelected: (value) => onChanged(
-              filters.copyWith(
-                typeLocation: value,
-                clearTypeLocation: value == null,
-              ),
-            ),
-          ),
-        ],
+        ),
       ],
     );
   }
@@ -594,7 +652,7 @@ class _FilterChipOption extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor.withOpacity(0.16) : Colors.white,
+          color: isSelected ? activeColor.withValues(alpha: 0.16) : Colors.white,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: isSelected ? activeColor : Colors.grey.shade300,

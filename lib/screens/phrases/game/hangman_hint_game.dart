@@ -171,8 +171,8 @@ class _OrbBody extends BodyComponent {
   void render(Canvas canvas) {
     final radiusPx = 0.30;
 
-    final paint = Paint()..color = AppColors.violeta.withOpacity(0.85);
-    final glow = Paint()..color = AppColors.letterBg.withOpacity(0.26);
+    final paint = Paint()..color = AppColors.violeta.withValues(alpha: 0.85);
+    final glow = Paint()..color = AppColors.letterBg.withValues(alpha: 0.26);
 
     canvas.drawCircle(Offset.zero, radiusPx, paint);
     canvas.drawCircle(const Offset(-0.08, -0.08), radiusPx * 0.33, glow);
