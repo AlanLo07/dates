@@ -14,6 +14,7 @@ import '../utils/colors.dart';
 import '../widgets/motion/ambient_orbs_background.dart';
 // import 'auth/login_screen.dart';
 import 'calendar/calendar.dart';
+import 'checklist/checklist_menu_screen.dart';
 import 'finances/couple_finances.dart';
 import 'games/games_menu.dart';
 import 'home/widgets/home_counter_strip.dart';
@@ -552,10 +553,26 @@ class _HomeScreenState extends State<HomeScreen> {
                             stagger: _kListStagger,
                           ),
                           const SizedBox(height: 14),
+                          HomeMenuCard(
+                            index: 6,
+                            emoji: '✅',
+                            icon: Icons.checklist_rounded,
+                            title: 'Checklists',
+                            subtitle: 'Súper, viaje, deseos y más listas',
+                            destination: const ChecklistMenuScreen(),
+                            gradientColors: const [
+                              Color(0xFF81C784),
+                              Color(0xFF388E3C),
+                            ],
+                            fadeDuration: _kFadeDuration,
+                            slideDuration: _kSlideDuration,
+                            stagger: _kListStagger,
+                          ),
+                          const SizedBox(height: 14),
                           // if (DateTime.now().isAfter(_weddingUnlockDate))
                           if (true)
                             HomeMenuCard(
-                              index: 6,
+                              index: 7,
                               emoji: '💍',
                               icon: Icons.favorite,
                               title: 'Nuestra Boda',
