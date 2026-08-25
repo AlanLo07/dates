@@ -18,8 +18,6 @@ class ChecklistBoardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasPrecio = board.items.any((i) => i.precio != null);
-
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
@@ -59,42 +57,21 @@ class ChecklistBoardCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: LinearProgressIndicator(
-                        value: board.totalItems == 0 ? 0 : board.progreso,
-                        minHeight: 6,
-                        backgroundColor: board.color.withValues(alpha: 0.12),
-                        valueColor: AlwaysStoppedAnimation(board.color),
+                    const SizedBox(height: 4),
+                    Text(
+                      board.kind.display +
+                          (board.usaGrupos ? ' · por departamentos' : ''),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.violeta.withValues(alpha: 0.55),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Text(
-                          board.totalItems == 0
-                              ? 'Sin items'
-                              : '${board.compradosCount}/${board.totalItems} listos',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.violeta.withValues(alpha: 0.6),
-                          ),
-                        ),
-                        if (hasPrecio) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            '· \$${board.precioPendiente.toStringAsFixed(0)} pendiente',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.violeta.withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ],
-                      ],
                     ),
                   ],
                 ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.violeta.withValues(alpha: 0.35),
               ),
               IconButton(
                 icon: Icon(

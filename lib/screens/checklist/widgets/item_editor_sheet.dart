@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/checklist.dart';
+import '../../../services/checklists_service.dart';
 import '../../../utils/colors.dart';
 
 const List<String> kQuickEmojis = [
@@ -41,21 +42,28 @@ class ItemEditorResult {
 Future<ItemEditorResult?> showItemEditorSheet(
   BuildContext context, {
   required ChecklistBoard board,
+  required ChecklistsService service,
   ChecklistItem? existing,
 }) {
   return showModalBottomSheet<ItemEditorResult>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _ItemEditorSheet(board: board, existing: existing),
+    builder: (_) =>
+        _ItemEditorSheet(board: board, service: service, existing: existing),
   );
 }
 
 class _ItemEditorSheet extends StatefulWidget {
   final ChecklistBoard board;
+  final ChecklistsService service;
   final ChecklistItem? existing;
 
-  const _ItemEditorSheet({required this.board, this.existing});
+  const _ItemEditorSheet({
+    required this.board,
+    required this.service,
+    this.existing,
+  });
 
   @override
   State<_ItemEditorSheet> createState() => _ItemEditorSheetState();
@@ -69,6 +77,7 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
   String? _emoji;
   late List<ChecklistGroup> _grupos;
   bool _creatingGroup = false;
+  bool _savingGroup = false;
   final _nuevoGrupoCtrl = TextEditingController();
 
   @override
@@ -93,21 +102,41 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
     super.dispose();
   }
 
-  void _confirmarNuevoGrupo() {
+  Future<void> _confirmarNuevoGrupo() async {
     final nombre = _nuevoGrupoCtrl.text.trim();
-    if (nombre.isEmpty) return;
-    final grupo = ChecklistGroup(
-      id: 'g_${DateTime.now().microsecondsSinceEpoch}',
-      nombre: nombre,
-      orden: _grupos.length,
-    );
-    widget.board.grupos.add(grupo);
-    setState(() {
-      _grupos = [...widget.board.grupos];
-      _groupId = grupo.id;
-      _creatingGroup = false;
-      _nuevoGrupoCtrl.clear();
-    });
+    if (nombre.isEmpty || _savingGroup) return;
+    setState(() => _savingGroup = true);
+    try {
+      final borrador = ChecklistGroup(
+        id: '',
+        nombre: nombre,
+        orden: _grupos.length,
+      );
+      final groupId = await widget.service.createGroup(
+        widget.board.id,
+        borrador,
+      );
+      final grupo = ChecklistGroup(
+        id: groupId,
+        nombre: nombre,
+        orden: _grupos.length,
+      );
+      widget.board.grupos.add(grupo);
+      if (!mounted) return;
+      setState(() {
+        _grupos = [...widget.board.grupos];
+        _groupId = grupo.id;
+        _creatingGroup = false;
+        _nuevoGrupoCtrl.clear();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo crear el departamento: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _savingGroup = false);
+    }
   }
 
   void _submit() {
@@ -211,8 +240,19 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.check, color: AppColors.violeta),
-                        onPressed: _confirmarNuevoGrupo,
+                        icon: _savingGroup
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.check,
+                                color: AppColors.violeta,
+                              ),
+                        onPressed: _savingGroup ? null : _confirmarNuevoGrupo,
                       ),
                     ],
                   ),

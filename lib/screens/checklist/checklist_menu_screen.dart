@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/checklist.dart';
+import '../../services/checklists_service.dart';
 import '../../utils/colors.dart';
 import 'checklist_detail_screen.dart';
 import 'widgets/checklist_board_card.dart';
@@ -15,111 +16,57 @@ class ChecklistMenuScreen extends StatefulWidget {
 }
 
 class _ChecklistMenuScreenState extends State<ChecklistMenuScreen> {
-  // Datos de ejemplo en memoria. Cuando exista el servicio, esto se
-  // reemplaza por una carga real (ChecklistService.getBoards()).
-  late final List<ChecklistBoard> _boards = _buildSeedBoards();
+  final ChecklistsService _service = ChecklistsService();
+  List<ChecklistBoard> _boards = [];
+  bool _loading = true;
+  String? _error;
 
-  List<ChecklistBoard> _buildSeedBoards() {
-    final supermercado = ChecklistBoard(
-      id: 'b_super',
-      titulo: 'Súper de la semana',
-      kind: ChecklistKind.supermercado,
-      grupos: defaultSupermercadoGroups(),
-      items: [
-        ChecklistItem(
-          id: 'i1',
-          nombre: 'Leche deslactosada',
-          groupId: 'g_lacteos',
-          prioridad: ItemPriority.alta,
-          precio: 32,
-          emoji: '🥛',
-        ),
-        ChecklistItem(
-          id: 'i2',
-          nombre: 'Manzanas',
-          groupId: 'g_frutas',
-          prioridad: ItemPriority.media,
-          precio: 45,
-          emoji: '🍎',
-        ),
-        ChecklistItem(
-          id: 'i3',
-          nombre: 'Jabón para trastes',
-          groupId: 'g_limpieza',
-          prioridad: ItemPriority.baja,
-          precio: 28,
-        ),
-      ],
-    );
+  @override
+  void initState() {
+    super.initState();
+    _loadBoards();
+  }
 
-    final viaje = ChecklistBoard(
-      id: 'b_viaje',
-      titulo: 'Viaje a la playa',
-      kind: ChecklistKind.viaje,
-      grupos: defaultViajeGroups(),
-      items: [
-        ChecklistItem(
-          id: 'i4',
-          nombre: 'Pasaportes',
-          groupId: 'g_documentos',
-          prioridad: ItemPriority.alta,
-          emoji: '🛂',
-        ),
-        ChecklistItem(
-          id: 'i5',
-          nombre: 'Bloqueador solar',
-          groupId: 'g_cosmeticos',
-          prioridad: ItemPriority.media,
-          precio: 95,
-        ),
-      ],
-    );
+  @override
+  void dispose() {
+    _service.dispose();
+    super.dispose();
+  }
 
-    final deseos = ChecklistBoard(
-      id: 'b_deseos',
-      titulo: 'Cosas que queremos',
-      kind: ChecklistKind.deseos,
-      usaGrupos: false,
-      items: [
-        ChecklistItem(
-          id: 'i6',
-          nombre: 'Consola de videojuegos',
-          prioridad: ItemPriority.media,
-          precio: 9500,
-          emoji: '🎮',
-        ),
-        ChecklistItem(
-          id: 'i7',
-          nombre: 'Bicicleta',
-          prioridad: ItemPriority.baja,
-          precio: 4200,
-          emoji: '🚲',
-        ),
-      ],
-    );
-
-    return [supermercado, viaje, deseos];
+  Future<void> _loadBoards({bool seed = true}) async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      if (seed) {
+        await _service.seedDefaults();
+      }
+      final boards = await _service.getChecklists();
+      if (!mounted) return;
+      setState(() => _boards = boards);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _createBoard() async {
     final result = await showCreateChecklistDialog(context);
     if (result == null) return;
-    setState(() {
-      _boards.add(
-        ChecklistBoard(
-          id: 'b_${DateTime.now().microsecondsSinceEpoch}',
-          titulo: result.titulo,
-          kind: result.kind,
-          emoji: result.emoji,
-          usaGrupos: result.usaGrupos,
-          grupos: result.kind == ChecklistKind.supermercado
-              ? defaultSupermercadoGroups()
-              : result.kind == ChecklistKind.viaje
-              ? defaultViajeGroups()
-              : [],
-        ),
+    try {
+      await _service.createChecklist(
+        titulo: result.titulo,
+        kind: result.kind,
+        emoji: result.emoji,
+        usaGrupos: result.usaGrupos,
       );
-    });
+      await _loadBoards(seed: false);
+    } catch (e) {
+      _showError('No se pudo crear el checklist: $e');
+    }
   }
 
   Future<void> _deleteBoard(ChecklistBoard board) async {
@@ -141,18 +88,30 @@ class _ChecklistMenuScreenState extends State<ChecklistMenuScreen> {
         ],
       ),
     );
-    if (ok == true) {
-      setState(() => _boards.removeWhere((b) => b.id == board.id));
+    if (ok != true) return;
+    setState(() => _boards.removeWhere((b) => b.id == board.id));
+    try {
+      await _service.deleteChecklist(board.id);
+    } catch (e) {
+      _showError('No se pudo eliminar el checklist: $e');
+      await _loadBoards(seed: false);
     }
   }
 
   Future<void> _openBoard(ChecklistBoard board) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ChecklistDetailScreen(board: board),
+        builder: (_) => ChecklistDetailScreen(checklistId: board.id),
       ),
     );
-    if (mounted) setState(() {});
+    if (mounted) await _loadBoards(seed: false);
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -163,6 +122,13 @@ class _ChecklistMenuScreenState extends State<ChecklistMenuScreen> {
         title: const Text('Checklists'),
         backgroundColor: AppColors.violeta,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: 'Actualizar',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _loading ? null : () => _loadBoards(seed: false),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createBoard,
@@ -170,27 +136,65 @@ class _ChecklistMenuScreenState extends State<ChecklistMenuScreen> {
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Checklist', style: TextStyle(color: Colors.white)),
       ),
-      body: _boards.isEmpty
-          ? Center(
-              child: Text(
-                'No tienes checklists aún.\nToca "Checklist" para crear el primero.',
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading && _boards.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null && _boards.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'No se pudieron cargar los checklists.\n$_error',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.violeta.withValues(alpha: 0.6)),
+                style: TextStyle(
+                  color: AppColors.violeta.withValues(alpha: 0.7),
+                ),
               ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              itemCount: _boards.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final board = _boards[index];
-                return ChecklistBoardCard(
-                  board: board,
-                  onTap: () => _openBoard(board),
-                  onDelete: () => _deleteBoard(board),
-                );
-              },
-            ),
+              const SizedBox(height: 12),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.violeta,
+                ),
+                onPressed: () => _loadBoards(),
+                child: const Text('Reintentar'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (_boards.isEmpty) {
+      return Center(
+        child: Text(
+          'No tienes checklists aún.\nToca "Checklist" para crear el primero.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.violeta.withValues(alpha: 0.6)),
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () => _loadBoards(seed: false),
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        itemCount: _boards.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final board = _boards[index];
+          return ChecklistBoardCard(
+            board: board,
+            onTap: () => _openBoard(board),
+            onDelete: () => _deleteBoard(board),
+          );
+        },
+      ),
     );
   }
 }
