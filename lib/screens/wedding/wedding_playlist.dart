@@ -19,42 +19,23 @@ class WeddingPlaylistScreen extends StatefulWidget {
 class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
   final WeddingService _service = WeddingService();
   final List<CancionBoda> _canciones = [];
-  final List<SpotifyMoodOption> _moods = [];
+  final TextEditingController _searchController = TextEditingController();
   String? _bodaId;
   bool _loading = true;
   String? _error;
   bool _spotifyLoading = false;
   List<SpotifyTrack> _spotifyTracks = [];
-  String _selectedMood = 'romantico';
-  bool _fallbackUsed = false;
 
   @override
   void initState() {
     super.initState();
     _loadCanciones();
-    _loadMoods();
   }
 
-  Future<void> _loadMoods() async {
-    try {
-      final moods = await SpotifyService.instance.getMoods();
-      if (!mounted) return;
-      setState(() {
-        _moods
-          ..clear()
-          ..addAll(moods);
-        if (_moods.isNotEmpty && !_moods.any((m) => m.id == _selectedMood)) {
-          _selectedMood = _moods.first.id;
-        }
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _moods.clear());
-    }
-
-    if (mounted) {
-      await _loadSpotifySuggestions();
-    }
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCanciones() async {
@@ -102,51 +83,21 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
     }
   }
 
-  String _queryForMood(String mood) {
-    switch (mood) {
-      case 'fiesta':
-        return 'party';
-      case 'chill':
-        return 'lofi';
-      case 'focus':
-        return 'instrumental';
-      default:
-        return 'love';
+  Future<void> _searchSpotify(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      setState(() => _spotifyTracks = []);
+      return;
     }
-  }
-
-  String _labelForMood(String mood) {
-    for (final moodOption in _moods) {
-      if (moodOption.id == mood) {
-        return moodOption.label;
-      }
-    }
-
-    switch (mood) {
-      case 'fiesta':
-        return 'Fiesta';
-      case 'chill':
-        return 'Chill';
-      case 'focus':
-        return 'Focus';
-      default:
-        return 'Romántico';
-    }
-  }
-
-  Future<void> _loadSpotifySuggestions() async {
-    if (_spotifyLoading) return;
     setState(() => _spotifyLoading = true);
     try {
-      final result = await SpotifyService.instance.getRecommendations(
-        query: _queryForMood(_selectedMood),
+      final tracks = await SpotifyService.instance.searchTracks(
+        trimmed,
         limit: 6,
-        mood: _selectedMood,
       );
       if (!mounted) return;
       setState(() {
-        _spotifyTracks = result.tracks;
-        _fallbackUsed = result.fallbackUsed;
+        _spotifyTracks = tracks;
         _spotifyLoading = false;
       });
     } catch (_) {
@@ -200,25 +151,25 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _buildSpotifyMoodSelector(),
-                SpotifyTrackShelf(
-                  title: 'Sugerencias para la boda',
-                  subtitle: _fallbackUsed
-                      ? 'Se usó fallback para no quedarse sin ideas'
-                      : 'Cambia el mood para generar otra energía',
-                  loading: _spotifyLoading,
-                  fallbackUsed: _fallbackUsed,
-                  heroImageUrl: _spotifyTracks.isNotEmpty
-                      ? _spotifyTracks.first.imageUrl
-                      : '',
-                  heroTitle: 'Mood ${_labelForMood(_selectedMood)}',
-                  heroSubtitle: _fallbackUsed
-                    ? 'Fallback activo, pero la vibra sigue alineada al mood'
-                      : 'Portada y sugerencias ajustadas a ${_labelForMood(_selectedMood)}',
-                  tracks: _spotifyTracks,
-                  onRetry: _loadSpotifySuggestions,
-                  onTapTrack: (track) => _abrirSpotify(track.spotifyUrl),
-                ),
+                _buildSpotifySearchBar(),
+                if (_spotifyLoading || _spotifyTracks.isNotEmpty)
+                  SpotifyTrackShelf(
+                    title: 'Resultados de búsqueda',
+                    subtitle: 'Toca una canción para escucharla en Spotify',
+                    loading: _spotifyLoading,
+                    heroImageUrl: _spotifyTracks.isNotEmpty
+                        ? _spotifyTracks.first.imageUrl
+                        : '',
+                    heroTitle: _spotifyTracks.isNotEmpty
+                        ? _spotifyTracks.first.name
+                        : '',
+                    heroSubtitle: _spotifyTracks.isNotEmpty
+                        ? _spotifyTracks.first.artist
+                        : '',
+                    tracks: _spotifyTracks,
+                    onRetry: () => _searchSpotify(_searchController.text),
+                    onTapTrack: (track) => _abrirSpotify(track.spotifyUrl),
+                  ),
                 const SizedBox(height: 8),
                 ..._grouped.entries.where((e) => e.value.isNotEmpty).map((
                   entry,
@@ -257,11 +208,7 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
     );
   }
 
-  Widget _buildSpotifyMoodSelector() {
-    final moods = _moods.isEmpty
-        ? const <SpotifyMoodOption>[]
-        : _moods;
-
+  Widget _buildSpotifySearchBar() {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(14),
@@ -273,7 +220,7 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Mood Spotify',
+            'Buscar en Spotify',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: _rose,
@@ -281,55 +228,20 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: moods.isEmpty
-                ? [
-                    ChoiceChip(
-                      selected: _selectedMood == 'romantico',
-                      label: const Text('Romántico'),
-                      onSelected: (_) {
-                        setState(() => _selectedMood = 'romantico');
-                        _loadSpotifySuggestions();
-                      },
-                    ),
-                    ChoiceChip(
-                      selected: _selectedMood == 'fiesta',
-                      label: const Text('Fiesta'),
-                      onSelected: (_) {
-                        setState(() => _selectedMood = 'fiesta');
-                        _loadSpotifySuggestions();
-                      },
-                    ),
-                    ChoiceChip(
-                      selected: _selectedMood == 'chill',
-                      label: const Text('Chill'),
-                      onSelected: (_) {
-                        setState(() => _selectedMood = 'chill');
-                        _loadSpotifySuggestions();
-                      },
-                    ),
-                    ChoiceChip(
-                      selected: _selectedMood == 'focus',
-                      label: const Text('Focus'),
-                      onSelected: (_) {
-                        setState(() => _selectedMood = 'focus');
-                        _loadSpotifySuggestions();
-                      },
-                    ),
-                  ]
-                : moods.map((mood) {
-                    final selected = _selectedMood == mood.id;
-                    return ChoiceChip(
-                      selected: selected,
-                      label: Text(mood.label),
-                      onSelected: (_) {
-                        setState(() => _selectedMood = mood.id);
-                        _loadSpotifySuggestions();
-                      },
-                    );
-                  }).toList(),
+          TextField(
+            controller: _searchController,
+            textInputAction: TextInputAction.search,
+            onSubmitted: _searchSpotify,
+            decoration: InputDecoration(
+              hintText: 'Nombre de la canción o artista',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.search, color: _rose),
+                onPressed: () => _searchSpotify(_searchController.text),
+              ),
+            ),
           ),
         ],
       ),

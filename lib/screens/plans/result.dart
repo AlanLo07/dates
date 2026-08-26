@@ -78,7 +78,6 @@ class _ResultScreenState extends State<ResultScreen> {
   late Cita _cita;
   bool _spotifyLoading = true;
   List<SpotifyTrack> _spotifyTracks = [];
-  bool _spotifyFallbackUsed = false;
 
   @override
   void initState() {
@@ -161,21 +160,6 @@ class _ResultScreenState extends State<ResultScreen> {
     );
   }
 
-  String _spotifyMoodForCita() {
-    switch (_cita.categoria.toLowerCase()) {
-      case 'romántico':
-        return 'romantico';
-      case 'relajante':
-        return 'chill';
-      case 'aventura':
-      case 'compras':
-      case 'comida':
-        return 'fiesta';
-      default:
-        return 'romantico';
-    }
-  }
-
   Future<void> _loadSpotifySuggestions() async {
     if (mounted) {
       setState(() => _spotifyLoading = true);
@@ -187,22 +171,19 @@ class _ResultScreenState extends State<ResultScreen> {
         _cita.categoria,
         _cita.descripcion,
       ].where((value) => value.trim().isNotEmpty).join(' ');
-      final result = await SpotifyService.instance.getRecommendations(
-        query: query,
+      final tracks = await SpotifyService.instance.searchTracks(
+        query,
         limit: 4,
-        mood: _spotifyMoodForCita(),
       );
       if (!mounted) return;
       setState(() {
-        _spotifyTracks = result.tracks;
-        _spotifyFallbackUsed = result.fallbackUsed;
+        _spotifyTracks = tracks;
         _spotifyLoading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _spotifyTracks = [];
-        _spotifyFallbackUsed = false;
         _spotifyLoading = false;
       });
     }
@@ -277,7 +258,6 @@ class _ResultScreenState extends State<ResultScreen> {
               title: 'Escuchar algo parecido',
               subtitle: 'Ideas musicales para esta cita',
               loading: _spotifyLoading,
-              fallbackUsed: _spotifyFallbackUsed,
               tracks: _spotifyTracks,
               onRetry: _loadSpotifySuggestions,
               onTapTrack: (track) => _launchUrl(track.spotifyUrl),

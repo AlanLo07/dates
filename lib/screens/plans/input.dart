@@ -82,7 +82,6 @@ class _InputScreenState extends State<InputScreen> {
   String? _selectedTypeLocation;
   bool _spotifyLoading = false;
   List<SpotifyTrack> _spotifyTracks = [];
-  bool _spotifyFallbackUsed = false;
 
   CitaQuickFilters get _rouletteQuickFilters => CitaQuickFilters(
     categoria: _selectedCategory == null || _selectedCategory == 'Cualquiera'
@@ -242,22 +241,19 @@ class _InputScreenState extends State<InputScreen> {
 
     setState(() => _spotifyLoading = true);
     try {
-      final result = await SpotifyService.instance.getRecommendations(
-        query: query,
+      final tracks = await SpotifyService.instance.searchTracks(
+        query,
         limit: 4,
-        mood: _spotifyMoodFromFilters(),
       );
       if (!mounted) return;
       setState(() {
-        _spotifyTracks = result.tracks;
-        _spotifyFallbackUsed = result.fallbackUsed;
+        _spotifyTracks = tracks;
         _spotifyLoading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _spotifyTracks = [];
-        _spotifyFallbackUsed = false;
         _spotifyLoading = false;
       });
       _mostrarSnackBar('No se pudo cargar Spotify ahora mismo');
@@ -451,7 +447,6 @@ class _InputScreenState extends State<InputScreen> {
               title: 'Soundtrack sugerido',
               subtitle: 'La música que le va a este plan',
               loading: _spotifyLoading,
-              fallbackUsed: _spotifyFallbackUsed,
               tracks: _spotifyTracks,
               onRetry: _loadSpotifyInspiration,
               onTapTrack: (track) => _openSpotify(track.spotifyUrl),

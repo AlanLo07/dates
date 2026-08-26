@@ -61,7 +61,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _displayName;
   Map<PhraseType, LovePhrase> _weeklyPhrases = {};
   List<SpotifyTrack> _spotifyTracks = [];
-  bool _spotifyFallbackUsed = false;
 
   // final AuthService _authService = AuthService();
   final EventService _eventService = EventService();
@@ -360,22 +359,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      final result = await SpotifyService.instance.getRecommendations(
-        query: query,
+      final tracks = await SpotifyService.instance.searchTracks(
+        query,
         limit: 4,
-        mood: 'romantico',
       );
       if (!mounted) return;
       setState(() {
-        _spotifyTracks = result.tracks;
-        _spotifyFallbackUsed = result.fallbackUsed;
+        _spotifyTracks = tracks;
         _spotifyLoading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _spotifyTracks = [];
-        _spotifyFallbackUsed = false;
         _spotifyLoading = false;
       });
     }
@@ -419,7 +415,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         title: 'Playlist Spotify de la semana',
                         subtitle: 'Sugerencias inspiradas en su canción actual',
                         loading: _spotifyLoading,
-                        fallbackUsed: _spotifyFallbackUsed,
                         heroImageUrl: _spotifyTracks.isNotEmpty
                             ? _spotifyTracks.first.imageUrl
                             : '',
