@@ -142,6 +142,7 @@ class ChecklistItem {
   String nombre;
   String? groupId; // null = "Sin categoría" / lista simple (ej. deseos)
   ItemPriority prioridad;
+  int prioridadOrden;
   double? precio; // opcional
   String? emoji; // opcional
   bool comprado; // "tachado" / ya comprado / ya lo tenemos
@@ -154,6 +155,7 @@ class ChecklistItem {
     required this.nombre,
     this.groupId,
     this.prioridad = ItemPriority.media,
+    this.prioridadOrden = 0,
     this.precio,
     this.emoji,
     this.comprado = false,
@@ -164,11 +166,15 @@ class ChecklistItem {
        updatedAt = updatedAt ?? DateTime.now();
 
   factory ChecklistItem.fromJson(Map<String, dynamic> json) {
+    final prioridad = ItemPriority.fromString(json['prioridad']?.toString() ?? '');
     return ChecklistItem(
       id: (json['id'] ?? '').toString(),
       nombre: (json['nombre'] ?? '').toString(),
       groupId: json['groupId']?.toString(),
-      prioridad: ItemPriority.fromString(json['prioridad']?.toString() ?? ''),
+      prioridad: prioridad,
+      prioridadOrden: json['prioridadOrden'] is num
+          ? (json['prioridadOrden'] as num).toInt()
+          : prioridad.sortWeight + 1,
       precio: json['precio'] is num ? (json['precio'] as num).toDouble() : null,
       emoji: json['emoji']?.toString(),
       comprado: json['comprado'] == true,
@@ -187,6 +193,7 @@ class ChecklistItem {
     'nombre': nombre,
     'groupId': groupId,
     'prioridad': prioridad.name,
+    'prioridadOrden': prioridadOrden,
     'precio': precio,
     'emoji': emoji,
     'comprado': comprado,
@@ -200,6 +207,7 @@ class ChecklistItem {
     String? groupId,
     bool clearGroup = false,
     ItemPriority? prioridad,
+    int? prioridadOrden,
     double? precio,
     bool clearPrecio = false,
     String? emoji,
@@ -212,6 +220,7 @@ class ChecklistItem {
       nombre: nombre ?? this.nombre,
       groupId: clearGroup ? null : (groupId ?? this.groupId),
       prioridad: prioridad ?? this.prioridad,
+      prioridadOrden: prioridadOrden ?? this.prioridadOrden,
       precio: clearPrecio ? null : (precio ?? this.precio),
       emoji: clearEmoji ? null : (emoji ?? this.emoji),
       comprado: comprado ?? this.comprado,
@@ -313,9 +322,11 @@ class ChecklistBoard {
   List<ChecklistItem> itemsByGroup(String? groupId) {
     final list = items.where((i) => i.groupId == groupId).toList();
     list.sort((a, b) {
-      if (a.comprado != b.comprado) return a.comprado ? 1 : -1;
-      final p = a.prioridad.sortWeight.compareTo(b.prioridad.sortWeight);
+      final p = a.prioridadOrden.compareTo(b.prioridadOrden);
       if (p != 0) return p;
+      if (a.comprado != b.comprado) return a.comprado ? 1 : -1;
+      final priority = a.prioridad.sortWeight.compareTo(b.prioridad.sortWeight);
+      if (priority != 0) return priority;
       return a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase());
     });
     return list;
