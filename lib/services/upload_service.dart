@@ -6,7 +6,8 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:http/http.dart' as raw_http;
+import 'authenticated_http_client.dart' as http;
 
 import 'api_config.dart';
 import 'upload_service_web.dart'
@@ -145,7 +146,7 @@ class UploadService {
     debugPrint('[UploadService] PUT a S3...');
     late http.Response putRes;
     try {
-      putRes = await http
+      putRes = await raw_http
           .put(
             Uri.parse(uploadUrl),
             headers: {'Content-Type': fileType},

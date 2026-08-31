@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:http/http.dart' as http;
+import 'authenticated_http_client.dart' as http;
 
 import 'api_config.dart';
 

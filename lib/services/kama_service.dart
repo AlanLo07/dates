@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
+import 'authenticated_http_client.dart' as http;
 
 import '../data/kama.dart';
 import 'api_config.dart';

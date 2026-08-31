@@ -1,6 +1,6 @@
 // lib/services/finances_service.dart
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'authenticated_http_client.dart' as http;
 import '../models/finances.dart';
 import 'api_config.dart';
 

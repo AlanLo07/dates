@@ -1,6 +1,6 @@
 // lib/services/cita_service.dart
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'authenticated_http_client.dart' as http;
 import '../models/cita.dart';
 import 'api_config.dart';
 

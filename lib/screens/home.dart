@@ -6,13 +6,12 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/phrase.dart';
 import '../models/song_of_week.dart';
 import '../models/spotify.dart';
-// import '../services/auth_service.dart';
+import '../services/auth_service.dart';
 import '../services/events.dart';
 import '../services/phrases_service.dart';
 import '../services/spotify_service.dart';
 import '../utils/colors.dart';
 import '../widgets/motion/ambient_orbs_background.dart';
-// import 'auth/login_screen.dart';
 import 'calendar/calendar.dart';
 import 'checklist/checklist_menu_screen.dart';
 import 'finances/couple_finances.dart';
@@ -39,7 +38,9 @@ const _anniversaryDate = (year: 2023, month: 12, day: 18);
 final _weddingUnlockDate = DateTime(2026, 12, 18);
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onSignedOut;
+
+  const HomeScreen({super.key, this.onSignedOut});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -62,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<PhraseType, LovePhrase> _weeklyPhrases = {};
   List<SpotifyTrack> _spotifyTracks = [];
 
-  // final AuthService _authService = AuthService();
+  final AuthService _authService = AuthService.instance;
   final EventService _eventService = EventService();
 
   @override
@@ -75,51 +76,29 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     _loadSong();
     _loadWeeklyPhrases();
-    // _loadDisplayName(); // Login disabled
+    _loadDisplayName();
   }
 
-  // Future<void> _loadDisplayName() async {
-  //   final displayName = await _authService.getDisplayName();
-  //   if (!mounted) {
-  //     return;
-  //   }
-  //   setState(() {
-  //     _displayName = displayName;
-  //   });
-  // }
+  Future<void> _loadDisplayName() async {
+    final displayName = await _authService.getDisplayName();
+    if (mounted) setState(() => _displayName = displayName);
+  }
 
-  // Future<void> _logout() async {
-  //   if (_loggingOut) {
-  //     return;
-  //   }
-  //
-  //   setState(() => _loggingOut = true);
-  //   try {
-  //     await _authService.signOut();
-  //
-  //     if (!mounted) {
-  //       return;
-  //     }
-  //
-  //     Navigator.of(context).pushAndRemoveUntil(
-  //       MaterialPageRoute(
-  //         builder: (_) => LoginScreen(
-  //           onLoginSuccess: () {
-  //             Navigator.of(context).pushAndRemoveUntil(
-  //               MaterialPageRoute(builder: (_) => const HomeScreen()),
-  //               (route) => false,
-  //             );
-  //           },
-  //         ),
-  //       ),
-  //       (route) => false,
-  //     );
-  //   } finally {
-  //     if (mounted) {
-  //       setState(() => _loggingOut = false);
-  //     }
-  //   }
-  // }
+  Future<void> _logout() async {
+    if (_loggingOut) return;
+    setState(() => _loggingOut = true);
+    try {
+      await _authService.signOut();
+      if (mounted) widget.onSignedOut?.call();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo cerrar la sesión: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _loggingOut = false);
+    }
+  }
 
   Duration _calcDuration() {
     final start = DateTime(
@@ -596,32 +575,30 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const Positioned(right: 16, bottom: 16, child: HomeMascotBubble()),
-          // Positioned(
-          //   top: 12,
-          //   right: 12,
-          //   child: SafeArea(
-          //     child: Material(
-          //       color: Colors.black38,
-          //       shape: const CircleBorder(),
-          //       child: IconButton(
-          //         tooltip: 'Cerrar sesión',
-          //         onPressed: _loggingOut ? null : _logout,
-          //         icon: _loggingOut
-          //             ? const SizedBox(
-          //                 height: 18,
-          //                 width: 18,
-          //                 child: CircularProgressIndicator(
-          //                   strokeWidth: 2,
-          //                   valueColor: AlwaysStoppedAnimation<Color>(
-          //                     Colors.white,
-          //                   ),
-          //                 ),
-          //               )
-          //             : const Icon(Icons.logout_rounded, color: Colors.white),
-          //       ),
-          //     ),
-          //   ),
-          // ),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: SafeArea(
+              child: Material(
+                color: Colors.black38,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  tooltip: 'Cerrar sesión',
+                  onPressed: _loggingOut ? null : _logout,
+                  icon: _loggingOut
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.logout_rounded, color: Colors.white),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

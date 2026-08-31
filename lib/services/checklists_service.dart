@@ -1,7 +1,7 @@
 // lib/services/checklists_service.dart
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'authenticated_http_client.dart' as http;
 
 import '../models/checklist.dart';
 import 'api_config.dart';

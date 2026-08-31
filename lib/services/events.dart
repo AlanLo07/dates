@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'authenticated_http_client.dart' as http;
 import '../models/recuerdos.dart';
 import '../models/carta.dart';
 import '../models/fecha.dart';

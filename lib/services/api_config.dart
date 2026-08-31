@@ -16,5 +16,11 @@ class ApiConfig {
   static const String financesPath = '/finances';
   static const String spotifyPath = '/spotify';
   static const String checklistsPath = '/checklists';
+  static const String loginPath = '/auth/login';
+  static const String signupPath = '/auth/signup';
+  static const String confirmAccountPath = '/auth/confirm';
+  static const String resendCodePath = '/auth/resend-code';
+  static const String refreshTokenPath = '/auth/refresh';
+  static const String logoutPath = '/auth/logout';
   // Agrega aquí las rutas que necesites en el futuro
 }

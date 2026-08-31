@@ -1,7 +1,7 @@
 // lib/services/phrases_service.dart
 import 'dart:convert';
 import 'dart:math';
-import 'package:http/http.dart' as http;
+import 'authenticated_http_client.dart' as http;
 import '../models/phrase.dart';
 import 'api_config.dart';
 
