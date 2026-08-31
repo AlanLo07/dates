@@ -410,53 +410,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
         pageBuilder: (ctx, animation, _) => Center(
           child: ScaleTransition(
             scale: animation,
-            child: AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              backgroundColor: AppColors.surface,
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Hero(
-                      tag: 'recuerdo-${recuerdo.id}',
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
-                        child: _buildImageWidget(recuerdo.imagePath),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      recuerdo.title,
-                      textAlign: TextAlign.left,
-                      style: const TextStyle(
-                        color: AppColors.violeta,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      recuerdo.description,
-                      textAlign: TextAlign.left,
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text(
-                    'Cerrar',
-                    style: TextStyle(color: AppColors.celeste),
-                  ),
-                ),
-              ],
+            child: _RecuerdoDialog(
+              recuerdo: recuerdo,
+              buildImage: _buildImageWidget,
+              onEdit: _mostrarFormularioEditarRecuerdo,
+              onDelete: (id) async {
+                debugPrint('🔵 [Calendar] deleteRecuerdo: iniciando');
+                try {
+                  await _service.deleteRecuerdo(id);
+                  if (!mounted) return;
+                  setState(() => _recuerdos.removeWhere((r) => r.id == id));
+                  debugPrint('🟢 [Calendar] deleteRecuerdo: completado');
+                } catch (e) {
+                  debugPrint(
+                    '🔴 [Calendar] deleteRecuerdo: fallo (${e.runtimeType}): $e',
+                  );
+                  rethrow;
+                }
+              },
             ),
           ),
         ),
@@ -594,17 +565,31 @@ class _CalendarScreenState extends State<CalendarScreen> {
         fechaInicial: DateTime.now(),
         service: _service,
         formatearFecha: _toApiDateKey,
-        onCreado: (recuerdo) {
+        onGuardado: (recuerdo) {
           setState(() {
             _recuerdos = [..._recuerdos, recuerdo];
             _focusedDay = DateTime.now();
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('✅ Recuerdo "${recuerdo.title}" creado'),
-              backgroundColor: AppColors.violeta,
-            ),
-          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _mostrarFormularioEditarRecuerdo(Recuerdo recuerdo) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CrearRecuerdoSheet(
+        fechaInicial: DateTime.now(),
+        recuerdo: recuerdo,
+        service: _service,
+        formatearFecha: _toApiDateKey,
+        onGuardado: (actualizado) {
+          setState(() {
+            final index = _recuerdos.indexWhere((r) => r.id == actualizado.id);
+            if (index >= 0) _recuerdos[index] = actualizado;
+          });
         },
       ),
     );
@@ -820,13 +805,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
                                     if (first is Recuerdo &&
                                         _mostrarRecuerdos) {
-                                      if (first.imagePath.isNotEmpty) {
+                                      if (first.imageUrls.isNotEmpty) {
                                         return Positioned(
                                           bottom: 1,
                                           child: Hero(
                                             tag: 'recuerdo-${first.id}',
                                             child: _buildThumbnail(
-                                              first.imagePath,
+                                              first.imageUrls.first,
                                             ),
                                           ),
                                         );
@@ -1028,6 +1013,222 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dialog de Recuerdo
+// ─────────────────────────────────────────────────────────────────────────────
+class _RecuerdoDialog extends StatefulWidget {
+  final Recuerdo recuerdo;
+  final Widget Function(String imageUrl) buildImage;
+  final Future<void> Function(Recuerdo recuerdo) onEdit;
+  final Future<void> Function(String id) onDelete;
+
+  const _RecuerdoDialog({
+    required this.recuerdo,
+    required this.buildImage,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  State<_RecuerdoDialog> createState() => _RecuerdoDialogState();
+}
+
+class _RecuerdoDialogState extends State<_RecuerdoDialog> {
+  late final PageController _pageController;
+  int _currentPage = 0;
+  bool _isDeleting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _editar() async {
+    Navigator.of(context).pop();
+    await widget.onEdit(widget.recuerdo);
+  }
+
+  Future<void> _confirmarEliminar() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('¿Eliminar recuerdo?'),
+        content: Text('Se eliminará "${widget.recuerdo.title}".'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      await widget.onDelete(widget.recuerdo.id);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isDeleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al eliminar: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final images = widget.recuerdo.imageUrls;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: AppColors.surface,
+      content: SizedBox(
+        width: 360,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 300,
+                child: images.isEmpty
+                    ? widget.buildImage('')
+                    : Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          PageView.builder(
+                            controller: _pageController,
+                            itemCount: images.length,
+                            onPageChanged: (page) =>
+                                setState(() => _currentPage = page),
+                            itemBuilder: (_, index) =>
+                                widget.buildImage(images[index]),
+                          ),
+                          if (images.length > 1) ...[
+                            Positioned(
+                              left: 4,
+                              child: IconButton.filledTonal(
+                                tooltip: 'Imagen anterior',
+                                onPressed: _currentPage == 0
+                                    ? null
+                                    : () => _pageController.previousPage(
+                                        duration: const Duration(
+                                          milliseconds: 240,
+                                        ),
+                                        curve: Curves.easeOut,
+                                      ),
+                                icon: const Icon(Icons.chevron_left),
+                              ),
+                            ),
+                            Positioned(
+                              right: 4,
+                              child: IconButton.filledTonal(
+                                tooltip: 'Imagen siguiente',
+                                onPressed: _currentPage == images.length - 1
+                                    ? null
+                                    : () => _pageController.nextPage(
+                                        duration: const Duration(
+                                          milliseconds: 240,
+                                        ),
+                                        curve: Curves.easeOut,
+                                      ),
+                                icon: const Icon(Icons.chevron_right),
+                              ),
+                            ),
+                            Positioned(
+                              right: 10,
+                              bottom: 10,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${_currentPage + 1}/${images.length}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                widget.recuerdo.title,
+                style: const TextStyle(
+                  color: AppColors.violeta,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
+              ),
+              if (widget.recuerdo.description.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  widget.recuerdo.description,
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 16),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton.icon(
+          onPressed: _editar,
+          icon: const Icon(Icons.edit_outlined),
+          label: const Text('Editar'),
+        ),
+        _isDeleting
+            ? const Padding(
+                padding: EdgeInsets.all(8),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            : IconButton(
+                tooltip: 'Eliminar recuerdo',
+                onPressed: _confirmarEliminar,
+                icon: const Icon(Icons.delete_outline),
+                color: Colors.redAccent,
+              ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cerrar'),
+        ),
+      ],
     );
   }
 }
@@ -3849,15 +4050,17 @@ class _CitaSelectorSheetState extends State<_CitaSelectorSheet> {
 // ─────────────────────────────────────────────────────────────────────────────
 class _CrearRecuerdoSheet extends StatefulWidget {
   final DateTime fechaInicial;
+  final Recuerdo? recuerdo;
   final EventService service;
   final String Function(DateTime) formatearFecha;
-  final void Function(Recuerdo) onCreado;
+  final void Function(Recuerdo) onGuardado;
 
   const _CrearRecuerdoSheet({
     required this.fechaInicial,
+    this.recuerdo,
     required this.service,
     required this.formatearFecha,
-    required this.onCreado,
+    required this.onGuardado,
   });
 
   @override
@@ -3865,6 +4068,8 @@ class _CrearRecuerdoSheet extends StatefulWidget {
 }
 
 class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
+  static const int _maxImages = 20;
+
   final _tituloController = TextEditingController();
   final _descripcionController = TextEditingController();
   final UploadService _uploadService = UploadService();
@@ -3872,13 +4077,23 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
   late DateTime _fechaSeleccionada;
   bool _isLoading = false;
   bool _isUploadingImage = false;
-  String? _imageUrl;
+  final List<String> _imageUrls = [];
   String? _imageError;
+
+  bool get _isEditing => widget.recuerdo != null;
 
   @override
   void initState() {
     super.initState();
-    _fechaSeleccionada = widget.fechaInicial;
+    final recuerdo = widget.recuerdo;
+    _fechaSeleccionada = recuerdo == null
+        ? widget.fechaInicial
+        : _parseFecha(recuerdo.date);
+    if (recuerdo != null) {
+      _tituloController.text = recuerdo.title;
+      _descripcionController.text = recuerdo.description;
+      _imageUrls.addAll(recuerdo.imageUrls.take(_maxImages));
+    }
   }
 
   @override
@@ -3886,6 +4101,18 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
     _tituloController.dispose();
     _descripcionController.dispose();
     super.dispose();
+  }
+
+  DateTime _parseFecha(String value) {
+    final parts = value.split('-');
+    if (parts.length != 3) return widget.fechaInicial;
+    final day = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    if (day == null || month == null || year == null) {
+      return widget.fechaInicial;
+    }
+    return DateTime(year, month, day);
   }
 
   Future<void> _seleccionarFecha() async {
@@ -3912,6 +4139,7 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
   }
 
   Future<void> _seleccionarImagenRecuerdo() async {
+    if (_imageUrls.length >= _maxImages) return;
     setState(() {
       _isUploadingImage = true;
       _imageError = null;
@@ -3921,7 +4149,9 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
       final publicUrl = await _uploadService.pickAndUpload();
       if (!mounted) return;
       setState(() {
-        _imageUrl = publicUrl;
+        if (publicUrl != null && !_imageUrls.contains(publicUrl)) {
+          _imageUrls.add(publicUrl);
+        }
         _isUploadingImage = false;
       });
     } catch (e) {
@@ -3933,14 +4163,14 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
     }
   }
 
-  void _quitarImagenRecuerdo() {
+  void _quitarImagenRecuerdo(int index) {
     setState(() {
-      _imageUrl = null;
+      _imageUrls.removeAt(index);
       _imageError = null;
     });
   }
 
-  Future<void> _crearRecuerdo() async {
+  Future<void> _guardarRecuerdo() async {
     final titulo = _tituloController.text.trim();
     final descripcion = _descripcionController.text.trim();
 
@@ -3962,24 +4192,38 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
 
     setState(() => _isLoading = true);
     try {
-      final nuevoRecuerdo = await widget.service.createRecuerdo(
-        Recuerdo(
-          id: '',
-          title: titulo,
-          description: descripcion,
-          date: widget.formatearFecha(_fechaSeleccionada),
-          imagePath: _imageUrl ?? '',
-        ),
+      final recuerdo = Recuerdo(
+        id: widget.recuerdo?.id ?? '',
+        title: titulo,
+        description: descripcion,
+        date: widget.formatearFecha(_fechaSeleccionada),
+        imagesPath: List.unmodifiable(_imageUrls),
       );
 
+      final recuerdoGuardado = _isEditing
+          ? await widget.service.updateRecuerdo(recuerdo)
+          : await widget.service.createRecuerdo(recuerdo);
+
       if (!mounted) return;
-      widget.onCreado(nuevoRecuerdo);
+      widget.onGuardado(recuerdoGuardado);
       Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isEditing ? '✅ Recuerdo actualizado' : '✅ Recuerdo creado',
+          ),
+          backgroundColor: AppColors.violeta,
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error al crear recuerdo: $e'),
+          content: Text(
+            _isEditing
+                ? 'Error al actualizar recuerdo: $e'
+                : 'Error al crear recuerdo: $e',
+          ),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -4013,17 +4257,17 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            const Row(
+            Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.movie_creation_outlined,
                   color: AppColors.violeta,
                   size: 26,
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Text(
-                  'Crear recuerdo',
-                  style: TextStyle(
+                  _isEditing ? 'Editar recuerdo' : 'Crear recuerdo',
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: AppColors.violeta,
@@ -4050,7 +4294,7 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
             _buildImagePicker(),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: _isLoading ? null : _crearRecuerdo,
+              onPressed: _isLoading ? null : _guardarRecuerdo,
               icon: _isLoading
                   ? const SizedBox(
                       width: 18,
@@ -4061,7 +4305,13 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
                       ),
                     )
                   : const Icon(Icons.check_circle_outline),
-              label: Text(_isLoading ? 'Guardando...' : 'Guardar recuerdo'),
+              label: Text(
+                _isLoading
+                    ? 'Guardando...'
+                    : _isEditing
+                    ? 'Guardar cambios'
+                    : 'Guardar recuerdo',
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.violeta,
                 foregroundColor: Colors.white,
@@ -4143,97 +4393,127 @@ class _CrearRecuerdoSheetState extends State<_CrearRecuerdoSheet> {
   }
 
   Widget _buildImagePicker() {
-    final hasImage = _imageUrl != null;
-    final borderColor = _imageError != null
-        ? Colors.redAccent.shade100
-        : hasImage
-        ? AppColors.violeta
-        : Colors.grey.shade300;
-    final bgColor = _imageError != null
-        ? Colors.red.shade50
-        : hasImage
-        ? const Color(0xFFEDE9F5)
-        : Colors.grey.shade50;
+    final reachedLimit = _imageUrls.length >= _maxImages;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Imagen (opcional)',
-          style: TextStyle(
-            color: AppColors.violeta,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Imágenes (opcional)',
+                style: TextStyle(
+                  color: AppColors.violeta,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Text(
+              '${_imageUrls.length}/$_maxImages',
+              style: TextStyle(
+                color: reachedLimit ? Colors.orange.shade800 : Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            border: Border.all(color: borderColor, width: 1.5),
+            border: Border.all(
+              color: _imageError != null
+                  ? Colors.redAccent.shade100
+                  : Colors.grey.shade300,
+              width: 1.2,
+            ),
             borderRadius: BorderRadius.circular(12),
-            color: bgColor,
+            color: Colors.grey.shade50,
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (_isUploadingImage)
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.violeta,
+              if (_imageUrls.isEmpty && !_isUploadingImage)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Aún no hay imágenes cargadas',
+                    style: TextStyle(color: Colors.grey.shade600),
                   ),
-                )
-              else
-                Icon(
-                  hasImage
-                      ? Icons.image_outlined
-                      : Icons.add_photo_alternate_outlined,
-                  color: hasImage ? AppColors.violeta : Colors.grey,
-                  size: 20,
                 ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  _isUploadingImage
-                      ? 'Subiendo...'
-                      : _imageError != null
-                      ? 'Error al subir'
-                      : hasImage
-                      ? 'Imagen cargada'
-                      : 'Agregar imagen',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: _imageError != null
-                        ? Colors.redAccent
-                        : hasImage
-                        ? AppColors.violeta
-                        : Colors.grey,
-                    fontWeight: hasImage ? FontWeight.w600 : FontWeight.normal,
+              if (_imageUrls.isNotEmpty)
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 176),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: _imageUrls.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (_, index) => SizedBox(
+                      height: 44,
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.check_circle,
+                            color: AppColors.success,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _imageUrls[index],
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Quitar imagen ${index + 1}',
+                            onPressed: () => _quitarImagenRecuerdo(index),
+                            icon: const Icon(Icons.close, size: 17),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  overflow: TextOverflow.ellipsis,
+                ),
+              if (_isUploadingImage) ...[
+                const Divider(height: 16),
+                const Row(
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.violeta,
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Text('Subiendo imagen...'),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _isUploadingImage || reachedLimit
+                    ? null
+                    : _seleccionarImagenRecuerdo,
+                icon: const Icon(Icons.add_photo_alternate_outlined),
+                label: Text(
+                  reachedLimit ? 'Límite alcanzado' : 'Agregar imagen',
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.violeta,
+                  side: const BorderSide(color: AppColors.violeta),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
-              if (hasImage && !_isUploadingImage)
-                IconButton(
-                  tooltip: 'Quitar',
-                  onPressed: _quitarImagenRecuerdo,
-                  icon: const Icon(Icons.close, size: 18),
-                  color: Colors.grey,
-                  constraints: const BoxConstraints(
-                    minWidth: 36,
-                    minHeight: 36,
-                  ),
-                  padding: EdgeInsets.zero,
-                )
-              else
-                TextButton(
-                  onPressed: _isUploadingImage
-                      ? null
-                      : _seleccionarImagenRecuerdo,
-                  child: Text(_imageError != null ? 'Reintentar' : 'Elegir'),
-                ),
             ],
           ),
         ),

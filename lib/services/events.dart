@@ -109,35 +109,51 @@ class EventService {
   }
 
   Future<Recuerdo> createRecuerdo(Recuerdo recuerdo) async {
+    debugPrint('🔵 [EventService] createRecuerdo: POST iniciado');
     final response = await http.post(
       _uri(),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(recuerdo.toJson()),
     );
+    debugPrint(
+      '⚪️ [EventService] createRecuerdo: respuesta HTTP ${response.statusCode}',
+    );
     if (response.statusCode == 201) {
-      final body = json.decode(response.body);
+      final body = json.decode(response.body) as Map<String, dynamic>;
+      final responseItem = body['item'];
+      final data = responseItem is Map<String, dynamic> ? responseItem : body;
       _invalidateAllCache();
-      return Recuerdo(
-        id: body['id'],
-        title: recuerdo.title,
-        description: recuerdo.description,
-        date: recuerdo.date,
-        imagePath: recuerdo.imagePath,
-      );
+      debugPrint('🟢 [EventService] createRecuerdo: completado');
+      return Recuerdo.fromJson({...recuerdo.toJson(), ...data});
     }
+    debugPrint('🔴 [EventService] createRecuerdo: HTTP no exitoso');
     throw Exception('Error al crear recuerdo: ${response.body}');
   }
 
-  Future<void> updateRecuerdo(Recuerdo recuerdo) async {
+  Future<Recuerdo> updateRecuerdo(Recuerdo recuerdo) async {
+    debugPrint('🔵 [EventService] updateRecuerdo: PUT iniciado');
     final response = await http.put(
       _uri('/${recuerdo.id}'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(recuerdo.toJson()),
     );
+    debugPrint(
+      '⚪️ [EventService] updateRecuerdo: respuesta HTTP ${response.statusCode}',
+    );
     if (response.statusCode != 200) {
+      debugPrint('🔴 [EventService] updateRecuerdo: HTTP no exitoso');
       throw Exception('Error al actualizar recuerdo: ${response.body}');
     }
     _invalidateAllCache();
+    final body = json.decode(response.body);
+    final responseItem = body is Map<String, dynamic> ? body['item'] : null;
+    final data = responseItem is Map<String, dynamic>
+        ? responseItem
+        : body is Map<String, dynamic>
+        ? body
+        : <String, dynamic>{};
+    debugPrint('🟢 [EventService] updateRecuerdo: completado');
+    return Recuerdo.fromJson({...recuerdo.toJson(), ...data});
   }
 
   Future<void> deleteRecuerdo(String id) async {
