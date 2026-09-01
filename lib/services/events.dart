@@ -124,7 +124,10 @@ class EventService {
       final data = responseItem is Map<String, dynamic> ? responseItem : body;
       _invalidateAllCache();
       debugPrint('🟢 [EventService] createRecuerdo: completado');
-      return Recuerdo.fromJson({...recuerdo.toJson(), ...data});
+      // Se ignoran los valores null del servidor para no sobreescribir campos ya enviados por el cliente.
+      final cleanData = Map<String, dynamic>.from(data)
+        ..removeWhere((_, value) => value == null);
+      return Recuerdo.fromJson({...recuerdo.toJson(), ...cleanData});
     }
     debugPrint('🔴 [EventService] createRecuerdo: HTTP no exitoso');
     throw Exception('Error al crear recuerdo: ${response.body}');
@@ -153,7 +156,10 @@ class EventService {
         ? body
         : <String, dynamic>{};
     debugPrint('🟢 [EventService] updateRecuerdo: completado');
-    return Recuerdo.fromJson({...recuerdo.toJson(), ...data});
+    // Se ignoran los valores null del servidor para no sobreescribir campos ya enviados por el cliente.
+    final cleanData = Map<String, dynamic>.from(data)
+      ..removeWhere((_, value) => value == null);
+    return Recuerdo.fromJson({...recuerdo.toJson(), ...cleanData});
   }
 
   Future<void> deleteRecuerdo(String id) async {
