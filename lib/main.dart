@@ -82,7 +82,9 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   void _refreshSession() {
-    setState(() => _sessionFuture = _authService.isSessionValid());
+    setState(() {
+      _sessionFuture = _authService.isSessionValid();
+    });
   }
 
   @override
