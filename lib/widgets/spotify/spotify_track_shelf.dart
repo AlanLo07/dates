@@ -258,7 +258,7 @@ class SpotifyTrackShelf extends StatelessWidget {
             )
           else
             SizedBox(
-              height: 182,
+              height: 220,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: tracks.length,
