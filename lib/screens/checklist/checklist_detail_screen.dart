@@ -75,6 +75,7 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
           nombre: result.nombre,
           groupId: result.groupId,
           prioridad: result.prioridad,
+          prioridadOrden: result.prioridadOrden,
           precio: result.precio,
           emoji: result.emoji,
         ),
@@ -100,6 +101,7 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
         'nombre': result.nombre,
         'groupId': result.groupId,
         'prioridad': result.prioridad.name,
+        'prioridadOrden': result.prioridadOrden,
         'precio': result.precio,
         'emoji': result.emoji,
       });

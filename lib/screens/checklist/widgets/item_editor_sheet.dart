@@ -27,6 +27,7 @@ class ItemEditorResult {
   final String nombre;
   final String? groupId;
   final ItemPriority prioridad;
+  final int prioridadOrden;
   final double? precio;
   final String? emoji;
 
@@ -34,6 +35,7 @@ class ItemEditorResult {
     required this.nombre,
     required this.groupId,
     required this.prioridad,
+    required this.prioridadOrden,
     required this.precio,
     required this.emoji,
   });
@@ -72,6 +74,7 @@ class _ItemEditorSheet extends StatefulWidget {
 class _ItemEditorSheetState extends State<_ItemEditorSheet> {
   late final TextEditingController _nombreCtrl;
   late final TextEditingController _precioCtrl;
+  late final TextEditingController _prioridadOrdenCtrl;
   String? _groupId;
   ItemPriority _prioridad = ItemPriority.media;
   String? _emoji;
@@ -90,6 +93,9 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
     );
     _groupId = e?.groupId;
     _prioridad = e?.prioridad ?? ItemPriority.media;
+    _prioridadOrdenCtrl = TextEditingController(
+      text: (e?.prioridadOrden ?? (widget.board.items.length + 1)).toString(),
+    );
     _emoji = e?.emoji;
     _grupos = [...widget.board.grupos]..sort((a, b) => a.orden.compareTo(b.orden));
   }
@@ -98,6 +104,7 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
   void dispose() {
     _nombreCtrl.dispose();
     _precioCtrl.dispose();
+    _prioridadOrdenCtrl.dispose();
     _nuevoGrupoCtrl.dispose();
     super.dispose();
   }
@@ -144,11 +151,13 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
     if (nombre.isEmpty) return;
     final precioText = _precioCtrl.text.trim().replaceAll(',', '.');
     final precio = precioText.isEmpty ? null : double.tryParse(precioText);
+    final prioridadOrden = int.tryParse(_prioridadOrdenCtrl.text.trim()) ?? 1;
     Navigator.of(context).pop(
       ItemEditorResult(
         nombre: nombre,
         groupId: _groupId,
         prioridad: _prioridad,
+        prioridadOrden: prioridadOrden,
         precio: precio,
         emoji: _emoji,
       ),
@@ -275,6 +284,25 @@ class _ItemEditorSheetState extends State<_ItemEditorSheet> {
                     onSelected: (_) => setState(() => _prioridad = p),
                   );
                 }).toList(),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Orden de prioridad',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Número entero: 1 es el más importante',
+                style: TextStyle(fontSize: 11, color: Colors.black54),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _prioridadOrdenCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Orden',
+                  hintText: 'Ej. 1',
+                ),
               ),
               const SizedBox(height: 12),
               TextField(

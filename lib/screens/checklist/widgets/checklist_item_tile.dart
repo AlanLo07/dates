@@ -69,13 +69,34 @@ class ChecklistItemTile extends StatelessWidget {
                 ),
               )
             : null,
-        trailing: Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: item.prioridad.color,
-            shape: BoxShape.circle,
-          ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: item.prioridad.color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '#${item.prioridadOrden}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: item.prioridad.color,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: item.prioridad.color,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
         ),
       ),
     );
