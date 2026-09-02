@@ -7,6 +7,7 @@ import android.provider.OpenableColumns
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugins.GeneratedPluginRegistrant
 
 class MainActivity : FlutterActivity() {
     private val uploadPickerChannel = "dates/upload_picker"
@@ -14,7 +15,7 @@ class MainActivity : FlutterActivity() {
     private var pendingAudioResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-        super.configureFlutterEngine(flutterEngine)
+        GeneratedPluginRegistrant.registerWith(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, uploadPickerChannel)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
