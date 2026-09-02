@@ -26,6 +26,7 @@ import 'home/widgets/song_editor_sheet.dart';
 import 'memories/memories.dart';
 import 'phrases/type_phrases.dart';
 import 'plans/input.dart';
+import 'spotify/spotify_explorer_screen.dart';
 import 'wedding/wedding.dart';
 
 import 'home/widgets/home_mascot_bubble.dart';
@@ -543,10 +544,26 @@ class _HomeScreenState extends State<HomeScreen> {
                             stagger: _kListStagger,
                           ),
                           const SizedBox(height: 14),
+                          HomeMenuCard(
+                            index: 7,
+                            emoji: '🎧',
+                            icon: Icons.headphones_rounded,
+                            title: 'Spotify',
+                            subtitle: 'Busca música y controla la reproducción',
+                            destination: const SpotifyExplorerScreen(),
+                            gradientColors: const [
+                              Color(0xFF9BE8B0),
+                              Color(0xFF1DB954),
+                            ],
+                            fadeDuration: _kFadeDuration,
+                            slideDuration: _kSlideDuration,
+                            stagger: _kListStagger,
+                          ),
+                          const SizedBox(height: 14),
                           // if (DateTime.now().isAfter(_weddingUnlockDate))
                           if (true)
                             HomeMenuCard(
-                              index: 7,
+                              index: 8,
                               emoji: '💍',
                               icon: Icons.favorite,
                               title: 'Nuestra Boda',
