@@ -6,7 +6,7 @@ import '../../widgets/motion/ambient_orbs_background.dart';
 import '../../widgets/motion/motion_pressable.dart';
 import '../../models/phrase.dart';
 import '../../services/phrases_service.dart';
-import 'phrases.dart';
+import 'phrase_list_screen.dart';
 
 class TypePhrasesScreen extends StatefulWidget {
   const TypePhrasesScreen({super.key});
@@ -78,7 +78,9 @@ class _TypePhrasesScreenState extends State<TypePhrasesScreen> {
     });
 
     try {
-      final List<LovePhrase> data = await PhrasesService().getPhrases();
+      final List<LovePhrase> data = await PhrasesService().getPhrases(
+        forceRefresh: true,
+      );
       if (mounted) {
         setState(() {
           _items = data;
@@ -152,28 +154,32 @@ class _TypePhrasesScreenState extends State<TypePhrasesScreen> {
         itemCount: _categorias.length,
         itemBuilder: (context, index) {
           final cat = _categorias[index];
-          final count =
-              _items
-                  ?.where(
-                    (i) => PhraseTypeX.fromPhraseType(i.type) == cat['tipo'],
-                  )
-                  .length ??
-              0;
+          final type = PhraseTypeX.fromString(cat['tipo'] as String);
+          final ofType =
+              _items?.where((i) => i.type == type).toList() ??
+              const <LovePhrase>[];
+          final count = ofType.length;
+          final completed = ofType.where((i) => i.completado).length;
 
           return CategoryCard(
             nombre: cat['nombre'],
             emoji: cat['emoji'],
             color: cat['color'],
             count: count,
-            onTap: () => Navigator.push(
-              context,
-              createRoute(
-                PhrasesScreen(
-                  type: PhraseTypeX.fromString(cat['tipo'] as String),
+            completed: completed,
+            onTap: () async {
+              await Navigator.push(
+                context,
+                createRoute(
+                  PhraseListScreen(
+                    type: type,
+                    accentColor: cat['color'] as Color,
+                  ),
+                  motion: AppRouteMotion.sharedAxisX,
                 ),
-                motion: AppRouteMotion.sharedAxisX,
-              ),
-            ),
+              );
+              await _loadData();
+            },
           )
               .animate()
               .fadeIn(
@@ -198,6 +204,7 @@ class CategoryCard extends StatelessWidget {
   final String emoji;
   final Color color;
   final int count;
+  final int completed;
   final VoidCallback onTap;
 
   const CategoryCard({
@@ -206,11 +213,14 @@ class CategoryCard extends StatelessWidget {
     required this.emoji,
     required this.color,
     required this.count,
+    required this.completed,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final progress = count == 0 ? 0.0 : completed / count;
+
     return MotionPressable(
       onTap: onTap,
       pressedScale: 0.96,
@@ -250,11 +260,24 @@ class CategoryCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '$count elementos',
+              '$completed de $count desbloqueadas',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey.shade600,
                 fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  backgroundColor: color.withValues(alpha: 0.15),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
               ),
             ),
           ],

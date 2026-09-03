@@ -20,7 +20,11 @@ const Color _verde = Color(0xFF81C784);
 
 class PhrasesScreen extends StatefulWidget {
   final PhraseType type;
-  const PhrasesScreen({required this.type, super.key});
+
+  /// Si se pasa, se juega esa frase en lugar de una pendiente al azar.
+  final LovePhrase? initialPhrase;
+
+  const PhrasesScreen({required this.type, this.initialPhrase, super.key});
 
   @override
   State<PhrasesScreen> createState() => _PhrasesScreenState();
@@ -28,14 +32,14 @@ class PhrasesScreen extends StatefulWidget {
 
 class _PhrasesScreenState extends State<PhrasesScreen>
     with TickerProviderStateMixin {
-  // ── Estado del juego ────────────────────────────────────────────────────────
+  // ── Estado del juego ───────────────────────────────────────────────────────
   LovePhrase? _phrase;
   bool _isLoading = true;
+  bool _completedAny = false;
   Set<String> _guessed = {};
   int _errors = 0;
   static const int _maxErrors = 6;
   bool _revealed = false; // Si mostramos la respuesta al perder
-  final _random = new Random();
   // late final HangmanHintGame _hintGame;
 
   // ── Animaciones ─────────────────────────────────────────────────────────────
@@ -69,7 +73,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
     _winScale = Tween<double>(begin: 0.6, end: 1.0).animate(
       CurvedAnimation(parent: _winController, curve: Curves.elasticOut),
     );
-    _loadPhrase();
+    _loadPhrase(initial: widget.initialPhrase);
   }
 
   @override
@@ -81,10 +85,11 @@ class _PhrasesScreenState extends State<PhrasesScreen>
   }
 
   // ── Lógica ───────────────────────────────────────────────────────────────────
-  Future<void> _loadPhrase() async {
+  Future<void> _loadPhrase({LovePhrase? initial}) async {
     setState(() => _isLoading = true);
-    final phrases = await PhrasesService().getPhrasesByType(_type);
-    final phrase = phrases[_random.nextInt(phrases.length)];
+    final phrase =
+        initial ?? await PhrasesService().getRandomPendingPhrase(_type);
+    if (!mounted) return;
     setState(() {
       _phrase = phrase;
       _guessed = {};
@@ -95,6 +100,17 @@ class _PhrasesScreenState extends State<PhrasesScreen>
       _feedbackTick = 0;
       _manualSwayDeg = 0;
       _isLoading = false;
+    });
+  }
+
+  Future<void> _registerWin() async {
+    final phrase = _phrase;
+    if (phrase == null || phrase.completado) return;
+    final updated = await PhrasesService().markAsCompleted(phrase);
+    if (!mounted || updated == null) return;
+    setState(() {
+      _phrase = updated;
+      _completedAny = true;
     });
   }
 
@@ -136,7 +152,10 @@ class _PhrasesScreenState extends State<PhrasesScreen>
       HapticFeedback.mediumImpact();
     }
 
-    if (_hasWon) _winController.forward(from: 0);
+    if (_hasWon) {
+      _winController.forward(from: 0);
+      unawaited(_registerWin());
+    }
 
     unawaited(
       Future<void>.delayed(const Duration(milliseconds: 900), () {
@@ -220,27 +239,66 @@ class _PhrasesScreenState extends State<PhrasesScreen>
   // ── UI ───────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _lavanda,
-      appBar: AppBar(
-        title: const Text(
-          '🎯 Adivina la Frase',
-          style: TextStyle(color: _violeta, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: _violeta),
-        elevation: 1,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: _violeta),
-            tooltip: 'Nueva frase',
-            onPressed: _loadPhrase,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        Navigator.pop(context, _completedAny);
+      },
+      child: Scaffold(
+        backgroundColor: _lavanda,
+        appBar: AppBar(
+          title: const Text(
+            '🎯 Adivina la Frase',
+            style: TextStyle(color: _violeta, fontWeight: FontWeight.bold),
           ),
-        ],
+          backgroundColor: Colors.white,
+          iconTheme: const IconThemeData(color: _violeta),
+          elevation: 1,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh, color: _violeta),
+              tooltip: 'Nueva frase',
+              onPressed: () => _loadPhrase(),
+            ),
+          ],
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: _violeta))
+            : _phrase == null
+            ? _buildNoPendingPhrases()
+            : _buildGame(),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _violeta))
-          : _buildGame(),
+    );
+  }
+
+  Widget _buildNoPendingPhrases() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('🎉', style: TextStyle(fontSize: 56)),
+            const SizedBox(height: 16),
+            Text(
+              'Ya adivinaste todas las frases de ${_type.label}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: _violeta,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Vuelve a la lista para revivir las que ya completaste.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -295,7 +353,7 @@ class _PhrasesScreenState extends State<PhrasesScreen>
             Padding(
               padding: const EdgeInsets.only(top: 20, bottom: 30),
               child: FriendlyActionButton(
-                onPressed: _loadPhrase,
+                onPressed: () => _loadPhrase(),
                 icon: Icons.refresh,
                 label: 'Jugar de nuevo',
                 backgroundColor: _violeta,
