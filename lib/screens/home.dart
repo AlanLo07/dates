@@ -174,6 +174,9 @@ class _HomeScreenState extends State<HomeScreen> {
         cancionFromPhrases?.credits ??
         'Toca ✏️ para elegir';
     final songUrl = _songOfWeek?.link ?? cancionFromPhrases?.link ?? '';
+    final songImageUrl = _spotifyTracks.isNotEmpty
+        ? _spotifyTracks.first.imageUrl
+        : '';
 
     items.add(
       WeeklyHighlightItem(
@@ -182,6 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
         subtitle: songSubtitle,
         url: songUrl,
         canEdit: true,
+        imageUrl: songImageUrl,
       ),
     );
 

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/phrase.dart';
@@ -8,6 +9,7 @@ class WeeklyHighlightItem {
   final String subtitle;
   final String url;
   final bool canEdit;
+  final String imageUrl;
 
   const WeeklyHighlightItem({
     required this.type,
@@ -15,6 +17,7 @@ class WeeklyHighlightItem {
     required this.subtitle,
     this.url = '',
     this.canEdit = false,
+    this.imageUrl = '',
   });
 }
 
@@ -258,15 +261,25 @@ class _WeeklyItemView extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(
-                  child: Text(item.type.emoji, style: const TextStyle(fontSize: 20)),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: item.imageUrl.isEmpty
+                      ? Container(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          child: Center(
+                            child: Text(
+                              item.type.emoji,
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                          ),
+                        )
+                      : CachedNetworkImage(
+                          imageUrl: item.imageUrl,
+                          fit: BoxFit.cover,
+                        ),
                 ),
               ),
               const SizedBox(width: 12),

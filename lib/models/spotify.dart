@@ -31,10 +31,9 @@ class SpotifyTrack {
     final album = json['album'] is Map<String, dynamic>
         ? json['album'] as Map<String, dynamic>
         : const <String, dynamic>{};
-    final images = (album['images'] as List<dynamic>?) ?? const <dynamic>[];
-    final imageUrl = images.isNotEmpty && images.first is Map<String, dynamic>
-        ? (images.first['url'] ?? '').toString()
-        : '';
+    final imageUrl = (json['image'] ?? album['image'] ?? '').toString().isNotEmpty
+        ? (json['image'] ?? album['image']).toString()
+        : _firstImageUrl(album['images']);
 
     final externalUrls = json['external_urls'] is Map<String, dynamic>
         ? json['external_urls'] as Map<String, dynamic>
