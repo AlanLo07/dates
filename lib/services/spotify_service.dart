@@ -399,4 +399,34 @@ class SpotifyService {
       throw Exception('Error al ir a la canción anterior en Spotify');
     }
   }
+
+  /// Token crudo de Spotify (scope `streaming`) para instanciar el Web
+  /// Playback SDK. El backend maneja el refresh; no debe cachearse en el front.
+  Future<String> getPlayerToken() async {
+    final response = await http.get(_uri('/player/token'));
+    _throwIfNotLinked(response);
+    if (response.statusCode != 200) {
+      throw Exception('No se pudo obtener el token de reproducción');
+    }
+    final body = json.decode(response.body);
+    if (body is Map<String, dynamic> && body['access_token'] is String) {
+      return body['access_token'] as String;
+    }
+    throw Exception('Respuesta inválida al obtener el token de reproducción');
+  }
+
+  /// Activa el dispositivo creado por el SDK como el dispositivo Connect
+  /// activo. Debe llamarse una sola vez, al recibir el evento `ready`.
+  Future<void> transferPlayback({
+    required String deviceId,
+    bool play = false,
+  }) async {
+    final response = await http.put(
+      _uri('/player/transfer', {'device_id': deviceId, 'play': play}),
+    );
+    _throwIfNotLinked(response);
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('No se pudo activar el dispositivo de reproducción');
+    }
+  }
 }
