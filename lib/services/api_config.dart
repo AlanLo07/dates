@@ -22,5 +22,6 @@ class ApiConfig {
   static const String resendCodePath = '/auth/resend-code';
   static const String refreshTokenPath = '/auth/refresh';
   static const String logoutPath = '/auth/logout';
+  static const String mePath = '/auth/me';
   // Agrega aquí las rutas que necesites en el futuro
 }

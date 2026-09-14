@@ -81,8 +81,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadDisplayName() async {
-    final displayName = await _authService.getDisplayName();
-    if (mounted) setState(() => _displayName = displayName);
+    final cachedName = await _authService.getDisplayName();
+    if (mounted) setState(() => _displayName = cachedName);
+    try {
+      final me = await _authService.getMe();
+      if (mounted && me != null && me.name.isNotEmpty) {
+        setState(() => _displayName = me.name);
+      }
+    } catch (_) {
+      // se conserva el nombre en caché si /auth/me falla
+    }
   }
 
   Future<void> _logout() async {

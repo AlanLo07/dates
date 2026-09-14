@@ -28,6 +28,24 @@ class SignupResult {
   });
 }
 
+class AuthUserInfo {
+  final String sub;
+  final String email;
+  final String name;
+
+  const AuthUserInfo({
+    required this.sub,
+    required this.email,
+    required this.name,
+  });
+
+  factory AuthUserInfo.fromJson(Map<String, dynamic> json) => AuthUserInfo(
+    sub: (json['sub'] ?? '').toString(),
+    email: (json['email'] ?? '').toString(),
+    name: (json['name'] ?? '').toString(),
+  );
+}
+
 class AuthService {
   AuthService._();
 
@@ -251,6 +269,35 @@ class AuthService {
   Future<String?> getDisplayName() => _storage.read(key: _displayNameKey);
 
   Future<String?> getEmail() => _storage.read(key: _emailKey);
+
+  Future<AuthUserInfo?> getMe() async {
+    debugPrint('🔵 [AuthService] getMe: iniciando');
+    final accessToken = await getValidAccessToken();
+    if (accessToken == null || accessToken.isEmpty) {
+      debugPrint('🟡 [AuthService] getMe: sin sesión activa');
+      return null;
+    }
+
+    final response = await _client.get(
+      _uri(ApiConfig.mePath),
+      headers: {'Authorization': 'Bearer $accessToken'},
+    );
+    debugPrint('⚪️ [AuthService] getMe: respuesta HTTP ${response.statusCode}');
+    if (response.statusCode != 200) {
+      debugPrint('🔴 [AuthService] getMe: solicitud rechazada');
+      throw _exceptionFromResponse(response, 'No se pudo obtener el usuario');
+    }
+
+    final user = AuthUserInfo.fromJson(_decodeObject(response));
+    if (user.name.isNotEmpty) {
+      await _storage.write(key: _displayNameKey, value: user.name);
+    }
+    if (user.email.isNotEmpty) {
+      await _storage.write(key: _emailKey, value: user.email);
+    }
+    debugPrint('🟢 [AuthService] getMe: usuario obtenido');
+    return user;
+  }
 
   Future<void> _saveTokens(
     Map<String, dynamic> body, {
