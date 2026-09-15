@@ -39,11 +39,31 @@ class AuthUserInfo {
     required this.name,
   });
 
-  factory AuthUserInfo.fromJson(Map<String, dynamic> json) => AuthUserInfo(
-    sub: (json['sub'] ?? '').toString(),
-    email: (json['email'] ?? '').toString(),
-    name: (json['name'] ?? '').toString(),
-  );
+  factory AuthUserInfo.fromJson(Map<String, dynamic> json) {
+    String firstNonEmpty(Iterable<dynamic> values) {
+      for (final value in values) {
+        final text = value?.toString().trim() ?? '';
+        if (text.isNotEmpty) return text;
+      }
+      return '';
+    }
+
+    final email = (json['email'] ?? '').toString().trim();
+    final name = firstNonEmpty([
+      json['name'],
+      json['displayName'],
+      json['display_name'],
+      json['fullName'],
+      json['username'],
+      json['preferred_username'],
+    ]);
+
+    return AuthUserInfo(
+      sub: (json['sub'] ?? '').toString(),
+      email: email,
+      name: name == email ? '' : name,
+    );
+  }
 }
 
 class AuthService {
@@ -65,9 +85,9 @@ class AuthService {
   final ValueNotifier<bool> sessionState = ValueNotifier(false);
   Future<String?>? _refreshInFlight;
 
-  Uri _uri(String path) => Uri.parse(ApiConfig.baseUrl).resolve(
-    path.startsWith('/') ? path.substring(1) : path,
-  );
+  Uri _uri(String path) => Uri.parse(
+    ApiConfig.baseUrl,
+  ).resolve(path.startsWith('/') ? path.substring(1) : path);
 
   Future<bool> isSessionValid() async {
     try {
@@ -105,8 +125,10 @@ class AuthService {
     final previousEmail = await _storage.read(key: _emailKey);
     final previousDisplayName = await _storage.read(key: _displayNameKey);
     await _storage.write(key: _emailKey, value: loginEmail);
-    if (previousEmail != loginEmail || previousDisplayName?.isEmpty != false) {
-      await _storage.write(key: _displayNameKey, value: loginEmail);
+    if (previousEmail != loginEmail) {
+      await _storage.delete(key: _displayNameKey);
+    } else if (previousDisplayName?.trim().isEmpty ?? true) {
+      await _storage.delete(key: _displayNameKey);
     }
     sessionState.value = true;
     debugPrint('🟢 [AuthService] signIn: sesión iniciada');
@@ -307,7 +329,9 @@ class AuthService {
     final idToken = body['idToken'] as String?;
     final expiresIn = (body['expiresIn'] as num?)?.toInt();
     if (accessToken == null || accessToken.isEmpty || expiresIn == null) {
-      throw const AuthException('La respuesta de autenticación está incompleta');
+      throw const AuthException(
+        'La respuesta de autenticación está incompleta',
+      );
     }
 
     final expiresAt = DateTime.now().add(Duration(seconds: expiresIn));

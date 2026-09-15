@@ -5,11 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/phrase.dart';
 import '../models/song_of_week.dart';
-import '../models/spotify.dart';
 import '../services/auth_service.dart';
 import '../services/events.dart';
 import '../services/phrases_service.dart';
-import '../services/spotify_service.dart';
 import '../utils/colors.dart';
 import '../widgets/motion/ambient_orbs_background.dart';
 import 'calendar/calendar.dart';
@@ -30,7 +28,6 @@ import 'spotify/spotify_explorer_screen.dart';
 import 'wedding/wedding.dart';
 
 import 'home/widgets/home_mascot_bubble.dart';
-import '../widgets/spotify/spotify_track_shelf.dart';
 
 const String _heroImageUrl =
     'https://planes-crud-stack-images-052869941322.s3.us-east-2.amazonaws.com/assets/beso.jpeg';
@@ -58,12 +55,9 @@ class _HomeScreenState extends State<HomeScreen> {
   SongOfWeek? _songOfWeek;
   bool _songLoading = true;
   bool _weeklyLoading = true;
-  bool _spotifyLoading = true;
   bool _loggingOut = false;
   String? _displayName;
   Map<PhraseType, LovePhrase> _weeklyPhrases = {};
-  List<SpotifyTrack> _spotifyTracks = [];
-  int _spotifyRequestId = 0;
 
   final AuthService _authService = AuthService.instance;
   final EventService _eventService = EventService();
@@ -83,10 +77,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadDisplayName() async {
     final cachedName = await _authService.getDisplayName();
-    if (mounted) setState(() => _displayName = cachedName);
+    final email = await _authService.getEmail();
+    if (mounted && cachedName != null && cachedName != email) {
+      setState(() => _displayName = cachedName);
+    }
     try {
       final me = await _authService.getMe();
-      if (mounted && me != null && me.name.isNotEmpty) {
+      if (mounted && me != null && me.name.isNotEmpty && me.name != me.email) {
         setState(() => _displayName = me.name);
       }
     } catch (_) {
@@ -129,7 +126,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _songLoading = false;
         });
       }
-      await _loadSpotifyHighlight();
       if (song == null) {
         await _setRandomSong(notify: false);
       }
@@ -158,7 +154,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _weeklyLoading = false;
         });
       }
-      await _loadSpotifyHighlight();
     } catch (_) {
       if (mounted) {
         setState(() => _weeklyLoading = false);
@@ -183,10 +178,6 @@ class _HomeScreenState extends State<HomeScreen> {
         cancionFromPhrases?.credits ??
         'Toca ✏️ para elegir';
     final songUrl = _songOfWeek?.link ?? cancionFromPhrases?.link ?? '';
-    final songImageUrl = _spotifyTracks.isNotEmpty
-        ? _spotifyTracks.first.imageUrl
-        : '';
-
     items.add(
       WeeklyHighlightItem(
         type: PhraseType.cancion,
@@ -194,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
         subtitle: songSubtitle,
         url: songUrl,
         canEdit: true,
-        imageUrl: songImageUrl,
+        imageUrl: '',
       ),
     );
 
@@ -246,7 +237,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         setState(() => _songOfWeek = saved);
-        await _loadSpotifyHighlight();
         if (notify) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -327,50 +317,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  Future<void> _loadSpotifyHighlight() async {
-    final requestId = ++_spotifyRequestId;
-    final sourceTitle =
-        _songOfWeek?.title ?? _weeklyPhrases[PhraseType.cancion]?.title;
-    final sourceArtist =
-        _songOfWeek?.artista ?? _weeklyPhrases[PhraseType.cancion]?.credits;
-    final query = [sourceTitle, sourceArtist]
-        .where((value) => value != null && value.trim().isNotEmpty)
-        .map((value) => value!.trim())
-        .join(' ');
-
-    if (query.isEmpty) {
-      if (mounted && requestId == _spotifyRequestId) {
-        setState(() {
-          _spotifyTracks = [];
-          _spotifyLoading = false;
-        });
-      }
-      return;
-    }
-
-    if (mounted) {
-      setState(() => _spotifyLoading = true);
-    }
-
-    try {
-      final tracks = await SpotifyService.instance.searchTracks(
-        query,
-        limit: 4,
-      );
-      if (!mounted || requestId != _spotifyRequestId) return;
-      setState(() {
-        _spotifyTracks = tracks;
-        _spotifyLoading = false;
-      });
-    } catch (_) {
-      if (!mounted || requestId != _spotifyRequestId) return;
-      setState(() {
-        _spotifyTracks = [];
-        _spotifyLoading = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(
@@ -404,18 +350,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         .animate()
                         .fadeIn(duration: _kFadeDuration)
                         .slideY(begin: 0.06, duration: _kSlideDuration),
-                    if (_spotifyLoading || _spotifyTracks.isNotEmpty)
-                      SpotifyTrackShelf(
-                        title: 'Playlist Spotify de la semana',
-                        subtitle: 'Sugerencias inspiradas en su canción actual',
-                        loading: _spotifyLoading,
-                        heroImageUrl: _spotifyTracks.isNotEmpty
-                            ? _spotifyTracks.first.imageUrl
-                            : '',
-                        tracks: _spotifyTracks,
-                        onRetry: _loadSpotifyHighlight,
-                        onTapTrack: (track) => _launchUrl(track.spotifyUrl),
-                      ),
+                    // Recomendaciones Spotify temporalmente desactivadas:
+                    // la API no está cargando canciones ni imágenes en Home.
                     HomeWeeklyHighlightsStrip(
                           items: _buildWeeklyItems(),
                           isLoading: _songLoading || _weeklyLoading,
