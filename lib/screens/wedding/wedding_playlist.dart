@@ -25,6 +25,7 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
   String? _error;
   bool _spotifyLoading = false;
   List<SpotifyTrack> _spotifyTracks = [];
+  int _spotifyRequestId = 0;
 
   @override
   void initState() {
@@ -84,9 +85,15 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
   }
 
   Future<void> _searchSpotify(String query) async {
+    final requestId = ++_spotifyRequestId;
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
-      setState(() => _spotifyTracks = []);
+      if (mounted) {
+        setState(() {
+          _spotifyTracks = [];
+          _spotifyLoading = false;
+        });
+      }
       return;
     }
     setState(() => _spotifyLoading = true);
@@ -95,13 +102,13 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
         trimmed,
         limit: 6,
       );
-      if (!mounted) return;
+      if (!mounted || requestId != _spotifyRequestId) return;
       setState(() {
         _spotifyTracks = tracks;
         _spotifyLoading = false;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || requestId != _spotifyRequestId) return;
       setState(() {
         _spotifyTracks = [];
         _spotifyLoading = false;
@@ -257,9 +264,15 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
           children: [
             const Icon(Icons.error_outline, color: _rose, size: 42),
             const SizedBox(height: 10),
-            Text('No se pudieron cargar canciones', style: TextStyle(color: Colors.grey.shade700)),
+            Text(
+              'No se pudieron cargar canciones',
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
             const SizedBox(height: 10),
-            ElevatedButton(onPressed: _loadCanciones, child: const Text('Reintentar')),
+            ElevatedButton(
+              onPressed: _loadCanciones,
+              child: const Text('Reintentar'),
+            ),
           ],
         ),
       ),
@@ -491,7 +504,9 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
                         .catchError((_) {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('No se pudo agregar la canción')),
+                            const SnackBar(
+                              content: Text('No se pudo agregar la canción'),
+                            ),
                           );
                         });
                     Navigator.pop(context);

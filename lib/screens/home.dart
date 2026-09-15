@@ -63,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _displayName;
   Map<PhraseType, LovePhrase> _weeklyPhrases = {};
   List<SpotifyTrack> _spotifyTracks = [];
+  int _spotifyRequestId = 0;
 
   final AuthService _authService = AuthService.instance;
   final EventService _eventService = EventService();
@@ -327,6 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadSpotifyHighlight() async {
+    final requestId = ++_spotifyRequestId;
     final sourceTitle =
         _songOfWeek?.title ?? _weeklyPhrases[PhraseType.cancion]?.title;
     final sourceArtist =
@@ -337,7 +339,7 @@ class _HomeScreenState extends State<HomeScreen> {
         .join(' ');
 
     if (query.isEmpty) {
-      if (mounted) {
+      if (mounted && requestId == _spotifyRequestId) {
         setState(() {
           _spotifyTracks = [];
           _spotifyLoading = false;
@@ -355,13 +357,13 @@ class _HomeScreenState extends State<HomeScreen> {
         query,
         limit: 4,
       );
-      if (!mounted) return;
+      if (!mounted || requestId != _spotifyRequestId) return;
       setState(() {
         _spotifyTracks = tracks;
         _spotifyLoading = false;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || requestId != _spotifyRequestId) return;
       setState(() {
         _spotifyTracks = [];
         _spotifyLoading = false;
