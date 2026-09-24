@@ -53,8 +53,7 @@ class _WeddingLodgingScreenState extends State<WeddingLodgingScreen> {
       if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
-      if (!mounted) return;
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -124,10 +123,11 @@ class _WeddingLodgingScreenState extends State<WeddingLodgingScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: nombreCtrl,
-                  decoration: const InputDecoration(
+                    if (mounted) {
                     labelText: 'Nombre del hotel / lugar *',
                     border: OutlineInputBorder(),
                   ),
+                    }
                 ),
                 const SizedBox(height: 12),
                 TextField(

@@ -1516,13 +1516,27 @@ class _EditarEventoSheetState extends State<_EditarEventoSheet> {
     _descripcionController.dispose();
     _presupuestoGastadoCtrl.dispose();
     _presupuestoLimiteCtrl.dispose();
-    for (final c in _itinerarioFechaCtrls) c.dispose();
-    for (final c in _itinerarioTiempoCtrls) c.dispose();
-    for (final c in _itinerarioActividadCtrls) c.dispose();
-    for (final c in _conceptoNombreCtrls) c.dispose();
-    for (final c in _conceptoMontoCtrls) c.dispose();
-    for (final c in _documentoCtrls) c.dispose();
-    for (final c in _checklistItemCtrls) c.dispose();
+    for (final c in _itinerarioFechaCtrls) {
+      c.dispose();
+    }
+    for (final c in _itinerarioTiempoCtrls) {
+      c.dispose();
+    }
+    for (final c in _itinerarioActividadCtrls) {
+      c.dispose();
+    }
+    for (final c in _conceptoNombreCtrls) {
+      c.dispose();
+    }
+    for (final c in _conceptoMontoCtrls) {
+      c.dispose();
+    }
+    for (final c in _documentoCtrls) {
+      c.dispose();
+    }
+    for (final c in _checklistItemCtrls) {
+      c.dispose();
+    }
     super.dispose();
   }
 

@@ -64,7 +64,7 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
         _error = e.toString();
       });
     } finally {
-      if (!mounted) return;
+        if (mounted) {
       setState(() {
         _loading = false;
       });

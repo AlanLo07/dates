@@ -141,7 +141,6 @@ class _WeddingScreenState extends State<WeddingScreen> {
   WeddingMeta? _meta;
   LatLng? _eventPoint;
   bool _locationLoading = true;
-  bool _saving = false;
 
   // Falls back to a fixed date if the server date hasn't loaded yet
   DateTime get _weddingDate {
@@ -197,10 +196,11 @@ class _WeddingScreenState extends State<WeddingScreen> {
         _eventPoint = null;
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _locationLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _locationLoading = false;
+        });
+      }
     }
   }
 
@@ -674,7 +674,7 @@ class _WeddingScreenState extends State<WeddingScreen> {
                                     _meta = updated;
                                     _eventPoint = pt;
                                   });
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
                                   Navigator.of(sheetCtx).pop();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text('Boda actualizada ✓')),

@@ -50,10 +50,11 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
         _error = e.toString();
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -391,15 +392,18 @@ class _WeddingBudgetScreenState extends State<WeddingBudgetScreen> {
                   if (bodaId == null) return;
                   final prev = g.pagado;
                   setState(() => g.pagado = val);
-                  _service.updateGasto(bodaId, g).catchError((_) {
-                    if (!mounted) return null;
+                  _service.updateGasto(bodaId, g).then<void>(
+                    (_) {},
+                    onError: (Object _) {
+                      if (!mounted) return;
                     setState(() => g.pagado = prev);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('No se pudo actualizar el gasto'),
                       ),
                     );
-                  });
+                    },
+                  );
                   Navigator.pop(context);
                 },
                 child: const Text('Guardar'),

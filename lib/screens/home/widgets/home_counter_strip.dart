@@ -76,22 +76,15 @@ class _HomeCounterBox extends StatefulWidget {
 class _HomeCounterBoxState extends State<_HomeCounterBox>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _flipAnimation;
-  int _lastValue = 0;
   bool _isFlipping = false;
 
   @override
   void initState() {
     super.initState();
-    _lastValue = widget.value;
     _controller = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    _flipAnimation = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -100,7 +93,6 @@ class _HomeCounterBoxState extends State<_HomeCounterBox>
     if (oldWidget.value != widget.value && !_isFlipping) {
       _isFlipping = true;
       _controller.forward(from: 0).then((_) {
-        _lastValue = widget.value;
         _isFlipping = false;
       });
     }

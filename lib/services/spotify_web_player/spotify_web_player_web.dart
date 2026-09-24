@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:js_util' as js_util;
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 
 import 'spotify_web_player_types.dart';
 
@@ -15,26 +16,25 @@ Future<void> _ensureSdkLoaded() {
   final completer = Completer<void>();
   _sdkReadyCompleter = completer;
 
-  final existingSpotify = js_util.getProperty(js_util.globalThis, 'Spotify');
+  final existingSpotify = globalContext.getProperty<JSAny?>('Spotify');
   if (existingSpotify != null) {
     completer.complete();
     return completer.future;
   }
 
-  js_util.setProperty(
-    js_util.globalThis,
+  globalContext.setProperty(
     'onSpotifyWebPlaybackSDKReady',
-    js_util.allowInterop(() => completer.complete()),
+    (() => completer.complete()).toJS,
   );
 
   if (!_scriptInjected) {
     _scriptInjected = true;
-    final document = js_util.getProperty(js_util.globalThis, 'document');
-    final script = js_util.callMethod(document, 'createElement', ['script']);
-    js_util.setProperty(script, 'src', 'https://sdk.scdn.co/spotify-player.js');
-    js_util.setProperty(script, 'async', true);
-    final body = js_util.getProperty(document, 'body');
-    js_util.callMethod(body, 'appendChild', [script]);
+    final document = globalContext.getProperty<JSObject>('document');
+    final script = document.callMethod<JSObject>('createElement', ['script'.toJS]);
+    script.setProperty('src', 'https://sdk.scdn.co/spotify-player.js'.toJS);
+    script.setProperty('async', true.toJS);
+    final body = document.getProperty<JSObject>('body');
+    body.callMethod<JSAny?>('appendChild', [script]);
   }
 
   return completer.future;

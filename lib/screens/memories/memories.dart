@@ -1,6 +1,5 @@
 // lib/screens/memories/memories.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../utils/animations.dart';
 import '../../utils/colors.dart';
@@ -348,7 +347,6 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
 
   // ── Imagen ─────────────────────────────────────────────────────────────────
   String? _imageUrl; // URL pública en S3 después del upload
-  dynamic _imageFile;
   bool _isUploadingImage = false;
   String? _imageError;
   String? _uploadLog; // mensaje de etapa actual (visible en UI y consola)
@@ -397,7 +395,6 @@ class _NuevaCitaSheetState extends State<_NuevaCitaSheet> {
 
     setState(() {
       _imageUrl = null;
-      _imageFile = null;
       _imageError = null;
       _isUploadingImage = true;
       _uploadLog = 'Abriendo galería...';

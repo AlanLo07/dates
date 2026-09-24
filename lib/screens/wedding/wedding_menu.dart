@@ -71,7 +71,7 @@ class _WeddingMenuScreenState extends State<WeddingMenuScreen> {
       if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
-      if (!mounted) return;
+        if (mounted) {
       setState(() => _loading = false);
     }
   }
@@ -162,7 +162,7 @@ class _WeddingMenuScreenState extends State<WeddingMenuScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: momento,
+                  initialValue: momento,
                   decoration: const InputDecoration(
                     labelText: 'Momento',
                     border: OutlineInputBorder(),
@@ -176,7 +176,7 @@ class _WeddingMenuScreenState extends State<WeddingMenuScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: tipo,
+                  initialValue: tipo,
                   decoration: const InputDecoration(
                     labelText: 'Tipo',
                     border: OutlineInputBorder(),
@@ -193,7 +193,7 @@ class _WeddingMenuScreenState extends State<WeddingMenuScreen> {
                   value: esVegetariano,
                   onChanged: (v) => setSheet(() => esVegetariano = v),
                   title: const Text('🌱 Vegetariano'),
-                  activeColor: _green,
+                  activeThumbColor: _green,
                   contentPadding: EdgeInsets.zero,
                 ),
                 const SizedBox(height: 16),

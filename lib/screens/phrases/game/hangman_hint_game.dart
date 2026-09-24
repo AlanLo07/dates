@@ -14,7 +14,7 @@ class HangmanHintGame extends Forge2DGame {
   bool _spawnedOnce = false;
 
   @override
-  Color backgroudColor() => const Color(0xFFF3ECFB);
+  Color backgroundColor() => const Color(0xFFF3ECFB);
 
   @override
   Future<void> onLoad() async {

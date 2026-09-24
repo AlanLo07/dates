@@ -227,7 +227,7 @@ class FinancialHistory {
     if (json['byCategory'] is Map) {
       (json['byCategory'] as Map).forEach((key, value) {
         byCategory[key.toString()] =
-            (value is num) ? (value as num).toDouble() : 0.0;
+          (value is num) ? value.toDouble() : 0.0;
       });
     }
 

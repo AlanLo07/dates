@@ -62,9 +62,6 @@ class _FinanceHistoryScreenState extends State<FinanceHistoryScreen> {
   int get _overBudgetCount =>
       _history.where((item) => item.overBudget).length;
 
-  FinancialHistory? get _bestMonth =>
-      _history.isEmpty ? null : _history.reduce((a, b) => a.totalSpent < b.totalSpent ? a : b);
-
   Color _getColorForMonth(FinancialHistory month) {
     if (month.overBudget) {
       return const Color(0xFFE57373);

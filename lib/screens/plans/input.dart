@@ -77,7 +77,7 @@ class _InputScreenState extends State<InputScreen> {
   // ── Ruleta ────────────────────────────────────────────────────────────────
   List<Cita> _allCitas = []; // citas cargadas de la API
   List<Cita> _filteredCitas = []; // citas filtradas para mostrar
-  List<Cita> _ruletaItems = []; // items seleccionados para la ruleta
+  final List<Cita> _ruletaItems = []; // items seleccionados para la ruleta
   String _rouletteSearchQuery = '';
   String? _selectedTypeLocation;
   bool _spotifyLoading = false;
@@ -215,24 +215,10 @@ class _InputScreenState extends State<InputScreen> {
           _selectedTypeLocation,
           '${_selectedTimeHours.round()} horas',
         ]
-        .where((value) => value != null && value!.trim().isNotEmpty)
+        .whereType<String>()
+        .where((value) => value.trim().isNotEmpty)
         .map((value) => value!.trim())
         .join(' ');
-  }
-
-  String? _spotifyMoodFromFilters() {
-    switch (_selectedCategory) {
-      case 'Romántico':
-        return 'romantico';
-      case 'Relajante':
-        return 'chill';
-      case 'Aventura':
-      case 'Compras':
-      case 'Comida':
-        return 'fiesta';
-      default:
-        return null;
-    }
   }
 
   Future<void> _loadSpotifyInspiration() async {

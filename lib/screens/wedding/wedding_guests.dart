@@ -52,10 +52,11 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
         _error = e.toString();
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -439,8 +440,10 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
                       invitado.personas = personas;
                     });
 
-                    _service.updateInvitado(bodaId, invitado).catchError((_) {
-                      if (!mounted) return null;
+                    _service.updateInvitado(bodaId, invitado).then<void>(
+                      (_) {},
+                      onError: (Object _) {
+                        if (!mounted) return;
                       setState(() {
                         invitado.nombre = prevNombre;
                         invitado.grupo = prevGrupo;
@@ -451,7 +454,8 @@ class _WeddingGuestsScreenState extends State<WeddingGuestsScreen> {
                           content: Text('No se pudo editar invitado'),
                         ),
                       );
-                    });
+                      },
+                    );
 
                     Navigator.pop(context);
                   },

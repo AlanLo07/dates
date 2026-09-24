@@ -430,7 +430,6 @@ class _EditarCitaSheetState extends State<_EditarCitaSheet> {
 
   // ── Imagen ─────────────────────────────────────────────────────────────────
   String? _imageUrl; // URL pública en S3 después del upload
-  dynamic _imageFile;
   bool _isUploadingImage = false;
   String? _imageError;
   String? _uploadLog; // mensaje de etapa actual (visible en UI y consola)
@@ -498,7 +497,6 @@ class _EditarCitaSheetState extends State<_EditarCitaSheet> {
 
     setState(() {
       _imageUrl = null;
-      _imageFile = null;
       _imageError = null;
       _isUploadingImage = true;
       _uploadLog = 'Abriendo galería...';

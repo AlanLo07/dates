@@ -191,28 +191,6 @@ class _AdventureListScreenState extends State<AdventureListScreen> {
     );
   }
 
-  // ── Rating stars ──────────────────────────────────────────────────────────
-  Widget _buildRatingStars(Cita lugar) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (index) {
-        return GestureDetector(
-          onTap: () {
-            setState(() => lugar.rating = index + 1.0);
-            unawaited(saveLugares([lugar]));
-          },
-          child: Icon(
-            index < lugar.rating
-                ? Icons.star_rounded
-                : Icons.star_border_rounded,
-            color: const Color(0xFFFFCA28),
-            size: 26,
-          ),
-        );
-      }),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final lugares = _lugaresOrdenados;

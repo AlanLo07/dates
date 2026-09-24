@@ -393,7 +393,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                                             );
                                           }
 
-                                          if (!mounted) return;
+                                          if (!context.mounted) return;
                                           Navigator.pop(context, true);
                                         } catch (e) {
                                           _showErrorSnackbar(

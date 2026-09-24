@@ -38,7 +38,6 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
 
   List<_PlaceMarker> _markers = [];
   bool _isLoading = true;
-  String? _error;
   _PlaceMarker? _selectedMarker;
 
   // México DF como centro por defecto
@@ -54,7 +53,6 @@ class _AdventureMapScreenState extends State<AdventureMapScreen> {
   Future<void> _geocodeLugares() async {
     setState(() {
       _isLoading = true;
-      _error = null;
     });
 
     final resolved = <_PlaceMarker>[];

@@ -51,7 +51,7 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
         _error = e.toString();
       });
     } finally {
-      if (!mounted) return;
+        if (mounted) {
       setState(() {
         _loading = false;
       });
@@ -417,8 +417,10 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
                       item.notas = notasCtrl.text.trim();
                     });
 
-                    _service.updateLook(bodaId, item).catchError((_) {
-                      if (!mounted) return null;
+                    _service.updateLook(bodaId, item).then<void>(
+                      (_) {},
+                      onError: (Object _) {
+                        if (!mounted) return;
                       setState(() {
                         item.persona = prev.persona;
                         item.prenda = prev.prenda;
@@ -433,7 +435,8 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
                           content: Text('No se pudo editar el look'),
                         ),
                       );
-                    });
+                      },
+                    );
 
                     Navigator.pop(context);
                   },

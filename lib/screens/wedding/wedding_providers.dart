@@ -57,7 +57,7 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
         _error = e.toString();
       });
     } finally {
-      if (!mounted) return;
+        if (mounted) {
       setState(() {
         _loading = false;
       });
@@ -600,10 +600,10 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
                           proveedor.estado = estado;
                         });
 
-                        _service.updateProveedor(bodaId, proveedor).catchError((
-                          _,
-                        ) {
-                          if (!mounted) return null;
+                        _service.updateProveedor(bodaId, proveedor).then<void>(
+                          (_) {},
+                          onError: (Object _) {
+                            if (!mounted) return;
                           setState(() {
                             proveedor.nombre = prev.nombre;
                             proveedor.categoria = prev.categoria;
@@ -618,7 +618,8 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
                               content: Text('No se pudo editar proveedor'),
                             ),
                           );
-                        });
+                          },
+                        );
 
                         Navigator.pop(context);
                       },

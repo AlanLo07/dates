@@ -61,10 +61,11 @@ class _WeddingItineraryScreenState extends State<WeddingItineraryScreen> {
         _error = e.toString();
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -775,10 +776,11 @@ class _PasoLocationPreviewState extends State<_PasoLocationPreview> {
     } catch (_) {
       // Si falla geocoding, se mantiene fallback con botón externo.
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
