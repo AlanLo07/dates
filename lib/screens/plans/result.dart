@@ -78,6 +78,7 @@ class _ResultScreenState extends State<ResultScreen> {
   late Cita _cita;
   bool _spotifyLoading = true;
   List<SpotifyTrack> _spotifyTracks = [];
+  int _spotifyRequestId = 0;
 
   @override
   void initState() {
@@ -161,6 +162,7 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Future<void> _loadSpotifySuggestions() async {
+    final requestId = ++_spotifyRequestId;
     if (mounted) {
       setState(() => _spotifyLoading = true);
     }
@@ -175,13 +177,13 @@ class _ResultScreenState extends State<ResultScreen> {
         query,
         limit: 4,
       );
-      if (!mounted) return;
+      if (!mounted || requestId != _spotifyRequestId) return;
       setState(() {
         _spotifyTracks = tracks;
         _spotifyLoading = false;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || requestId != _spotifyRequestId) return;
       setState(() {
         _spotifyTracks = [];
         _spotifyLoading = false;

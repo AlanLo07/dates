@@ -34,6 +34,7 @@ class _SpotifyExplorerScreenState extends State<SpotifyExplorerScreen>
   List<SpotifyArtist> _artists = const [];
   List<SpotifyAlbum> _albums = const [];
   List<SpotifyPlaylist> _playlists = const [];
+  int _searchRequestId = 0;
 
   @override
   void initState() {
@@ -49,6 +50,7 @@ class _SpotifyExplorerScreenState extends State<SpotifyExplorerScreen>
   }
 
   Future<void> _search(String query) async {
+    final requestId = ++_searchRequestId;
     final trimmed = query.trim();
     _query = trimmed;
     if (trimmed.isEmpty) {
@@ -66,25 +68,35 @@ class _SpotifyExplorerScreenState extends State<SpotifyExplorerScreen>
       switch (_tabController.index) {
         case 0:
           final tracks = await _service.searchTracks(trimmed);
-          if (mounted && _query == trimmed) setState(() => _tracks = tracks);
+          if (mounted && requestId == _searchRequestId && _query == trimmed) {
+            setState(() => _tracks = tracks);
+          }
           break;
         case 1:
           final artists = await _service.searchArtists(trimmed);
-          if (mounted && _query == trimmed) setState(() => _artists = artists);
+          if (mounted && requestId == _searchRequestId && _query == trimmed) {
+            setState(() => _artists = artists);
+          }
           break;
         case 2:
           final albums = await _service.searchAlbums(trimmed);
-          if (mounted && _query == trimmed) setState(() => _albums = albums);
+          if (mounted && requestId == _searchRequestId && _query == trimmed) {
+            setState(() => _albums = albums);
+          }
           break;
         case 3:
           final playlists = await _service.searchPlaylists(trimmed);
-          if (mounted && _query == trimmed) setState(() => _playlists = playlists);
+          if (mounted && requestId == _searchRequestId && _query == trimmed) {
+            setState(() => _playlists = playlists);
+          }
           break;
       }
     } catch (_) {
       // Silencioso: se muestra el estado vacío correspondiente.
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && requestId == _searchRequestId) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -101,7 +113,10 @@ class _SpotifyExplorerScreenState extends State<SpotifyExplorerScreen>
         title: const Text('Spotify'),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black87),
-        titleTextStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w700),
+        titleTextStyle: const TextStyle(
+          color: Colors.black87,
+          fontWeight: FontWeight.w700,
+        ),
         bottom: TabBar(
           controller: _tabController,
           labelColor: _spotifyGreen,
@@ -142,7 +157,9 @@ class _SpotifyExplorerScreenState extends State<SpotifyExplorerScreen>
           ),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: _spotifyGreen))
+                ? const Center(
+                    child: CircularProgressIndicator(color: _spotifyGreen),
+                  )
                 : TabBarView(
                     controller: _tabController,
                     children: [
@@ -159,8 +176,8 @@ class _SpotifyExplorerScreenState extends State<SpotifyExplorerScreen>
   }
 
   Widget _buildEmpty(String message) => Center(
-        child: Text(message, style: TextStyle(color: Colors.grey.shade600)),
-      );
+    child: Text(message, style: TextStyle(color: Colors.grey.shade600)),
+  );
 
   Widget _buildTracksTab() {
     if (_tracks.isEmpty) return _buildEmpty('Busca canciones en Spotify');
@@ -194,18 +211,34 @@ class _SpotifyExplorerScreenState extends State<SpotifyExplorerScreen>
               child: artist.imageUrl.isEmpty
                   ? Container(
                       color: _spotifyGreen.withValues(alpha: 0.12),
-                      child: const Icon(Icons.person_rounded, color: _spotifyGreen),
+                      child: const Icon(
+                        Icons.person_rounded,
+                        color: _spotifyGreen,
+                      ),
                     )
-                  : CachedNetworkImage(imageUrl: artist.imageUrl, fit: BoxFit.cover),
+                  : CachedNetworkImage(
+                      imageUrl: artist.imageUrl,
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
-          title: Text(artist.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+          title: Text(
+            artist.name,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
           subtitle: artist.genres.isNotEmpty
-              ? Text(artist.genres.take(2).join(', '), maxLines: 1, overflow: TextOverflow.ellipsis)
+              ? Text(
+                  artist.genres.take(2).join(', '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )
               : null,
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => ArtistDetailScreen(artistId: artist.id, initialName: artist.name),
+              builder: (_) => ArtistDetailScreen(
+                artistId: artist.id,
+                initialName: artist.name,
+              ),
             ),
           ),
         );
@@ -230,16 +263,32 @@ class _SpotifyExplorerScreenState extends State<SpotifyExplorerScreen>
               child: album.imageUrl.isEmpty
                   ? Container(
                       color: _spotifyGreen.withValues(alpha: 0.12),
-                      child: const Icon(Icons.album_rounded, color: _spotifyGreen),
+                      child: const Icon(
+                        Icons.album_rounded,
+                        color: _spotifyGreen,
+                      ),
                     )
-                  : CachedNetworkImage(imageUrl: album.imageUrl, fit: BoxFit.cover),
+                  : CachedNetworkImage(
+                      imageUrl: album.imageUrl,
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
-          title: Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Text(album.artist, maxLines: 1, overflow: TextOverflow.ellipsis),
+          title: Text(
+            album.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          subtitle: Text(
+            album.artist,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => AlbumDetailScreen(albumId: album.id, initialName: album.name),
+              builder: (_) =>
+                  AlbumDetailScreen(albumId: album.id, initialName: album.name),
             ),
           ),
         );
@@ -264,16 +313,32 @@ class _SpotifyExplorerScreenState extends State<SpotifyExplorerScreen>
               child: playlist.imageUrl.isEmpty
                   ? Container(
                       color: _spotifyGreen.withValues(alpha: 0.12),
-                      child: const Icon(Icons.queue_music_rounded, color: _spotifyGreen),
+                      child: const Icon(
+                        Icons.queue_music_rounded,
+                        color: _spotifyGreen,
+                      ),
                     )
-                  : CachedNetworkImage(imageUrl: playlist.imageUrl, fit: BoxFit.cover),
+                  : CachedNetworkImage(
+                      imageUrl: playlist.imageUrl,
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
-          title: Text(playlist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: playlist.ownerName.isNotEmpty ? Text('Por ${playlist.ownerName}') : null,
+          title: Text(
+            playlist.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          subtitle: playlist.ownerName.isNotEmpty
+              ? Text('Por ${playlist.ownerName}')
+              : null,
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => PlaylistDetailScreen(playlistId: playlist.id, initialName: playlist.name),
+              builder: (_) => PlaylistDetailScreen(
+                playlistId: playlist.id,
+                initialName: playlist.name,
+              ),
             ),
           ),
         );

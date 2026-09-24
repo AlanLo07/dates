@@ -82,6 +82,7 @@ class _InputScreenState extends State<InputScreen> {
   String? _selectedTypeLocation;
   bool _spotifyLoading = false;
   List<SpotifyTrack> _spotifyTracks = [];
+  int _spotifyRequestId = 0;
 
   CitaQuickFilters get _rouletteQuickFilters => CitaQuickFilters(
     categoria: _selectedCategory == null || _selectedCategory == 'Cualquiera'
@@ -222,8 +223,17 @@ class _InputScreenState extends State<InputScreen> {
   }
 
   Future<void> _loadSpotifyInspiration() async {
+    final requestId = ++_spotifyRequestId;
     final query = _spotifyQueryFromFilters();
-    if (query.isEmpty) return;
+    if (query.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _spotifyTracks = [];
+          _spotifyLoading = false;
+        });
+      }
+      return;
+    }
 
     setState(() => _spotifyLoading = true);
     try {
@@ -231,13 +241,13 @@ class _InputScreenState extends State<InputScreen> {
         query,
         limit: 4,
       );
-      if (!mounted) return;
+      if (!mounted || requestId != _spotifyRequestId) return;
       setState(() {
         _spotifyTracks = tracks;
         _spotifyLoading = false;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || requestId != _spotifyRequestId) return;
       setState(() {
         _spotifyTracks = [];
         _spotifyLoading = false;
@@ -985,7 +995,9 @@ class _CitaSelectableCard extends StatelessWidget {
                       style: descriptionStyle,
                       highlightStyle: descriptionStyle.copyWith(
                         fontWeight: FontWeight.w700,
-                        backgroundColor: AppColors.celeste.withValues(alpha: 0.38),
+                        backgroundColor: AppColors.celeste.withValues(
+                          alpha: 0.38,
+                        ),
                       ),
                     ),
                   ],
