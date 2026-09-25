@@ -40,7 +40,15 @@ class SpotifyService {
           .toList();
     }
     if (body is Map<String, dynamic>) {
-      final dynamic direct = body['items'];
+      final dynamic direct =
+          body['items'] ??
+          body['tracks'] ??
+          body['albums'] ??
+          body['devices'] ??
+          body['data'];
+      if (direct is Map<String, dynamic>) {
+        return _extractItems(direct);
+      }
       if (direct is List) {
         return direct
             .whereType<Map>()
@@ -71,9 +79,9 @@ class SpotifyService {
 
     final body = json.decode(response.body);
     final items = body is Map<String, dynamic>
-        ? _extractItems(body['tracks'] is Map<String, dynamic>
-            ? body['tracks']
-            : body)
+        ? _extractItems(
+            body['tracks'] is Map<String, dynamic> ? body['tracks'] : body,
+          )
         : const <Map<String, dynamic>>[];
     return items.map(SpotifyTrack.fromJson).toList();
   }
@@ -245,14 +253,10 @@ class SpotifyService {
     String id, {
     String market = 'CO',
   }) async {
-    final response = await http.get(
-      _uri('/playlists/$id', {'market': market}),
-    );
+    final response = await http.get(_uri('/playlists/$id', {'market': market}));
     if (response.statusCode != 200) return null;
     final body = json.decode(response.body);
-    return body is Map<String, dynamic>
-        ? SpotifyPlaylist.fromJson(body)
-        : null;
+    return body is Map<String, dynamic> ? SpotifyPlaylist.fromJson(body) : null;
   }
 
   Future<List<SpotifyTrack>> getPlaylistTracks(
@@ -342,7 +346,11 @@ class SpotifyService {
     return items.map(SpotifyDevice.fromJson).toList();
   }
 
-  Future<void> play({String? deviceId, String? contextUri, List<String>? uris}) async {
+  Future<void> play({
+    String? deviceId,
+    String? contextUri,
+    List<String>? uris,
+  }) async {
     final response = await http.put(
       _uri('/player/play', {if (deviceId != null) 'device_id': deviceId}),
       headers: const {'Content-Type': 'application/json'},
@@ -355,6 +363,13 @@ class SpotifyService {
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('Error al reproducir en Spotify');
     }
+  }
+
+  Future<void> playTrack(SpotifyTrack track, {String? deviceId}) async {
+    if (track.id.isEmpty) {
+      throw ArgumentError.value(track.id, 'track.id', 'No puede estar vacío');
+    }
+    await play(deviceId: deviceId, uris: ['spotify:track:${track.id}']);
   }
 
   Future<void> pause({String? deviceId}) async {
@@ -417,12 +432,9 @@ class SpotifyService {
 
   /// Activa el dispositivo creado por el SDK como el dispositivo Connect
   /// activo. Debe llamarse una sola vez, al recibir el evento `ready`.
-  Future<void> transferPlayback({
-    required String deviceId,
-    bool play = false,
-  }) async {
+  Future<void> transferPlayback({required String deviceId}) async {
     final response = await http.put(
-      _uri('/player/transfer', {'device_id': deviceId, 'play': play}),
+      _uri('/player/transfer', {'device_id': deviceId}),
     );
     _throwIfNotLinked(response);
     if (response.statusCode != 200 && response.statusCode != 204) {

@@ -5,6 +5,7 @@ import '../../models/boda.dart';
 import '../../models/spotify.dart';
 import '../../services/spotify_service.dart';
 import '../../services/wedding_service.dart';
+import '../../widgets/spotify/spotify_player_bar.dart';
 import '../../widgets/spotify/spotify_track_shelf.dart';
 
 const Color _rose = Color(0xFFE91E63);
@@ -150,69 +151,89 @@ class _WeddingPlaylistScreenState extends State<WeddingPlaylistScreen> {
           ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _rose))
-          : _error != null
-          ? _buildError()
-          : _canciones.isEmpty
-          ? _buildEmpty()
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildSpotifySearchBar(),
-                if (_spotifyLoading || _spotifyTracks.isNotEmpty)
-                  SpotifyTrackShelf(
-                    title: 'Resultados de búsqueda',
-                    subtitle: 'Toca una canción para escucharla en Spotify',
-                    loading: _spotifyLoading,
-                    heroImageUrl: _spotifyTracks.isNotEmpty
-                        ? _spotifyTracks.first.imageUrl
-                        : '',
-                    heroTitle: _spotifyTracks.isNotEmpty
-                        ? _spotifyTracks.first.name
-                        : '',
-                    heroSubtitle: _spotifyTracks.isNotEmpty
-                        ? _spotifyTracks.first.artist
-                        : '',
-                    tracks: _spotifyTracks,
-                    onRetry: () => _searchSpotify(_searchController.text),
-                    onTapTrack: (track) => _abrirSpotify(track.spotifyUrl),
-                  ),
-                const SizedBox(height: 8),
-                ..._grouped.entries.where((e) => e.value.isNotEmpty).map((
-                  entry,
-                ) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
+        children: [
+          const SpotifyPlayerBar(),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: _rose))
+                : _error != null
+                ? _buildError()
+                : _canciones.isEmpty
+                ? _buildEmpty()
+                : ListView(
+                    padding: const EdgeInsets.all(16),
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
+                      _buildSpotifySearchBar(),
+                      if (_spotifyLoading || _spotifyTracks.isNotEmpty)
+                        SpotifyTrackShelf(
+                          title: 'Resultados de búsqueda',
+                          subtitle: 'Toca una canción para reproducirla',
+                          loading: _spotifyLoading,
+                          heroImageUrl: _spotifyTracks.isNotEmpty
+                              ? _spotifyTracks.first.imageUrl
+                              : '',
+                          heroTitle: _spotifyTracks.isNotEmpty
+                              ? _spotifyTracks.first.name
+                              : '',
+                          heroSubtitle: _spotifyTracks.isNotEmpty
+                              ? _spotifyTracks.first.artist
+                              : '',
+                          tracks: _spotifyTracks,
+                          onRetry: () => _searchSpotify(_searchController.text),
+                          onTapTrack: (track) async {
+                            try {
+                              await SpotifyService.instance.playTrack(track);
+                            } catch (_) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'No se pudo reproducir esta canción',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      const SizedBox(height: 8),
+                      ..._grouped.entries.where((e) => e.value.isNotEmpty).map((
+                        entry,
+                      ) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              _iconoMomento(entry.key),
-                              size: 16,
-                              color: _rose,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              entry.key,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: _rose,
-                                fontSize: 13,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _iconoMomento(entry.key),
+                                    size: 16,
+                                    color: _rose,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    entry.key,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: _rose,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
+                            ...entry.value.map((c) => _buildCancionCard(c)),
+                            const SizedBox(height: 8),
                           ],
-                        ),
-                      ),
-                      ...entry.value.map((c) => _buildCancionCard(c)),
-                      const SizedBox(height: 8),
+                        );
+                      }).toList(),
                     ],
-                  );
-                }).toList(),
-              ],
-            ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
