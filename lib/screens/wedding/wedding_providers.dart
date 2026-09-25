@@ -57,10 +57,11 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
         _error = e.toString();
       });
     } finally {
-        if (mounted) {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -600,26 +601,30 @@ class _WeddingProvidersScreenState extends State<WeddingProvidersScreen> {
                           proveedor.estado = estado;
                         });
 
-                        _service.updateProveedor(bodaId, proveedor).then<void>(
-                          (_) {},
-                          onError: (Object _) {
-                            if (!mounted) return;
-                          setState(() {
-                            proveedor.nombre = prev.nombre;
-                            proveedor.categoria = prev.categoria;
-                            proveedor.contacto = prev.contacto;
-                            proveedor.link = prev.link;
-                            proveedor.costo = prev.costo;
-                            proveedor.notas = prev.notas;
-                            proveedor.estado = prev.estado;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('No se pudo editar proveedor'),
-                            ),
-                          );
-                          },
-                        );
+                        _service
+                            .updateProveedor(bodaId, proveedor)
+                            .then<void>(
+                              (_) {},
+                              onError: (Object _) {
+                                if (!mounted) return;
+                                setState(() {
+                                  proveedor.nombre = prev.nombre;
+                                  proveedor.categoria = prev.categoria;
+                                  proveedor.contacto = prev.contacto;
+                                  proveedor.link = prev.link;
+                                  proveedor.costo = prev.costo;
+                                  proveedor.notas = prev.notas;
+                                  proveedor.estado = prev.estado;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'No se pudo editar proveedor',
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
 
                         Navigator.pop(context);
                       },

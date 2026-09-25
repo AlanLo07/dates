@@ -51,10 +51,11 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
         _error = e.toString();
       });
     } finally {
-        if (mounted) {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -417,26 +418,28 @@ class _WeddingLookScreenState extends State<WeddingLookScreen> {
                       item.notas = notasCtrl.text.trim();
                     });
 
-                    _service.updateLook(bodaId, item).then<void>(
-                      (_) {},
-                      onError: (Object _) {
-                        if (!mounted) return;
-                      setState(() {
-                        item.persona = prev.persona;
-                        item.prenda = prev.prenda;
-                        item.tienda = prev.tienda;
-                        item.talla = prev.talla;
-                        item.precio = prev.precio;
-                        item.comprado = prev.comprado;
-                        item.notas = prev.notas;
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('No se pudo editar el look'),
-                        ),
-                      );
-                      },
-                    );
+                    _service
+                        .updateLook(bodaId, item)
+                        .then<void>(
+                          (_) {},
+                          onError: (Object _) {
+                            if (!mounted) return;
+                            setState(() {
+                              item.persona = prev.persona;
+                              item.prenda = prev.prenda;
+                              item.tienda = prev.tienda;
+                              item.talla = prev.talla;
+                              item.precio = prev.precio;
+                              item.comprado = prev.comprado;
+                              item.notas = prev.notas;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('No se pudo editar el look'),
+                              ),
+                            );
+                          },
+                        );
 
                     Navigator.pop(context);
                   },
