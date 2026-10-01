@@ -69,7 +69,10 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
         title: Text(widget.initialName ?? _album?.name ?? 'Álbum'),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black87),
-        titleTextStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w700),
+        titleTextStyle: const TextStyle(
+          color: Colors.black87,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _spotifyGreen))
@@ -89,9 +92,15 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                           child: _album!.imageUrl.isEmpty
                               ? Container(
                                   color: _spotifyGreen.withValues(alpha: 0.12),
-                                  child: const Icon(Icons.album_rounded, color: _spotifyGreen),
+                                  child: const Icon(
+                                    Icons.album_rounded,
+                                    color: _spotifyGreen,
+                                  ),
                                 )
-                              : CachedNetworkImage(imageUrl: _album!.imageUrl, fit: BoxFit.cover),
+                              : CachedNetworkImage(
+                                  imageUrl: _album!.imageUrl,
+                                  fit: BoxFit.cover,
+                                ),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -101,24 +110,43 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                           children: [
                             Text(
                               _album!.name,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               _album!.artist,
-                              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade700,
+                              ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               '${_album!.releaseDate} · ${_album!.totalTracks} tracks',
-                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
                             const SizedBox(height: 6),
                             TextButton.icon(
-                              onPressed: () => _openExternal(_album!.spotifyUrl),
-                              icon: const Icon(Icons.open_in_new_rounded, size: 16, color: _spotifyGreen),
-                              label: const Text('Abrir en Spotify', style: TextStyle(color: _spotifyGreen)),
-                              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                              onPressed: () =>
+                                  _openExternal(_album!.spotifyUrl),
+                              icon: const Icon(
+                                Icons.open_in_new_rounded,
+                                size: 16,
+                                color: _spotifyGreen,
+                              ),
+                              label: const Text(
+                                'Abrir en Spotify',
+                                style: TextStyle(color: _spotifyGreen),
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                              ),
                             ),
                           ],
                         ),
@@ -128,14 +156,14 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                   const SizedBox(height: 20),
                 ],
                 ..._tracks.asMap().entries.map(
-                  (entry) => SpotifyTrackTile(
-                    track: entry.value,
-                    index: entry.key,
-                    onTap: () => _openExternal(entry.value.spotifyUrl),
-                  ),
+                  (entry) =>
+                      SpotifyTrackTile(track: entry.value, index: entry.key),
                 ),
                 if (_tracks.isEmpty)
-                  Text('Sin tracks disponibles', style: TextStyle(color: Colors.grey.shade600)),
+                  Text(
+                    'Sin tracks disponibles',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
               ],
             ),
     );

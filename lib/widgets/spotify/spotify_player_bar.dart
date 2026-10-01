@@ -8,6 +8,8 @@ import '../../services/spotify_web_player/spotify_web_player.dart';
 
 const Color _spotifyGreen = Color(0xFF1DB954);
 
+enum _PlayerAction { devices, volume }
+
 /// Barra de control de reproduccion de Spotify (requiere cuenta vinculada).
 ///
 /// En Flutter Web usa el Web Playback SDK (crea su propio dispositivo
@@ -85,7 +87,7 @@ class _SpotifyPlayerBarState extends State<SpotifyPlayerBar> {
 
     player.deviceReadyStream.listen((deviceId) async {
       try {
-        await _service.transferPlayback(deviceId: deviceId, play: false);
+        await _service.transferPlayback(deviceId: deviceId);
         if (!mounted) return;
         setState(() => _sdkDeviceReady = true);
       } catch (_) {
@@ -284,6 +286,8 @@ class _SpotifyPlayerBarState extends State<SpotifyPlayerBar> {
         onTogglePlay: _togglePlay,
         onNext: () => _skip(true),
         onPrevious: () => _skip(false),
+        onManageDevices: _chooseDevice,
+        onAdjustVolume: _showVolumeControl,
       );
     }
 
@@ -297,7 +301,111 @@ class _SpotifyPlayerBarState extends State<SpotifyPlayerBar> {
       onTogglePlay: _togglePlay,
       onNext: () => _skip(true),
       onPrevious: () => _skip(false),
+      onManageDevices: _chooseDevice,
+      onAdjustVolume: _showVolumeControl,
     );
+  }
+
+  Future<void> _chooseDevice() async {
+    setState(() => _busy = true);
+    try {
+      final devices = await _service.getDevices();
+      if (!mounted) return;
+      if (devices.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No hay dispositivos Spotify activos')),
+        );
+        return;
+      }
+      final deviceId = await showModalBottomSheet<String>(
+        context: context,
+        builder: (sheetContext) => SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              const ListTile(
+                title: Text(
+                  'Dispositivos Spotify',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+              for (final device in devices)
+                ListTile(
+                  leading: Icon(
+                    device.isActive ? Icons.volume_up_rounded : Icons.devices,
+                    color: device.isActive ? _spotifyGreen : null,
+                  ),
+                  title: Text(device.name),
+                  subtitle: Text(device.type),
+                  trailing: device.isActive
+                      ? const Icon(Icons.check_rounded, color: _spotifyGreen)
+                      : null,
+                  onTap: () => Navigator.pop(sheetContext, device.id),
+                ),
+            ],
+          ),
+        ),
+      );
+      if (deviceId != null) {
+        await _service.transferPlayback(deviceId: deviceId);
+        await _loadRestState();
+      }
+    } on SpotifyNotLinkedException {
+      if (mounted) setState(() => _linked = false);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudieron cargar los dispositivos'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _showVolumeControl() async {
+    var volume = _restState?.device?.volumePercent.toDouble() ?? 50;
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Volumen: ${volume.round()}%'),
+                Slider(
+                  value: volume,
+                  min: 0,
+                  max: 100,
+                  divisions: 100,
+                  activeColor: _spotifyGreen,
+                  onChanged: (value) => setSheetState(() => volume = value),
+                  onChangeEnd: (value) => _setVolume(value.round()),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _setVolume(int volumePercent) async {
+    try {
+      await _service.setVolume(volumePercent);
+    } on SpotifyNotLinkedException {
+      if (mounted) setState(() => _linked = false);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo ajustar el volumen')),
+        );
+      }
+    }
   }
 }
 
@@ -351,6 +459,8 @@ class _PlayerFrame extends StatelessWidget {
   final VoidCallback onTogglePlay;
   final VoidCallback onNext;
   final VoidCallback onPrevious;
+  final VoidCallback onManageDevices;
+  final VoidCallback onAdjustVolume;
 
   const _PlayerFrame({
     required this.trackName,
@@ -361,6 +471,8 @@ class _PlayerFrame extends StatelessWidget {
     required this.onTogglePlay,
     required this.onNext,
     required this.onPrevious,
+    required this.onManageDevices,
+    required this.onAdjustVolume,
   });
 
   @override
@@ -435,6 +547,34 @@ class _PlayerFrame extends StatelessWidget {
             onPressed: busy ? null : onNext,
             icon: const Icon(Icons.skip_next_rounded),
             color: const Color(0xFF1B1B1B),
+          ),
+          PopupMenuButton<_PlayerAction>(
+            tooltip: 'Opciones del reproductor',
+            onSelected: (action) {
+              if (action == _PlayerAction.devices) {
+                onManageDevices();
+              } else {
+                onAdjustVolume();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: _PlayerAction.devices,
+                child: ListTile(
+                  leading: Icon(Icons.devices),
+                  title: Text('Dispositivos'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuItem(
+                value: _PlayerAction.volume,
+                child: ListTile(
+                  leading: Icon(Icons.volume_up_rounded),
+                  title: Text('Volumen'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
         ],
       ),

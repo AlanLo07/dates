@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/spotify.dart';
+import '../../services/spotify_service.dart';
 
 const Color _spotifyGreen = Color(0xFF1DB954);
 
@@ -18,10 +19,21 @@ class SpotifyTrackTile extends StatelessWidget {
     this.onTap,
   });
 
+  Future<void> _play(BuildContext context) async {
+    try {
+      await SpotifyService.instance.playTrack(track);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo reproducir esta canción')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      onTap: onTap,
+      onTap: onTap ?? () => _play(context),
       contentPadding: const EdgeInsets.symmetric(horizontal: 4),
       leading: SizedBox(
         width: 44,
@@ -62,7 +74,11 @@ class SpotifyTrackTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
       ),
-      trailing: const Icon(Icons.open_in_new_rounded, size: 18, color: _spotifyGreen),
+      trailing: const Icon(
+        Icons.play_circle_outline_rounded,
+        size: 22,
+        color: _spotifyGreen,
+      ),
     );
   }
 }

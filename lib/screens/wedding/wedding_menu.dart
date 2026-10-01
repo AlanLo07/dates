@@ -71,8 +71,7 @@ class _WeddingMenuScreenState extends State<WeddingMenuScreen> {
       if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
-        if (mounted) {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -168,9 +167,7 @@ class _WeddingMenuScreenState extends State<WeddingMenuScreen> {
                     border: OutlineInputBorder(),
                   ),
                   items: _momentos
-                      .map(
-                        (m) => DropdownMenuItem(value: m, child: Text(m)),
-                      )
+                      .map((m) => DropdownMenuItem(value: m, child: Text(m)))
                       .toList(),
                   onChanged: (v) => setSheet(() => momento = v ?? momento),
                 ),
@@ -182,9 +179,7 @@ class _WeddingMenuScreenState extends State<WeddingMenuScreen> {
                     border: OutlineInputBorder(),
                   ),
                   items: _tipos
-                      .map(
-                        (t) => DropdownMenuItem(value: t, child: Text(t)),
-                      )
+                      .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                       .toList(),
                   onChanged: (v) => setSheet(() => tipo = v ?? tipo),
                 ),
@@ -216,8 +211,10 @@ class _WeddingMenuScreenState extends State<WeddingMenuScreen> {
                             tipo: tipo,
                             esVegetariano: esVegetariano,
                           );
-                          final creado =
-                              await _service.createMenuItem(bodaId, nuevo);
+                          final creado = await _service.createMenuItem(
+                            bodaId,
+                            nuevo,
+                          );
                           if (mounted) {
                             setState(() => _items.add(creado));
                           }
@@ -227,10 +224,13 @@ class _WeddingMenuScreenState extends State<WeddingMenuScreen> {
                           existente.descripcion = descCtrl.text.trim();
                           existente.tipo = tipo;
                           existente.esVegetariano = esVegetariano;
-                          final actualizado =
-                              await _service.updateMenuItem(bodaId, existente);
-                          final idx =
-                              _items.indexWhere((i) => i.id == existente.id);
+                          final actualizado = await _service.updateMenuItem(
+                            bodaId,
+                            existente,
+                          );
+                          final idx = _items.indexWhere(
+                            (i) => i.id == existente.id,
+                          );
                           if (idx != -1 && mounted) {
                             setState(() => _items[idx] = actualizado);
                           }
@@ -297,11 +297,7 @@ class _WeddingMenuScreenState extends State<WeddingMenuScreen> {
           : Column(
               children: [
                 _buildFiltros(),
-                Expanded(
-                  child: _items.isEmpty
-                      ? _buildEmpty()
-                      : _buildLista(),
-                ),
+                Expanded(child: _items.isEmpty ? _buildEmpty() : _buildLista()),
               ],
             ),
     );
@@ -378,10 +374,7 @@ class _WeddingMenuScreenState extends State<WeddingMenuScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 8,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           backgroundColor: _greenLight,
           child: Text(
@@ -401,10 +394,7 @@ class _WeddingMenuScreenState extends State<WeddingMenuScreen> {
             if (item.descripcion.isNotEmpty)
               Text(
                 item.descripcion,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

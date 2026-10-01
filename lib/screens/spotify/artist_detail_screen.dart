@@ -13,7 +13,11 @@ class ArtistDetailScreen extends StatefulWidget {
   final String artistId;
   final String? initialName;
 
-  const ArtistDetailScreen({super.key, required this.artistId, this.initialName});
+  const ArtistDetailScreen({
+    super.key,
+    required this.artistId,
+    this.initialName,
+  });
 
   @override
   State<ArtistDetailScreen> createState() => _ArtistDetailScreenState();
@@ -73,7 +77,10 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
         title: Text(widget.initialName ?? _artist?.name ?? 'Artista'),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black87),
-        titleTextStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w700),
+        titleTextStyle: const TextStyle(
+          color: Colors.black87,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _spotifyGreen))
@@ -93,7 +100,10 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                           child: _artist!.imageUrl.isEmpty
                               ? Container(
                                   color: _spotifyGreen.withValues(alpha: 0.12),
-                                  child: const Icon(Icons.person_rounded, color: _spotifyGreen),
+                                  child: const Icon(
+                                    Icons.person_rounded,
+                                    color: _spotifyGreen,
+                                  ),
                                 )
                               : CachedNetworkImage(
                                   imageUrl: _artist!.imageUrl,
@@ -108,7 +118,10 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                           children: [
                             Text(
                               _artist!.name,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             if (_artist!.genres.isNotEmpty)
@@ -116,14 +129,27 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                                 _artist!.genres.join(', '),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
                               ),
                             const SizedBox(height: 6),
                             TextButton.icon(
-                              onPressed: () => _openExternal(_artist!.spotifyUrl),
-                              icon: const Icon(Icons.open_in_new_rounded, size: 16, color: _spotifyGreen),
-                              label: const Text('Abrir en Spotify', style: TextStyle(color: _spotifyGreen)),
-                              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                              onPressed: () =>
+                                  _openExternal(_artist!.spotifyUrl),
+                              icon: const Icon(
+                                Icons.open_in_new_rounded,
+                                size: 16,
+                                color: _spotifyGreen,
+                              ),
+                              label: const Text(
+                                'Abrir en Spotify',
+                                style: TextStyle(color: _spotifyGreen),
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                              ),
                             ),
                           ],
                         ),
@@ -132,22 +158,31 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                   ),
                   const SizedBox(height: 20),
                 ],
-                const Text('Top tracks', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                const Text(
+                  'Top tracks',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                ),
                 const SizedBox(height: 4),
                 ..._topTracks.asMap().entries.map(
-                  (entry) => SpotifyTrackTile(
-                    track: entry.value,
-                    index: entry.key,
-                    onTap: () => _openExternal(entry.value.spotifyUrl),
-                  ),
+                  (entry) =>
+                      SpotifyTrackTile(track: entry.value, index: entry.key),
                 ),
                 if (_topTracks.isEmpty)
-                  Text('Sin top tracks disponibles', style: TextStyle(color: Colors.grey.shade600)),
+                  Text(
+                    'Sin top tracks disponibles',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
                 const SizedBox(height: 20),
-                const Text('Álbumes', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                const Text(
+                  'Álbumes',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                ),
                 const SizedBox(height: 8),
                 if (_albums.isEmpty)
-                  Text('Sin álbumes disponibles', style: TextStyle(color: Colors.grey.shade600))
+                  Text(
+                    'Sin álbumes disponibles',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  )
                 else
                   SizedBox(
                     height: 180,
@@ -161,7 +196,10 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                           borderRadius: BorderRadius.circular(12),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => AlbumDetailScreen(albumId: album.id, initialName: album.name),
+                              builder: (_) => AlbumDetailScreen(
+                                albumId: album.id,
+                                initialName: album.name,
+                              ),
                             ),
                           ),
                           child: SizedBox(
@@ -176,10 +214,18 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                                     height: 130,
                                     child: album.imageUrl.isEmpty
                                         ? Container(
-                                            color: _spotifyGreen.withValues(alpha: 0.12),
-                                            child: const Icon(Icons.album_rounded, color: _spotifyGreen),
+                                            color: _spotifyGreen.withValues(
+                                              alpha: 0.12,
+                                            ),
+                                            child: const Icon(
+                                              Icons.album_rounded,
+                                              color: _spotifyGreen,
+                                            ),
                                           )
-                                        : CachedNetworkImage(imageUrl: album.imageUrl, fit: BoxFit.cover),
+                                        : CachedNetworkImage(
+                                            imageUrl: album.imageUrl,
+                                            fit: BoxFit.cover,
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(height: 6),
@@ -187,7 +233,10 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                                   album.name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ],
                             ),

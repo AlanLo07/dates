@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/spotify.dart';
 import '../../services/spotify_service.dart';
@@ -100,11 +99,6 @@ class _SpotifyExplorerScreenState extends State<SpotifyExplorerScreen>
     }
   }
 
-  Future<void> _openExternal(String url) async {
-    if (url.isEmpty) return;
-    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -186,10 +180,7 @@ class _SpotifyExplorerScreenState extends State<SpotifyExplorerScreen>
       itemCount: _tracks.length,
       itemBuilder: (context, index) {
         final track = _tracks[index];
-        return SpotifyTrackTile(
-          track: track,
-          onTap: () => _openExternal(track.spotifyUrl),
-        );
+        return SpotifyTrackTile(track: track);
       },
     );
   }

@@ -12,7 +12,11 @@ class PlaylistDetailScreen extends StatefulWidget {
   final String playlistId;
   final String? initialName;
 
-  const PlaylistDetailScreen({super.key, required this.playlistId, this.initialName});
+  const PlaylistDetailScreen({
+    super.key,
+    required this.playlistId,
+    this.initialName,
+  });
 
   @override
   State<PlaylistDetailScreen> createState() => _PlaylistDetailScreenState();
@@ -69,7 +73,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         title: Text(widget.initialName ?? _playlist?.name ?? 'Playlist'),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black87),
-        titleTextStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w700),
+        titleTextStyle: const TextStyle(
+          color: Colors.black87,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _spotifyGreen))
@@ -89,9 +96,15 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                           child: _playlist!.imageUrl.isEmpty
                               ? Container(
                                   color: _spotifyGreen.withValues(alpha: 0.12),
-                                  child: const Icon(Icons.queue_music_rounded, color: _spotifyGreen),
+                                  child: const Icon(
+                                    Icons.queue_music_rounded,
+                                    color: _spotifyGreen,
+                                  ),
                                 )
-                              : CachedNetworkImage(imageUrl: _playlist!.imageUrl, fit: BoxFit.cover),
+                              : CachedNetworkImage(
+                                  imageUrl: _playlist!.imageUrl,
+                                  fit: BoxFit.cover,
+                                ),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -101,20 +114,36 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                           children: [
                             Text(
                               _playlist!.name,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             if (_playlist!.ownerName.isNotEmpty)
                               Text(
                                 'Por ${_playlist!.ownerName} · ${_playlist!.totalTracks} tracks',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
                               ),
                             const SizedBox(height: 6),
                             TextButton.icon(
-                              onPressed: () => _openExternal(_playlist!.spotifyUrl),
-                              icon: const Icon(Icons.open_in_new_rounded, size: 16, color: _spotifyGreen),
-                              label: const Text('Abrir en Spotify', style: TextStyle(color: _spotifyGreen)),
-                              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                              onPressed: () =>
+                                  _openExternal(_playlist!.spotifyUrl),
+                              icon: const Icon(
+                                Icons.open_in_new_rounded,
+                                size: 16,
+                                color: _spotifyGreen,
+                              ),
+                              label: const Text(
+                                'Abrir en Spotify',
+                                style: TextStyle(color: _spotifyGreen),
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                              ),
                             ),
                           ],
                         ),
@@ -124,14 +153,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   const SizedBox(height: 20),
                 ],
                 ..._tracks.asMap().entries.map(
-                  (entry) => SpotifyTrackTile(
-                    track: entry.value,
-                    index: entry.key,
-                    onTap: () => _openExternal(entry.value.spotifyUrl),
-                  ),
+                  (entry) =>
+                      SpotifyTrackTile(track: entry.value, index: entry.key),
                 ),
                 if (_tracks.isEmpty)
-                  Text('Sin tracks disponibles', style: TextStyle(color: Colors.grey.shade600)),
+                  Text(
+                    'Sin tracks disponibles',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
               ],
             ),
     );

@@ -9,6 +9,12 @@ export 'spotify_web_player_types.dart';
 bool _scriptInjected = false;
 Completer<void>? _sdkReadyCompleter;
 
+T? _property<T extends JSAny?>(JSAny? object, String property) =>
+    object == null ? null : (object as JSObject).getProperty<T>(property.toJS);
+
+String? _stringProperty(JSAny? object, String property) =>
+    _property<JSString?>(object, property)?.toDart;
+
 Future<void> _ensureSdkLoaded() {
   final existing = _sdkReadyCompleter;
   if (existing != null) return existing.future;
@@ -16,42 +22,47 @@ Future<void> _ensureSdkLoaded() {
   final completer = Completer<void>();
   _sdkReadyCompleter = completer;
 
-  final existingSpotify = globalContext.getProperty<JSAny?>('Spotify');
+  final existingSpotify = globalContext.getProperty<JSAny?>('Spotify'.toJS);
   if (existingSpotify != null) {
     completer.complete();
     return completer.future;
   }
 
   globalContext.setProperty(
-    'onSpotifyWebPlaybackSDKReady',
+    'onSpotifyWebPlaybackSDKReady'.toJS,
     (() => completer.complete()).toJS,
   );
 
   if (!_scriptInjected) {
     _scriptInjected = true;
-    final document = globalContext.getProperty<JSObject>('document');
-    final script = document.callMethod<JSObject>('createElement', ['script'.toJS]);
-    script.setProperty('src', 'https://sdk.scdn.co/spotify-player.js'.toJS);
-    script.setProperty('async', true.toJS);
-    final body = document.getProperty<JSObject>('body');
-    body.callMethod<JSAny?>('appendChild', [script]);
+    final document = globalContext.getProperty<JSObject>('document'.toJS);
+    final script = document.callMethod<JSObject>(
+      'createElement'.toJS,
+      ['script'.toJS].toJS,
+    );
+    script.setProperty(
+      'src'.toJS,
+      'https://sdk.scdn.co/spotify-player.js'.toJS,
+    );
+    script.setProperty('async'.toJS, true.toJS);
+    final body = document.getProperty<JSObject>('body'.toJS);
+    body.callMethod<JSAny?>('appendChild'.toJS, [script].toJS);
   }
 
   return completer.future;
 }
 
 /// Envoltorio del Web Playback SDK de Spotify vía interop dinámico
-/// (`dart:js_util`), usable solo en Flutter Web.
+/// (`dart:js_interop`), usable solo en Flutter Web.
 class SpotifyWebPlayer {
   final SpotifyTokenProvider _getToken;
   final String _name;
   final double _initialVolume;
 
-  dynamic _player;
+  JSObject? _player;
   String? _deviceId;
 
-  final _stateController =
-      StreamController<SpotifyWebPlayerState?>.broadcast();
+  final _stateController = StreamController<SpotifyWebPlayerState?>.broadcast();
   final _deviceReadyController = StreamController<String>.broadcast();
   final _errorController = StreamController<String>.broadcast();
 
@@ -74,43 +85,49 @@ class SpotifyWebPlayer {
   Future<void> connect() async {
     await _ensureSdkLoaded();
 
-    final options = js_util.newObject();
-    js_util.setProperty(options, 'name', _name);
-    js_util.setProperty(
-      options,
-      'getOAuthToken',
-      js_util.allowInterop((Object callback) {
+    final options = globalContext
+        .getProperty<JSFunction>('Object'.toJS)
+        .callMethod<JSObject>('create'.toJS, [null].toJS);
+    options.setProperty('name'.toJS, _name.toJS);
+    options.setProperty(
+      'getOAuthToken'.toJS,
+      ((JSAny? callback) {
         _getToken()
             .then((token) {
-              js_util.callMethod(callback, 'call', [null, token]);
+              (callback as JSObject?)?.callMethod<JSAny?>(
+                'call'.toJS,
+                [null, token.toJS].toJS,
+              );
             })
             .catchError((_) {
               // Si falla, el SDK reporta authentication_error por su cuenta.
             });
-      }),
+      }).toJS,
     );
-    js_util.setProperty(options, 'volume', _initialVolume);
+    options.setProperty('volume'.toJS, _initialVolume.toJS);
 
-    final spotifyNamespace = js_util.getProperty(
-      js_util.globalThis,
-      'Spotify',
+    final spotifyNamespace = globalContext.getProperty<JSObject>(
+      'Spotify'.toJS,
     );
-    final playerCtor = js_util.getProperty(spotifyNamespace, 'Player');
-    _player = js_util.callConstructor(playerCtor, [options]);
+    final playerCtor = spotifyNamespace.getProperty<JSFunction?>('Player'.toJS);
+    if (playerCtor == null) {
+      throw StateError('No se pudo cargar Spotify.Player');
+    }
+    _player = playerCtor.callAsConstructor<JSObject>([options].toJS);
 
-    _on('ready', (dynamic data) {
-      final id = js_util.getProperty(data, 'device_id') as String?;
+    _on('ready', (JSAny? data) {
+      final id = _stringProperty(data, 'device_id');
       if (id != null) {
         _deviceId = id;
         _deviceReadyController.add(id);
       }
     });
 
-    _on('not_ready', (dynamic _) {
+    _on('not_ready', (JSAny? _) {
       _deviceId = null;
     });
 
-    _on('player_state_changed', (dynamic state) {
+    _on('player_state_changed', (JSAny? state) {
       _stateController.add(_parseState(state));
     });
 
@@ -120,64 +137,64 @@ class SpotifyWebPlayer {
       'account_error',
       'playback_error',
     ]) {
-      _on(event, (dynamic data) {
+      _on(event, (JSAny? data) {
         final message = data == null
             ? event
-            : (js_util.getProperty(data, 'message') as String? ?? event);
+            : (_stringProperty(data, 'message') ?? event);
         _errorController.add('$event: $message');
       });
     }
 
-    js_util.callMethod(_player, 'connect', const []);
+    _player!.callMethod<JSAny?>('connect'.toJS, <JSAny?>[].toJS);
   }
 
-  void _on(String event, void Function(dynamic data) callback) {
-    js_util.callMethod(_player, 'addListener', [
-      event,
-      js_util.allowInterop(callback),
-    ]);
+  void _on(String event, void Function(JSAny? data) callback) {
+    _player!.callMethod<JSAny?>(
+      'addListener'.toJS,
+      [event.toJS, callback.toJS].toJS,
+    );
   }
 
-  SpotifyWebPlayerState? _parseState(dynamic state) {
+  SpotifyWebPlayerState? _parseState(JSAny? state) {
     if (state == null) return null;
-    final paused = js_util.getProperty(state, 'paused') as bool? ?? true;
+    final paused = _property<JSBoolean?>(state, 'paused')?.toDart ?? true;
     final position =
-        (js_util.getProperty(state, 'position') as num?)?.toInt() ?? 0;
+        _property<JSNumber?>(state, 'position')?.toDartDouble.toInt() ?? 0;
     final duration =
-        (js_util.getProperty(state, 'duration') as num?)?.toInt() ?? 0;
-    final trackWindow = js_util.getProperty(state, 'track_window');
+        _property<JSNumber?>(state, 'duration')?.toDartDouble.toInt() ?? 0;
+    final trackWindow = _property<JSAny?>(state, 'track_window');
     final currentTrack = trackWindow == null
         ? null
-        : js_util.getProperty(trackWindow, 'current_track');
+        : _property<JSAny?>(trackWindow, 'current_track');
 
     SpotifyWebPlayerTrack? track;
     if (currentTrack != null) {
-      final id = js_util.getProperty(currentTrack, 'id') as String? ?? '';
-      final name = js_util.getProperty(currentTrack, 'name') as String? ?? '';
-      final artistsList = js_util.getProperty(currentTrack, 'artists');
+      final id = _stringProperty(currentTrack, 'id') ?? '';
+      final name = _stringProperty(currentTrack, 'name') ?? '';
+      final artistsList = _property<JSAny?>(currentTrack, 'artists');
       final artistNames = <String>[];
       if (artistsList != null) {
         final length =
-            (js_util.getProperty(artistsList, 'length') as num?)?.toInt() ??
+            _property<JSNumber?>(artistsList, 'length')?.toDartDouble.toInt() ??
             0;
         for (var i = 0; i < length; i++) {
-          final artist = js_util.getProperty(artistsList, '$i');
-          final artistName = js_util.getProperty(artist, 'name') as String?;
+          final artist = _property<JSAny?>(artistsList, '$i');
+          final artistName = _stringProperty(artist, 'name');
           if (artistName != null && artistName.isNotEmpty) {
             artistNames.add(artistName);
           }
         }
       }
-      final album = js_util.getProperty(currentTrack, 'album');
+      final album = _property<JSAny?>(currentTrack, 'album');
       var imageUrl = '';
       if (album != null) {
-        final images = js_util.getProperty(album, 'images');
+        final images = _property<JSAny?>(album, 'images');
         if (images != null) {
           final imagesLength =
-              (js_util.getProperty(images, 'length') as num?)?.toInt() ?? 0;
+              _property<JSNumber?>(images, 'length')?.toDartDouble.toInt() ?? 0;
           if (imagesLength > 0) {
-            final first = js_util.getProperty(images, '0');
-            imageUrl = js_util.getProperty(first, 'url') as String? ?? '';
+            final first = _property<JSAny?>(images, '0');
+            imageUrl = _stringProperty(first, 'url') ?? '';
           }
         }
       }
@@ -203,19 +220,19 @@ class SpotifyWebPlayer {
 
   Future<void> previousTrack() => _invoke('previousTrack');
 
-  Future<void> setVolume(double volume) => _invoke('setVolume', [volume]);
+  Future<void> setVolume(double volume) => _invoke('setVolume', [volume.toJS]);
 
-  Future<void> _invoke(String method, [List<Object?> args = const []]) async {
+  Future<void> _invoke(String method, [List<JSAny?> args = const []]) async {
     if (_player == null) return;
-    final result = js_util.callMethod(_player, method, args);
+    final result = _player!.callMethod<JSAny?>(method.toJS, args.toJS);
     if (result != null) {
-      await js_util.promiseToFuture<void>(result);
+      await (result as JSPromise<JSAny?>).toDart;
     }
   }
 
   void dispose() {
     if (_player != null) {
-      js_util.callMethod(_player, 'disconnect', const []);
+      _player!.callMethod<JSAny?>('disconnect'.toJS, <JSAny?>[].toJS);
     }
     _stateController.close();
     _deviceReadyController.close();

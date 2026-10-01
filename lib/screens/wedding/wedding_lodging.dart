@@ -72,13 +72,9 @@ class _WeddingLodgingScreenState extends State<WeddingLodgingScreen> {
 
     final nombreCtrl = TextEditingController(text: existente?.nombre ?? '');
     final dirCtrl = TextEditingController(text: existente?.direccion ?? '');
-    final contactoCtrl = TextEditingController(
-      text: existente?.contacto ?? '',
-    );
+    final contactoCtrl = TextEditingController(text: existente?.contacto ?? '');
     final checkInCtrl = TextEditingController(text: existente?.checkIn ?? '');
-    final checkOutCtrl = TextEditingController(
-      text: existente?.checkOut ?? '',
-    );
+    final checkOutCtrl = TextEditingController(text: existente?.checkOut ?? '');
     final mapaCtrl = TextEditingController(text: existente?.mapaUrl ?? '');
     final notaCtrl = TextEditingController(text: existente?.nota ?? '');
 
@@ -87,9 +83,7 @@ class _WeddingLodgingScreenState extends State<WeddingLodgingScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Container(
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -123,11 +117,10 @@ class _WeddingLodgingScreenState extends State<WeddingLodgingScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: nombreCtrl,
-                    if (mounted) {
+                  decoration: const InputDecoration(
                     labelText: 'Nombre del hotel / lugar *',
                     border: OutlineInputBorder(),
                   ),
-                    }
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -209,8 +202,10 @@ class _WeddingLodgingScreenState extends State<WeddingLodgingScreen> {
                             mapaUrl: mapaCtrl.text.trim(),
                             nota: notaCtrl.text.trim(),
                           );
-                          final creado =
-                              await _service.createHospedaje(bodaId, nuevo);
+                          final creado = await _service.createHospedaje(
+                            bodaId,
+                            nuevo,
+                          );
                           if (mounted) {
                             setState(() => _hospedajes.add(creado));
                           }
@@ -351,10 +346,7 @@ class _WeddingLodgingScreenState extends State<WeddingLodgingScreen> {
                   Expanded(
                     child: Text(
                       h.direccion,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
                     ),
                   ),
                 ],
@@ -376,10 +368,7 @@ class _WeddingLodgingScreenState extends State<WeddingLodgingScreen> {
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   if (h.checkIn.isNotEmpty && h.checkOut.isNotEmpty)
-                    const Text(
-                      '  ·  ',
-                      style: TextStyle(color: Colors.grey),
-                    ),
+                    const Text('  ·  ', style: TextStyle(color: Colors.grey)),
                   if (h.checkOut.isNotEmpty)
                     Text(
                       'Out: ${h.checkOut}',
