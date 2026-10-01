@@ -23,6 +23,7 @@ class _KamaScreenState extends State<KamaScreen>
 
   bool _showDetails = false;
   bool _isLoading = true;
+  bool _isUpdatingCompletion = false;
   String? _error;
 
   late AnimationController _flipCtrl;
@@ -103,6 +104,49 @@ class _KamaScreenState extends State<KamaScreen>
     });
     _flipCtrl.reverse();
   }
+
+  Future<void> _toggleCompletion(bool value) async {
+    final position = _current;
+    if (position == null || _isUpdatingCompletion) return;
+
+    setState(() {
+      _isUpdatingCompletion = true;
+      _replacePosition(position.copyWith(completado: value));
+    });
+
+    try {
+      await KamaService().updateCompletion(position.id, value);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _replacePosition(position);
+        _isUpdatingCompletion = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo actualizar la posición')),
+      );
+      return;
+    }
+
+    if (mounted) setState(() => _isUpdatingCompletion = false);
+  }
+
+  void _replacePosition(KamaPosition updated) {
+    _allPositions = _allPositions
+        .map((position) => position.id == updated.id ? updated : position)
+        .toList();
+    _pool = _pool
+        .map((position) => position.id == updated.id ? updated : position)
+        .toList();
+    if (_current?.id == updated.id) _current = updated;
+  }
+
+  int get _completedCount =>
+      _allPositions.where((position) => position.completado).length;
+
+  double get _completionProgress => _allPositions.isEmpty
+      ? 0
+      : _completedCount / _allPositions.length;
 
   Future<void> _launchLink(String url) async {
     final uri = Uri.parse(url);
@@ -205,6 +249,7 @@ class _KamaScreenState extends State<KamaScreen>
 
     return Column(
       children: [
+        _buildProgressHeader(),
         _buildFilterBar(),
         Expanded(
           child: AnimatedBuilder(
@@ -227,6 +272,79 @@ class _KamaScreenState extends State<KamaScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildProgressHeader() {
+    final completed = _completedCount;
+    final total = _allPositions.length;
+    final isComplete = total > 0 && completed == total;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.violeta.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(isComplete ? '🎉' : '🔥', style: const TextStyle(fontSize: 20)),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Progreso de posiciones',
+                  style: TextStyle(
+                    color: AppColors.violeta,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              Text(
+                '$completed / $total',
+                style: TextStyle(
+                  color: isComplete ? const Color(0xFF2E7D32) : AppColors.violeta,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: _completionProgress),
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeOutCubic,
+              builder: (_, value, __) => LinearProgressIndicator(
+                value: value,
+                minHeight: 9,
+                backgroundColor: AppColors.lavanda,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isComplete ? const Color(0xFF4CAF50) : AppColors.violeta,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            '${total - completed} pendientes',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
     );
   }
 
@@ -388,6 +506,21 @@ class _KamaScreenState extends State<KamaScreen>
                     height: 1.5,
                   ),
                 ),
+              ),
+              CheckboxListTile(
+                value: pos.completado,
+                onChanged: _isUpdatingCompletion
+                    ? null
+                    : (value) {
+                        if (value != null) _toggleCompletion(value);
+                      },
+                dense: true,
+                activeColor: AppColors.violeta,
+                title: const Text(
+                  'Posición completada',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+                controlAffinity: ListTileControlAffinity.leading,
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),

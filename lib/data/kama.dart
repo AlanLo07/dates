@@ -50,6 +50,7 @@ class KamaPosition {
   final String tips;
   final KamaLevel level;
   final String link;
+  final bool completado;
 
   const KamaPosition({
     required this.id,
@@ -60,7 +61,22 @@ class KamaPosition {
     required this.tips,
     required this.level,
     required this.link,
+    this.completado = false,
   });
+
+  KamaPosition copyWith({bool? completado}) {
+    return KamaPosition(
+      id: id,
+      name: name,
+      emoji: emoji,
+      shortDesc: shortDesc,
+      fullDesc: fullDesc,
+      tips: tips,
+      level: level,
+      link: link,
+      completado: completado ?? this.completado,
+    );
+  }
 
   factory KamaPosition.fromJson(Map<String, dynamic> json) {
     return KamaPosition(
@@ -72,6 +88,8 @@ class KamaPosition {
       tips: (json['tips'] ?? '').toString(),
       level: KamaLevelX.fromApi(json['level']?.toString()),
       link: (json['link'] ?? '').toString(),
+      completado: json['completado'] == true ||
+          json['completado']?.toString().toLowerCase() == 'true',
     );
   }
 }

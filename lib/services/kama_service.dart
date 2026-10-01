@@ -58,4 +58,30 @@ class KamaService {
     _cacheTimestamp = DateTime.now();
     return List.unmodifiable(_cache!);
   }
+
+  Future<void> updateCompletion(String id, bool completado) async {
+    debugPrint('🔵 [KamaService] updateCompletion: PUT iniciado ($id)');
+    final response = await http
+        .put(
+          Uri.parse('$_baseUrl/$id'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({'completado': completado}),
+        )
+        .timeout(const Duration(seconds: 8));
+
+    debugPrint(
+      '⚪️ [KamaService] updateCompletion: respuesta HTTP ${response.statusCode}',
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      debugPrint('🔴 [KamaService] updateCompletion: HTTP no exitoso');
+      throw Exception('No se pudo actualizar la posición');
+    }
+
+    _cache = _cache
+        ?.map((position) => position.id == id
+            ? position.copyWith(completado: completado)
+            : position)
+        .toList();
+    debugPrint('🟢 [KamaService] updateCompletion: completado');
+  }
 }
