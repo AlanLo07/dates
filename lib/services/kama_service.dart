@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'authenticated_http_client.dart' as http;
+import 'package:flutter/foundation.dart';
 
 import '../data/kama.dart';
 import 'api_config.dart';
@@ -78,9 +79,11 @@ class KamaService {
     }
 
     _cache = _cache
-        ?.map((position) => position.id == id
-            ? position.copyWith(completado: completado)
-            : position)
+        ?.map(
+          (position) => position.id == id
+              ? position.copyWith(completado: completado)
+              : position,
+        )
         .toList();
     debugPrint('🟢 [KamaService] updateCompletion: completado');
   }
