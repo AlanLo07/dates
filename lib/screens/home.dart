@@ -12,6 +12,7 @@ import '../utils/colors.dart';
 import '../widgets/motion/ambient_orbs_background.dart';
 import 'calendar/calendar.dart';
 import 'checklist/checklist_menu_screen.dart';
+import 'coupons/coupons_screen.dart';
 import 'finances/couple_finances.dart';
 import 'games/games_menu.dart';
 import 'home/widgets/home_counter_strip.dart';
@@ -496,6 +497,22 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 14),
                           HomeMenuCard(
                             index: 7,
+                            emoji: '🎟️',
+                            icon: Icons.card_giftcard_rounded,
+                            title: 'Cupones',
+                            subtitle: 'Regalos para canjear cuando quieras',
+                            destination: const CouponsScreen(),
+                            gradientColors: const [
+                              Color(0xFFFFCC80),
+                              Color(0xFFF57C00),
+                            ],
+                            fadeDuration: _kFadeDuration,
+                            slideDuration: _kSlideDuration,
+                            stagger: _kListStagger,
+                          ),
+                          const SizedBox(height: 14),
+                          HomeMenuCard(
+                            index: 8,
                             emoji: '🎧',
                             icon: Icons.headphones_rounded,
                             title: 'Spotify',
@@ -513,7 +530,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           // if (DateTime.now().isAfter(_weddingUnlockDate))
                           if (true)
                             HomeMenuCard(
-                              index: 8,
+                              index: 9,
                               emoji: '💍',
                               icon: Icons.favorite,
                               title: 'Nuestra Boda',
