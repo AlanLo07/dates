@@ -5,6 +5,7 @@ import '../../models/finances.dart';
 import '../../services/finances_service.dart';
 import '../../utils/colors.dart';
 import 'finance_history.dart';
+import 'savings_goals_screen.dart';
 
 class CoupleFinancesScreen extends StatefulWidget {
   const CoupleFinancesScreen({super.key});
@@ -659,6 +660,45 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
     );
   }
 
+  Widget _buildSavingsGoalsEntry() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            backgroundColor: Color(0xFFEAF5EF),
+            child: Icon(Icons.savings_outlined, color: AppColors.success),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Metas de ahorro', style: TextStyle(fontWeight: FontWeight.w700)),
+                SizedBox(height: 3),
+                Text('Ahorren juntos con prioridades y un fondo colchón.'),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Abrir metas de ahorro',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const SavingsGoalsScreen(),
+              ),
+            ),
+            icon: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHistorySection() {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -670,46 +710,8 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+                  const SizedBox(height: 14),
           Row(
-            children: [
-              const Icon(Icons.query_stats_rounded, color: AppColors.violeta),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Análisis histórico completo',
-                  style: TextStyle(
-                    color: AppColors.violeta,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Visualiza el histórico completo de 12 meses con gráficas y análisis detallado.',
-            style: TextStyle(color: Colors.grey.shade700, height: 1.4),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const FinanceHistoryScreen(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.violeta,
-                foregroundColor: Colors.white,
-              ),
-              icon: const Icon(Icons.timeline_rounded),
-              label: const Text('Ver histórico completo'),
-            ),
-          ),
         ],
       ),
     );
@@ -786,6 +788,7 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
                   const SizedBox(height: 14),
                   _buildBudgetCard(),
                   const SizedBox(height: 14),
+                  _buildSavingsGoalsEntry(),
                   _buildFilterCard(),
                   const SizedBox(height: 14),
                   Wrap(
