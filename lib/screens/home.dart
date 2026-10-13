@@ -14,6 +14,7 @@ import 'calendar/calendar.dart';
 import 'checklist/checklist_menu_screen.dart';
 import 'coupons/coupons_screen.dart';
 import 'finances/couple_finances.dart';
+import 'challenges/monthly_challenges_screen.dart';
 import 'games/games_menu.dart';
 import 'home/widgets/home_counter_strip.dart';
 import 'home/widgets/home_hero_header.dart';
@@ -550,6 +551,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                   .difference(DateTime.now())
                                   .inDays,
                             ),
+                          const SizedBox(height: 14),
+                          HomeMenuCard(
+                            index: 10,
+                            emoji: '🎯',
+                            icon: Icons.celebration_rounded,
+                            title: 'Reto del mes',
+                            subtitle: 'Un reto elegido juntos cada mes',
+                            destination: const MonthlyChallengesScreen(),
+                            gradientColors: const [
+                              Color(0xFFFFD180),
+                              Color(0xFFEF6C48),
+                            ],
+                            fadeDuration: _kFadeDuration,
+                            slideDuration: _kSlideDuration,
+                            stagger: _kListStagger,
+                          ),
                         ],
                       ),
                     ),

@@ -17,6 +17,7 @@ class ApiConfig {
   static const String spotifyPath = '/spotify';
   static const String checklistsPath = '/checklists';
   static const String couponsPath = '/cuponera';
+  static const String monthlyChallengesPath = '/monthly-challenges';
   static const String loginPath = '/auth/login';
   static const String signupPath = '/auth/signup';
   static const String confirmAccountPath = '/auth/confirm';
