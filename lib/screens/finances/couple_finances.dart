@@ -710,8 +710,46 @@ class _CoupleFinancesScreenState extends State<CoupleFinancesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-                  const SizedBox(height: 14),
           Row(
+            children: [
+              const Icon(Icons.query_stats_rounded, color: AppColors.violeta),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Análisis histórico completo',
+                  style: TextStyle(
+                    color: AppColors.violeta,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Visualiza el histórico completo de 12 meses con gráficas y análisis detallado.',
+            style: TextStyle(color: Colors.grey.shade700, height: 1.4),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const FinanceHistoryScreen(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.violeta,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.timeline_rounded),
+              label: const Text('Ver histórico completo'),
+            ),
+          ),
         ],
       ),
     );
