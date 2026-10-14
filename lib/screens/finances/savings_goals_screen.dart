@@ -804,7 +804,7 @@ class _SavingsHistoryScreenState extends State<SavingsHistoryScreen> {
   bool _cushion = false;
   bool _loading = true;
   String? _error;
-  final NumberFormat _dateFormat = DateFormat('dd/MM/yyyy · HH:mm');
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy · HH:mm');
 
   NumberFormat get _currency => NumberFormat.currency(
     locale: 'es_CO',
