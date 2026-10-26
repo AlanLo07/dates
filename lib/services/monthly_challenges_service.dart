@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '../models/monthly_challenge.dart';
 import 'api_config.dart';
 import 'authenticated_http_client.dart' as http;
@@ -28,9 +30,14 @@ class MonthlyChallengesService {
     required Set<int> successCodes,
   }) async {
     final response = await request().timeout(const Duration(seconds: 12));
-    final dynamic decoded = response.body.isEmpty
-        ? <String, dynamic>{}
-        : jsonDecode(response.body);
+    dynamic decoded = <String, dynamic>{};
+    try {
+      if (response.body.isNotEmpty) decoded = jsonDecode(response.body);
+    } on FormatException {
+      debugPrint('🟡 [MonthlyChallengesService] respuesta no JSON; '
+          'status=${response.statusCode} bytes=${response.bodyBytes.length}');
+      if (successCodes.contains(response.statusCode)) rethrow;
+    }
     if (!successCodes.contains(response.statusCode)) {
       final rawError = decoded is Map ? decoded['error'] : null;
       throw MonthlyChallengesApiException(
@@ -82,20 +89,27 @@ class MonthlyChallengesService {
     required String title,
     required String description,
     required String category,
-  }) => _mutateState(
-    '/current/proposals',
-    () => http.post(
-      _uri('/current/proposals'),
-      headers: const {'Content-Type': 'application/json; charset=UTF-8'},
-      body: jsonEncode({
-        'source': 'custom',
-        'title': title,
-        'description': description,
-        'category': category,
-      }),
-    ),
-    {200, 201},
-  );
+  }) {
+    debugPrint('🟤 [MonthlyChallengesService] propuesta personalizada; '
+        'campos=source,title,description,category; '
+        'source=custom; titleType=String titleLength=${title.length}; '
+        'descriptionType=String descriptionLength=${description.length}; '
+        'categoryType=String categoryLength=${category.length}');
+    return _mutateState(
+      '/current/proposals',
+      () => http.post(
+        _uri('/current/proposals'),
+        headers: const {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode({
+          'source': 'custom',
+          'title': title,
+          'description': description,
+          'category': category,
+        }),
+      ),
+      {200, 201},
+    );
+  }
 
   Future<MonthlyChallengeState> proposeCatalog(String challengeId) => _mutateState(
     '/current/proposals',
@@ -256,12 +270,24 @@ class MonthlyChallengesService {
   }
 
   Future<MonthlyChallengeState> _mutateState(
-    String ignoredPath,
+    String path,
     Future<http.Response> Function() request,
     Set<int> successCodes,
   ) async {
-    final data = await _request(request: request, successCodes: successCodes);
-    return MonthlyChallengeState.fromJson(data);
+    debugPrint('⚪️ [MonthlyChallengesService] $path inicio de mutacion');
+    try {
+      final data = await _request(request: request, successCodes: successCodes);
+      debugPrint('🔵 [MonthlyChallengesService] $path respuesta aceptada; '
+          'interpretando estado mensual');
+      final state = MonthlyChallengeState.fromJson(data);
+      debugPrint('🟢 [MonthlyChallengesService] $path estado mensual listo para UI');
+      return state;
+    } catch (error) {
+      debugPrint('🔴 [MonthlyChallengesService] $path fallo; '
+          'tipo=${error.runtimeType}'
+          '${error is MonthlyChallengesApiException ? ' status=${error.statusCode}' : ''}');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> _contentBody(MonthlyChallengeContent content) =>

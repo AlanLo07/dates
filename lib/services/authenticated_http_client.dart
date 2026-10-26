@@ -187,18 +187,56 @@ class AuthenticatedHttpClient {
     Object? body,
     Encoding? encoding,
   }) async {
+    final traceCreation = method == 'POST' &&
+        (url.path.endsWith('/finances/metas') ||
+            url.path.endsWith('/monthly-challenges/current/proposals'));
+    final stopwatch = Stopwatch()..start();
+    if (traceCreation) {
+      debugPrint('⚪️ [AuthenticatedHttpClient] $method ${url.path} autenticando');
+    }
     final token = await _authService.getValidAccessToken();
     if (token == null) {
+      if (traceCreation) {
+        debugPrint('🔴 [AuthenticatedHttpClient] ${url.path} sin sesion; solicitud no enviada');
+      }
       throw const AuthException('La sesión ha expirado. Inicia sesión de nuevo.');
     }
 
-    var response = await _request(
-      method,
-      url,
-      headers: _authorizedHeaders(headers, token),
-      body: body,
-      encoding: encoding,
-    );
+    if (traceCreation) {
+      debugPrint('🔵 [AuthenticatedHttpClient] $method ${url.path} envio autorizado; '
+          'headers=${[...?headers?.keys, 'Authorization'].join(',')}; '
+          'OPTIONS, si aparece en web, es preflight del navegador');
+    }
+    Future<http.Response> send(String accessToken) async {
+      try {
+        final result = await _request(
+          method,
+          url,
+          headers: _authorizedHeaders(headers, accessToken),
+          body: body,
+          encoding: encoding,
+        );
+        if (traceCreation) {
+          final requestId = result.headers['x-amzn-requestid'] ??
+              result.headers['x-amz-apigw-id'] ?? 'no disponible';
+          debugPrint('${result.statusCode >= 400 ? '🔴' : '🟢'} '
+              '[AuthenticatedHttpClient] $method ${url.path} '
+              'status=${result.statusCode} elapsedMs=${stopwatch.elapsedMilliseconds} '
+              'requestId=$requestId');
+        }
+        return result;
+      } catch (error) {
+        if (traceCreation) {
+          debugPrint('🔴 [AuthenticatedHttpClient] $method ${url.path} '
+              'sin respuesta HTTP accesible; tipo=${error.runtimeType}; '
+              'en web revisar consola CORS y respuesta OPTIONS '
+              '(Allow-Origin, Allow-Methods y Allow-Headers)');
+        }
+        rethrow;
+      }
+    }
+
+    var response = await send(token);
     if (response.statusCode != 401) return response;
 
     debugPrint('🟡 [AuthenticatedHttpClient] token rechazado, renovando sesión');
@@ -207,13 +245,7 @@ class AuthenticatedHttpClient {
     );
     if (refreshedToken == null) return response;
 
-    response = await _request(
-      method,
-      url,
-      headers: _authorizedHeaders(headers, refreshedToken),
-      body: body,
-      encoding: encoding,
-    );
+    response = await send(refreshedToken);
     return response;
   }
 
