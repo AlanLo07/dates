@@ -84,6 +84,7 @@ class ChecklistsService {
     int? colorValue,
     bool? usaGrupos,
     List<ChecklistGroup>? grupos,
+    List<ChecklistItem>? items,
   }) async {
     debugPrint('🔵 [ChecklistsService] createChecklist: POST iniciado');
     final response = await _client.post(
@@ -96,6 +97,13 @@ class ChecklistsService {
         if (colorValue != null) 'colorValue': colorValue,
         if (usaGrupos != null) 'usaGrupos': usaGrupos,
         if (grupos != null) 'grupos': grupos.map((g) => g.toJson()).toList(),
+        if (items != null)
+          'items': items.map((item) {
+            final data = item.toJson();
+            if (item.id.isEmpty) data.remove('id');
+            if (item.prioridadOrden < 1) data.remove('prioridadOrden');
+            return data;
+          }).toList(),
       }),
     );
     debugPrint('⚪️ [ChecklistsService] createChecklist: respuesta HTTP ${response.statusCode}');

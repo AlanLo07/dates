@@ -8,6 +8,9 @@ import 'api_config.dart';
 import '../models/song_of_week.dart';
 
 class EventService {
+  EventService({http.Client? client}) : _client = client ?? http.Client();
+
+  final http.Client _client;
   final String _baseUrl = ApiConfig.baseUrl + ApiConfig.eventosPath;
   static const Duration _cacheTtl = Duration(seconds: 45);
 
@@ -42,7 +45,7 @@ class EventService {
 
     final future = () async {
       debugPrint('🔵 [EventService] getAll: GET de eventos iniciado');
-      final response = await http.get(_uri());
+      final response = await _client.get(_uri());
       debugPrint('⚪️ [EventService] getAll: respuesta HTTP ${response.statusCode}');
       if (response.statusCode == 200) {
         final dynamic body = json.decode(response.body);
@@ -110,7 +113,7 @@ class EventService {
 
   Future<Recuerdo> createRecuerdo(Recuerdo recuerdo) async {
     debugPrint('🔵 [EventService] createRecuerdo: POST iniciado');
-    final response = await http.post(
+    final response = await _client.post(
       _uri(),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(recuerdo.toJson()),
@@ -135,7 +138,7 @@ class EventService {
 
   Future<Recuerdo> updateRecuerdo(Recuerdo recuerdo) async {
     debugPrint('🔵 [EventService] updateRecuerdo: PUT iniciado');
-    final response = await http.put(
+    final response = await _client.put(
       _uri('/${recuerdo.id}'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(recuerdo.toJson()),
@@ -163,7 +166,7 @@ class EventService {
   }
 
   Future<void> deleteRecuerdo(String id) async {
-    final response = await http.delete(_uri('/$id'));
+    final response = await _client.delete(_uri('/$id'));
     if (response.statusCode != 200) {
       throw Exception('Error al eliminar recuerdo: ${response.body}');
     }
@@ -181,7 +184,7 @@ class EventService {
   }
 
   Future<CartaSorpresa> createCarta(CartaSorpresa carta) async {
-    final response = await http.post(
+    final response = await _client.post(
       _uri(),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(carta.toJson()),
@@ -204,7 +207,7 @@ class EventService {
 
   Future<CartaSorpresa> abrirCarta(String id) async {
     debugPrint('🔵 [EventService] abrirCarta: PATCH iniciado');
-    final response = await http.patch(_uri('/$id/abrir'));
+    final response = await _client.patch(_uri('/$id/abrir'));
     debugPrint('⚪️ [EventService] abrirCarta: respuesta HTTP ${response.statusCode}');
     if (response.statusCode == 200) {
       final body = json.decode(response.body);
@@ -218,7 +221,7 @@ class EventService {
   }
 
   Future<void> deleteCarta(String id) async {
-    final response = await http.delete(_uri('/$id'));
+    final response = await _client.delete(_uri('/$id'));
     if (response.statusCode != 200) {
       throw Exception('Error al eliminar carta: ${response.body}');
     }
@@ -237,7 +240,7 @@ class EventService {
 
   Future<EventoImportante> createEvento(EventoImportante evento) async {
     debugPrint('🔵 [EventService] createEvento: POST iniciado');
-    final response = await http.post(
+    final response = await _client.post(
       _uri(),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(evento.toJson()),
@@ -247,16 +250,7 @@ class EventService {
       final body = json.decode(response.body);
       _invalidateAllCache();
       debugPrint('🟢 [EventService] createEvento: completado');
-      return EventoImportante(
-        id: body['id'] ?? evento.id,
-        title: evento.title,
-        description: evento.description,
-        date: evento.date,
-        icon: evento.icon,
-        itinerario: evento.itinerario,
-        presupuesto: evento.presupuesto,
-        documentos: evento.documentos,
-      );
+      return _eventoConfirmado(evento, Map<String, dynamic>.from(body));
     }
     debugPrint('🔴 [EventService] createEvento: HTTP no exitoso');
     throw Exception('Error al crear evento: ${response.body}');
@@ -264,25 +258,50 @@ class EventService {
 
   Future<EventoImportante> updateEvento(EventoImportante evento) async {
     debugPrint('🔵 [EventService] updateEvento: PUT iniciado');
-    final response = await http.put(
+    final response = await _client.put(
       _uri('/${evento.id}'),
       headers: {'Content-Type': 'application/json'},
-      body: json.encode(evento.toJson()),
+      body: json.encode(evento.toJson(
+        incluirVinculo: evento.actualizarChecklist,
+      )),
     );
     debugPrint('⚪️ [EventService] updateEvento: respuesta HTTP ${response.statusCode}');
     if (response.statusCode == 200) {
       final body = json.decode(response.body);
       _invalidateAllCache();
       debugPrint('🟢 [EventService] updateEvento: completado');
-      return EventoImportante.fromJson(body['item'] ?? body);
+      return _eventoConfirmado(evento, Map<String, dynamic>.from(body));
     }
     debugPrint('🔴 [EventService] updateEvento: HTTP no exitoso');
     throw Exception('Error al actualizar evento: ${response.body}');
   }
 
+  static EventoImportante _eventoConfirmado(
+    EventoImportante evento,
+    Map<String, dynamic> body,
+  ) {
+    final item = body['item'];
+    final data = item is Map ? Map<String, dynamic>.from(item) : body;
+    final merged = <String, dynamic>{
+      ...evento.toJson(),
+      ...data,
+    };
+    if (data.containsKey('checklistId')) {
+      merged.remove('checklist');
+    }
+    final confirmado = EventoImportante.fromJson(merged);
+    if (!data.containsKey('checklist') &&
+      !evento.actualizarChecklist &&
+      evento.checklist.titulo == null &&
+      confirmado.checklistId == null) {
+      return confirmado.copyWith(checklist: evento.checklist);
+    }
+    return confirmado;
+  }
+
   Future<void> deleteEvento(String id) async {
     debugPrint('🔵 [EventService] deleteEvento: DELETE iniciado');
-    final response = await http.delete(_uri('/$id'));
+    final response = await _client.delete(_uri('/$id'));
     debugPrint('⚪️ [EventService] deleteEvento: respuesta HTTP ${response.statusCode}');
     if (response.statusCode != 200) {
       debugPrint('🔴 [EventService] deleteEvento: HTTP no exitoso');
@@ -309,7 +328,7 @@ class EventService {
   }
 
   Future<SongOfWeek> setSongOfWeek(SongOfWeek song) async {
-    final response = await http.post(
+    final response = await _client.post(
       _uri(),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(song.toJson()),
@@ -326,7 +345,7 @@ class EventService {
   }
 
   Future<SongOfWeek> updateSongOfWeek(SongOfWeek song) async {
-    final response = await http.put(
+    final response = await _client.put(
       _uri('/${song.id}'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(song.toJson()),

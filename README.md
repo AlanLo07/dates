@@ -2,6 +2,32 @@
 
 A new Flutter project.
 
+## Checklists de las citas
+
+Al crear o editar una cita en el calendario se puede seleccionar un checklist
+existente, crear uno nuevo con titulo e items o dejarla sin checklist.
+La creacion de la cita y su nueva lista se envia en una sola solicitud a
+`POST /citas`; al editar se utiliza `PUT /citas/{id}`.
+
+- Las citas guardan `checklistId`; el detalle se carga desde `/checklists/{id}`.
+- Cambiar items o reiniciar una lista afecta a todas las citas vinculadas.
+- Desvincular una lista o eliminar la cita no elimina el checklist.
+- Una lista eliminada muestra un aviso y puede reemplazarse o desvincularse
+  desde la edicion de la cita.
+- Las listas antiguas se siguen mostrando y se conservan al editar otros
+  campos. Elegir "Crear nuevo checklist" permite migrar sus items, convirtiendo
+  `incluido` a `comprado` sin perder su estado.
+- Si no se cambia el vinculo, el PUT omite ambos campos de checklist. La
+  respuesta parcial del servidor se combina con los datos del evento y se
+  conserva el `checklistId` confirmado, incluido `null`.
+
+Comprobaciones locales:
+
+```cmd
+flutter test test/fecha_model_test.dart test/events_service_test.dart
+flutter analyze lib/models/fecha.dart lib/services/events.dart lib/services/checklists_service.dart lib/screens/calendar lib/screens/checklist/checklist_detail_screen.dart
+```
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

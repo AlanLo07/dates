@@ -118,7 +118,9 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
     setState(() => item.comprado = comprado);
     try {
       await _service.setComprado(board.id, item.id, comprado);
+      await _loadBoard();
     } catch (e) {
+      if (!mounted) return;
       setState(() => item.comprado = !comprado);
       _showError('No se pudo actualizar el item: $e');
     }
@@ -130,6 +132,7 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
     setState(() => board.items.removeWhere((i) => i.id == item.id));
     try {
       await _service.deleteItem(board.id, item.id);
+      await _loadBoard();
     } catch (e) {
       _showError('No se pudo eliminar el item: $e');
       await _loadBoard();

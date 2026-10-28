@@ -10,19 +10,20 @@ class ItemChecklist {
   factory ItemChecklist.fromJson(Map<String, dynamic> json) {
     return ItemChecklist(
       nombre: (json['nombre'] ?? '').toString(),
-      incluido: json['incluido'] == true,
+      incluido: (json['comprado'] ?? json['incluido']) == true,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'nombre': nombre, 'incluido': incluido};
+    return {'nombre': nombre, 'comprado': incluido};
   }
 }
 
 class ChecklistEvento {
   final List<ItemChecklist> items;
+  final String? titulo;
 
-  const ChecklistEvento({this.items = const []});
+  const ChecklistEvento({this.items = const [], this.titulo});
 
   factory ChecklistEvento.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const ChecklistEvento();
@@ -33,11 +34,20 @@ class ChecklistEvento {
               .map((item) => ItemChecklist.fromJson(Map<String, dynamic>.from(item)))
               .toList()
         : <ItemChecklist>[];
-    return ChecklistEvento(items: items);
+    return ChecklistEvento(items: items, titulo: json['titulo'] as String?);
   }
 
   Map<String, dynamic> toJson() {
-    return {'items': items.map((i) => i.toJson()).toList()};
+    if (titulo != null && titulo!.trim().isEmpty) {
+      throw ArgumentError('Escribe un titulo para el checklist');
+    }
+    if (titulo != null && items.length > 98) {
+      throw ArgumentError('El checklist admite hasta 98 items iniciales');
+    }
+    return {
+      if (titulo != null) 'titulo': titulo,
+      'items': items.map((i) => i.toJson()).toList(),
+    };
   }
 }
 
@@ -166,6 +176,9 @@ class EventoImportante {
   final PresupuestoEvento presupuesto;
   final List<String> documentos;
   final ChecklistEvento checklist;
+  final String? checklistId;
+  final bool actualizarChecklist;
+  static const _sinCambio = Object();
 
   EventoImportante({
     required this.id,
@@ -177,6 +190,8 @@ class EventoImportante {
     this.presupuesto = const PresupuestoEvento(),
     this.documentos = const [],
     this.checklist = const ChecklistEvento(),
+    this.checklistId,
+    this.actualizarChecklist = false,
   });
 
   EventoImportante copyWith({
@@ -189,6 +204,7 @@ class EventoImportante {
     PresupuestoEvento? presupuesto,
     List<String>? documentos,
     ChecklistEvento? checklist,
+    Object? checklistId = _sinCambio,
   }) {
     return EventoImportante(
       id: id ?? this.id,
@@ -199,7 +215,15 @@ class EventoImportante {
       itinerario: itinerario ?? this.itinerario,
       presupuesto: presupuesto ?? this.presupuesto,
       documentos: documentos ?? this.documentos,
-      checklist: checklist ?? this.checklist,
+        checklist: checklist ??
+          (identical(checklistId, _sinCambio)
+            ? this.checklist
+            : const ChecklistEvento()),
+        checklistId: identical(checklistId, _sinCambio)
+          ? (checklist?.titulo != null ? null : this.checklistId)
+          : checklistId as String?,
+        actualizarChecklist: !identical(checklistId, _sinCambio) ||
+          checklist?.titulo != null || actualizarChecklist,
     );
   }
 
@@ -226,6 +250,7 @@ class EventoImportante {
             : null,
       ),
       documentos: documentos,
+      checklistId: json['checklistId'] as String?,
       checklist: ChecklistEvento.fromJson(
         json['checklist'] is Map
             ? Map<String, dynamic>.from(json['checklist'])
@@ -234,7 +259,7 @@ class EventoImportante {
     );
   }
 
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson({bool incluirVinculo = true}) => {
     'type': 'evento',
     'id': id,
     'title': title,
@@ -244,6 +269,9 @@ class EventoImportante {
     'itinerario': itinerario.toJson(),
     'presupuesto': presupuesto.toJson(),
     'documentos': documentos,
-    'checklist': checklist.toJson(),
+    if (incluirVinculo && checklist.titulo != null)
+      'checklist': checklist.toJson()
+    else if (incluirVinculo && (checklistId != null || actualizarChecklist))
+      'checklistId': checklistId,
   };
 }
