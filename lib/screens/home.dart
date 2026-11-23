@@ -22,6 +22,7 @@ import 'home/widgets/home_locked_wedding_card.dart';
 import 'home/widgets/home_menu_card.dart';
 import 'home/widgets/home_section_header.dart';
 import 'home/widgets/home_song_of_the_week_strip.dart';
+import 'home/widgets/home_weekly_questions_card.dart';
 import 'home/widgets/song_editor_sheet.dart';
 import 'memories/memories.dart';
 import 'phrases/type_phrases.dart';
@@ -563,6 +564,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               Color(0xFFFFD180),
                               Color(0xFFEF6C48),
                             ],
+                            fadeDuration: _kFadeDuration,
+                            slideDuration: _kSlideDuration,
+                            stagger: _kListStagger,
+                          ),
+                          const SizedBox(height: 14),
+                          HomeWeeklyQuestionsCard(
+                            index: 11,
                             fadeDuration: _kFadeDuration,
                             slideDuration: _kSlideDuration,
                             stagger: _kListStagger,

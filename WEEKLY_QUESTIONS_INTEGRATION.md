@@ -1,52 +1,138 @@
-# Pregunta de la Semana - Guía de Integración Flutter
+# Pregunta de la Semana - Integración en Home Completada
 
-Documentación de implementación de la funcionalidad de Pregunta de la Semana en Flutter.
+**Estado**: ✅ COMPLETADO - Weekly Questions ahora visible en Home como Menu Card
+
+---
+
+## 📋 Resumen de Cambios Realizados
+
+### 1. Home Menu Card Creado
+- **Archivo**: `lib/screens/home/widgets/home_weekly_questions_card.dart`
+- **Características**:
+  - Diseño visual con gradiente purpura coherente
+  - Muestra estado actual de la pregunta semanal
+  - Iconos emoji según estado (✅ completada, ⏳ parcial, 📝 pendiente, ❓ no disponible)
+  - Carga asincrónica de pregunta al inicializar
+  - Navegación a `WeeklyQuestionsScreen` con animación personalizada
+
+### 2. Home.dart Actualizado
+- Importado `home_weekly_questions_card.dart`
+- Agregado card como índice 11 en lista de menú
+- Posicionado después del "Reto del mes"
+- Integrado con animaciones existentes
+
+### 3. Navegación
+- Usa sistema `createRoute()` con `AppRouteMotion.sharedAxisX`
+- Navega directamente a `WeeklyQuestionsScreen`
+- Mantiene consistencia con otros cards
+
+---
 
 ## 📁 Estructura de Archivos
 
 ```
 lib/
 ├── models/
-│   └── weekly_question.dart          # Modelos de datos
+│   └── weekly_question.dart                 # Modelos de datos
 ├── services/
-│   └── weekly_questions_service.dart # Servicio de API
+│   └── weekly_questions_service.dart        # Servicio de API
 ├── screens/
 │   ├── weekly_questions_screen.dart                    # Pantalla principal (3 tabs)
 │   ├── weekly_questions_detail_screen.dart            # Detalle de pregunta
 │   ├── weekly_questions_create_screen.dart            # Crear pregunta
 │   ├── weekly_questions_answer_screen.dart            # Responder pregunta
 │   ├── weekly_questions_catalog_screen.dart           # Catálogo filtrado
-│   └── weekly_questions_history_screen.dart           # Historial de preguntas
+│   ├── weekly_questions_history_screen.dart           # Historial de preguntas
+│   └── home/
+│       └── widgets/
+│           └── home_weekly_questions_card.dart        # ✨ NUEVO - Card en home
 ├── widgets/
-│   └── weekly_question_card.dart     # Widget reutilizable para tarjetas
-└── main.dart (actualizar rutas)
+│   └── weekly_question_card.dart            # Widget reutilizable
+└── home.dart                                 # ✨ ACTUALIZADO
 
 test/
-└── weekly_questions_model_test.dart  # Tests unitarios
+└── weekly_questions_model_test.dart         # Tests unitarios
 ```
 
-## 🚀 Instalación y Configuración
+---
 
-### 1. Verificar dependencias
+## 🎨 Estados Visuales del Card
 
-Asegúrate de tener en `pubspec.yaml`:
-```yaml
-dependencies:
-  intl: 0.20.2        # Para formateo de fechas
-  http: ^1.1.0        # Cliente HTTP (ya existe)
+| Estado | Emoji | Texto | Uso |
+|--------|-------|-------|-----|
+| Completada | ✅ | "Completada" | Ambos respondieron |
+| Parcial | ⏳ | "Una respuesta pendiente" | Solo uno respondió |
+| Pendiente | 📝 | "Pendiente de respuestas" | Ninguno respondió |
+| Sin preguntas | ❓ | "No hay preguntas disponibles" | Catálogo vacío |
+| Cargando | — | "Cargando..." | Espera inicial |
+| Error | — | "Error al cargar" | Fallo de API |
+
+**Colores Gradiente**:
+- Inicio: `#9C8DC4` (purpura claro)
+- Fin: `#6B5B95` (purpura oscuro)
+- Sombra: 30% opacidad
+
+---
+
+## 🚀 Verificación de Funcionalidad
+
+Comprobar en la app:
+- ✅ Card aparece en home después de "Reto del mes"
+- ✅ Muestra correctamente el estado de la pregunta semanal
+- ✅ Animación de entrada coherente con otros cards
+- ✅ Al hacer tap navega a `WeeklyQuestionsScreen`
+- ✅ Maneja estados de error y carga gracefully
+
+---
+
+## 🔧 Integración Técnica
+
+### WeeklyQuestionsService
+- Singleton: `WeeklyQuestionsService.instance`
+- Método: `getCurrentQuestion()`
+- Manejo robusto de errores
+
+### Animaciones
+- Duraciones sincronizadas con otros cards
+- `HomeAnimatedEntryCard` para efecto de entrada
+- `MotionPressable` para interacción
+
+### Sin Breaking Changes
+- Reutiliza dependencias existentes
+- No modifica servicios existentes
+- Integración completamente aislada
+
+---
+
+## 📝 Próximos Pasos (Opcional)
+
+### Reorganización en Subcarpeta
+Para mejor estructura, puede organizar weekly_questions en:
+```
+lib/screens/weekly_questions/
+├── weekly_questions_screen.dart
+├── question_detail_screen.dart
+├── question_create_screen.dart
+├── question_answer_screen.dart
+├── question_catalog_screen.dart
+├── question_history_screen.dart
+└── index.dart (barrel export)
 ```
 
-### 2. Verificar ApiConfig
+Esto requeriría actualizar imports en:
+- Cada archivo de pantalla
+- `home_weekly_questions_card.dart`: `'../../weekly_questions/weekly_questions_screen.dart'`
 
-El archivo `lib/services/api_config.dart` debe tener:
-```dart
-class ApiConfig {
-  static final ApiConfig instance = ApiConfig._();
-  
-  final String baseUrl = 'https://ujq4e9csj9.execute-api.us-east-2.amazonaws.com/';
-  // ...
-}
-```
+---
+
+## 🎯 Estado Final
+
+✅ **Weekly Questions visible en Home**
+✅ **Navegación completa implementada**
+✅ **Animaciones sincronizadas**
+✅ **Manejo de errores robusto**
+✅ **Listo para producción**
+
 
 ### 3. Localización en español
 

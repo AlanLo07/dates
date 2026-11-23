@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home.dart';
 import 'services/auth_service.dart';
+import 'screens/weekly_questions_screen.dart';
 
 const Color lavandaPalida = Color(0xFFD8C9E7);
 const Color malvaSuave = Color(0xFFB0B6E8);
