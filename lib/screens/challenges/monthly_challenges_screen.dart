@@ -628,7 +628,11 @@ class _MonthlyChallengesScreenState extends State<MonthlyChallengesScreen> {
             _coupon = result.coupon;
           });
         }
-        await _showCoupon(result.coupon, created: result.couponCreated);
+        if (result.coupon != null) {
+          await _showCoupon(result.coupon!, created: result.couponCreated);
+        } else {
+          _showMessage('Reto completado. El cupón se creará cuando ambos lo confirmen.', error: false);
+        }
       });
     }
   }

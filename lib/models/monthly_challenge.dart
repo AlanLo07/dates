@@ -276,13 +276,13 @@ class MonthlyChallengeCoupon {
 class MonthlyChallengeCompletion {
   const MonthlyChallengeCompletion({
     required this.state,
-    required this.coupon,
+    this.coupon,
     required this.couponCreated,
     required this.alreadyCompleted,
   });
 
   final MonthlyChallengeState state;
-  final MonthlyChallengeCoupon coupon;
+  final MonthlyChallengeCoupon? coupon;
   final bool couponCreated;
   final bool alreadyCompleted;
 
@@ -290,12 +290,13 @@ class MonthlyChallengeCompletion {
     final month = json['month'] is Map
         ? Map<String, dynamic>.from(json['month'])
         : <String, dynamic>{};
-    final coupon = json['coupon'] is Map
-        ? Map<String, dynamic>.from(json['coupon'])
-        : <String, dynamic>{};
+    final couponJson = json['coupon'];
+    final coupon = couponJson is Map
+        ? MonthlyChallengeCoupon.fromJson(Map<String, dynamic>.from(couponJson))
+        : null;
     return MonthlyChallengeCompletion(
       state: MonthlyChallengeState.fromJson(month),
-      coupon: MonthlyChallengeCoupon.fromJson(coupon),
+      coupon: coupon,
       couponCreated: json['couponCreated'] == true,
       alreadyCompleted: json['alreadyCompleted'] == true,
     );
