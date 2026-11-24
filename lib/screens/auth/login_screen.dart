@@ -56,6 +56,12 @@ class _LoginScreenState extends State<LoginScreen> {
             email: _emailController.text,
             password: _passwordController.text,
           );
+          if (!mounted) return;
+          
+          // Esperar un frame para asegurar que el estado se ha actualizado completamente
+          await Future.delayed(const Duration(milliseconds: 100));
+          if (!mounted) return;
+          
           widget.onLoginSuccess?.call();
           break;
         case _AuthMode.signup:

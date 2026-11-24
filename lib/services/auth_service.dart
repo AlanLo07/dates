@@ -91,10 +91,38 @@ class AuthService {
 
   Future<bool> isSessionValid() async {
     try {
-      final isValid = await getValidAccessToken() != null;
+      debugPrint('🔵 [AuthService] isSessionValid: validando sesión');
+      final accessToken = await _storage.read(key: _accessTokenKey);
+      
+      // Si no hay token, la sesión no es válida
+      if (accessToken == null || accessToken.isEmpty) {
+        debugPrint('🟡 [AuthService] isSessionValid: sin token de acceso');
+        sessionState.value = false;
+        return false;
+      }
+      
+      final expiresAtRaw = await _storage.read(key: _expiresAtKey);
+      final expiresAt = DateTime.tryParse(expiresAtRaw ?? '');
+      
+      // Verificar que el token no haya expirado
+      if (expiresAt == null) {
+        debugPrint('🟡 [AuthService] isSessionValid: sin fecha de expiración');
+        sessionState.value = false;
+        return false;
+      }
+      
+      final isValid = DateTime.now().add(_expiryMargin).isBefore(expiresAt);
+      
+      if (!isValid) {
+        debugPrint('🟡 [AuthService] isSessionValid: token expirado');
+      } else {
+        debugPrint('🟢 [AuthService] isSessionValid: sesión válida');
+      }
+      
       sessionState.value = isValid;
       return isValid;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('🔴 [AuthService] isSessionValid: error en validación: $e');
       sessionState.value = false;
       return false;
     }
@@ -122,14 +150,20 @@ class AuthService {
 
     final body = _decodeObject(response);
     await _saveTokens(body, refreshToken: body['refreshToken'] as String?);
+    
+    // Guardar email y limpiar displayName si el email cambió
     final previousEmail = await _storage.read(key: _emailKey);
     final previousDisplayName = await _storage.read(key: _displayNameKey);
+    
+    // Esperar a todas las operaciones de almacenamiento antes de marcar la sesión como válida
     await _storage.write(key: _emailKey, value: loginEmail);
     if (previousEmail != loginEmail) {
       await _storage.delete(key: _displayNameKey);
     } else if (previousDisplayName?.trim().isEmpty ?? true) {
       await _storage.delete(key: _displayNameKey);
     }
+    
+    // Marcar sesión como válida DESPUÉS de completar todas las operaciones
     sessionState.value = true;
     debugPrint('🟢 [AuthService] signIn: sesión iniciada');
     return true;

@@ -79,13 +79,17 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   void _onSessionChanged() {
-    if (mounted) _refreshSession();
+    if (mounted) {
+      _refreshSession();
+    }
   }
 
   void _refreshSession() {
-    setState(() {
-      _sessionFuture = _authService.isSessionValid();
-    });
+    if (mounted) {
+      setState(() {
+        _sessionFuture = _authService.isSessionValid();
+      });
+    }
   }
 
   @override
@@ -93,6 +97,7 @@ class _AuthGateState extends State<AuthGate> {
     return FutureBuilder<bool>(
       future: _sessionFuture,
       builder: (context, snapshot) {
+        // Mientras espera la validación inicial
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             backgroundColor: lavandaPalida,
@@ -102,6 +107,12 @@ class _AuthGateState extends State<AuthGate> {
           );
         }
 
+        // Si hay error en la validación, mostrar login
+        if (snapshot.hasError) {
+          return LoginScreen(onLoginSuccess: _refreshSession);
+        }
+
+        // Si la sesión es válida, mostrar home; si no, mostrar login
         if (snapshot.data ?? false) {
           return HomeScreen(onSignedOut: _refreshSession);
         }
