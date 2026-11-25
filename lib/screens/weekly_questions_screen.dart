@@ -126,8 +126,8 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen>
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
-              ? _buildErrorView()
-              : _buildMainView(),
+          ? _buildErrorView()
+          : _buildMainView(),
       floatingActionButton: _buildFAB(),
     );
   }
@@ -294,7 +294,9 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen>
 
   Widget _buildWeekHeader() {
     final formatter = DateFormat('d MMMM', 'es_ES');
-    final weekEnd = _currentWeekResponse.weekEnd.subtract(const Duration(days: 1));
+    final weekEnd = _currentWeekResponse.weekEnd.subtract(
+      const Duration(days: 1),
+    );
     final weekRange =
         '${formatter.format(_currentWeekResponse.weekStart)} - ${formatter.format(weekEnd)}';
 
@@ -303,9 +305,9 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen>
       children: [
         Text(
           'Semana del $weekRange',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Colors.grey[600],
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium?.copyWith(color: Colors.grey[600]),
         ),
       ],
     );
@@ -317,9 +319,9 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen>
       children: [
         Text(
           'Tu respuesta',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         if (currentAnswer != null)
@@ -346,9 +348,9 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen>
                   const SizedBox(height: 8),
                   Text(
                     'Escribe tu respuesta',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -368,9 +370,9 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen>
       children: [
         Text(
           'Respuesta de $partnerName',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         if (partnerAnswer != null)
@@ -394,9 +396,9 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen>
                 const SizedBox(height: 8),
                 Text(
                   '$partnerName aún no responde',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.amber[900],
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.amber[900]),
                 ),
               ],
             ),
@@ -416,9 +418,9 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen>
             child: Center(
               child: Text(
                 'Sin respuesta',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
               ),
             ),
           ),
@@ -451,18 +453,15 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              answer.text,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
+            Text(answer.text, style: Theme.of(context).textTheme.bodyLarge),
             const SizedBox(height: 12),
             Row(
               children: [
                 Text(
                   DateFormat('d/MM/y H:mm', 'es_ES').format(answer.updatedAt),
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.grey[600],
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: Colors.grey[600]),
                 ),
                 if (answer.isEdited())
                   Padding(
@@ -470,9 +469,9 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen>
                     child: Text(
                       '(editada)',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Colors.amber[700],
-                            fontStyle: FontStyle.italic,
-                          ),
+                        color: Colors.amber[700],
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ),
               ],
@@ -585,6 +584,8 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen>
   }
 
   Widget? _buildFAB() {
+    if (_isLoading || _errorMessage != null) return null;
+
     if (_selectedTabIndex == 0) {
       // Pestaña "Actual" - mostrar FAB para responder si es necesario
       final question = _currentWeekResponse.question;

@@ -12,8 +12,7 @@ class WeeklyQuestionsService {
   final String _basePath = 'weekly-questions';
 
   String get _baseUrl {
-    final config = ApiConfig.instance;
-    return '${config.baseUrl}$_basePath';
+    return '${ApiConfig.baseUrl}$_basePath';
   }
 
   /// Obtiene la pregunta de la semana actual
@@ -87,8 +86,12 @@ class WeeklyQuestionsService {
         queryParams['nextToken'] = nextToken;
       }
 
-      final uri = Uri.parse('$_baseUrl/catalog').replace(queryParameters: queryParams);
-      debugPrint('📝 [WeeklyQuestionsService] GET $_baseUrl/catalog $queryParams');
+      final uri = Uri.parse(
+        '$_baseUrl/catalog',
+      ).replace(queryParameters: queryParams);
+      debugPrint(
+        '📝 [WeeklyQuestionsService] GET $_baseUrl/catalog $queryParams',
+      );
 
       final response = await http_client.get(uri);
 
@@ -144,7 +147,9 @@ class WeeklyQuestionsService {
       });
 
       debugPrint('📝 [WeeklyQuestionsService] PUT $_baseUrl/catalog/$id');
-      debugPrint('   Payload: text="${text.trim()}", category="$category", version=$version');
+      debugPrint(
+        '   Payload: text="${text.trim()}", category="$category", version=$version',
+      );
 
       final response = await http_client.put(
         uri,
@@ -239,11 +244,11 @@ class WeeklyQuestionsService {
   }) async {
     try {
       final uri = Uri.parse('$_baseUrl/$questionId/answer');
-      final body = jsonEncode({
-        'text': text.trim(),
-      });
+      final body = jsonEncode({'text': text.trim()});
 
-      debugPrint('📝 [WeeklyQuestionsService] PUT $_baseUrl/$questionId/answer');
+      debugPrint(
+        '📝 [WeeklyQuestionsService] PUT $_baseUrl/$questionId/answer',
+      );
       debugPrint('   Payload: text="${text.trim()}"');
 
       final response = await http_client.put(
@@ -269,10 +274,7 @@ class WeeklyQuestionsService {
     try {
       final json = jsonDecode(response.body) as Map<String, dynamic>;
       final error = json['error'] as String? ?? 'Error desconocido';
-      return ApiException(
-        message: error,
-        statusCode: response.statusCode,
-      );
+      return ApiException(message: error, statusCode: response.statusCode);
     } catch (_) {
       return ApiException(
         message: response.reasonPhrase ?? 'Error desconocido',

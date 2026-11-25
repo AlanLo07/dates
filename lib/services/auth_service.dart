@@ -84,6 +84,9 @@ class AuthService {
   final http.Client _client = http.Client();
   final ValueNotifier<bool> sessionState = ValueNotifier(false);
   Future<String?>? _refreshInFlight;
+  AuthUserInfo? _user;
+
+  AuthUserInfo? get user => _user;
 
   Uri _uri(String path) => Uri.parse(
     ApiConfig.baseUrl,
@@ -93,32 +96,32 @@ class AuthService {
     try {
       debugPrint('🔵 [AuthService] isSessionValid: validando sesión');
       final accessToken = await _storage.read(key: _accessTokenKey);
-      
+
       // Si no hay token, la sesión no es válida
       if (accessToken == null || accessToken.isEmpty) {
         debugPrint('🟡 [AuthService] isSessionValid: sin token de acceso');
         sessionState.value = false;
         return false;
       }
-      
+
       final expiresAtRaw = await _storage.read(key: _expiresAtKey);
       final expiresAt = DateTime.tryParse(expiresAtRaw ?? '');
-      
+
       // Verificar que el token no haya expirado
       if (expiresAt == null) {
         debugPrint('🟡 [AuthService] isSessionValid: sin fecha de expiración');
         sessionState.value = false;
         return false;
       }
-      
+
       final isValid = DateTime.now().add(_expiryMargin).isBefore(expiresAt);
-      
+
       if (!isValid) {
         debugPrint('🟡 [AuthService] isSessionValid: token expirado');
       } else {
         debugPrint('🟢 [AuthService] isSessionValid: sesión válida');
       }
-      
+
       sessionState.value = isValid;
       return isValid;
     } catch (e) {
@@ -150,11 +153,12 @@ class AuthService {
 
     final body = _decodeObject(response);
     await _saveTokens(body, refreshToken: body['refreshToken'] as String?);
-    
+    _user = null;
+
     // Guardar email y limpiar displayName si el email cambió
     final previousEmail = await _storage.read(key: _emailKey);
     final previousDisplayName = await _storage.read(key: _displayNameKey);
-    
+
     // Esperar a todas las operaciones de almacenamiento antes de marcar la sesión como válida
     await _storage.write(key: _emailKey, value: loginEmail);
     if (previousEmail != loginEmail) {
@@ -162,7 +166,7 @@ class AuthService {
     } else if (previousDisplayName?.trim().isEmpty ?? true) {
       await _storage.delete(key: _displayNameKey);
     }
-    
+
     // Marcar sesión como válida DESPUÉS de completar todas las operaciones
     sessionState.value = true;
     debugPrint('🟢 [AuthService] signIn: sesión iniciada');
@@ -319,6 +323,7 @@ class AuthService {
       _storage.delete(key: _displayNameKey),
       _storage.delete(key: _emailKey),
     ]);
+    _user = null;
     sessionState.value = false;
   }
 
@@ -344,15 +349,16 @@ class AuthService {
       throw _exceptionFromResponse(response, 'No se pudo obtener el usuario');
     }
 
-    final user = AuthUserInfo.fromJson(_decodeObject(response));
-    if (user.name.isNotEmpty) {
-      await _storage.write(key: _displayNameKey, value: user.name);
+    final currentUser = AuthUserInfo.fromJson(_decodeObject(response));
+    _user = currentUser;
+    if (currentUser.name.isNotEmpty) {
+      await _storage.write(key: _displayNameKey, value: currentUser.name);
     }
-    if (user.email.isNotEmpty) {
-      await _storage.write(key: _emailKey, value: user.email);
+    if (currentUser.email.isNotEmpty) {
+      await _storage.write(key: _emailKey, value: currentUser.email);
     }
     debugPrint('🟢 [AuthService] getMe: usuario obtenido');
-    return user;
+    return currentUser;
   }
 
   Future<void> _saveTokens(
